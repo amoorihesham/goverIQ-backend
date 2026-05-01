@@ -14,9 +14,5 @@ export async function withTx<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
 }
 
 export function isTx(value: unknown): value is Tx {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    __tx_brand in value
-  );
+  return typeof value === 'object' && value !== null && __tx_brand in value;
 }

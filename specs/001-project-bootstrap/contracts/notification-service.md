@@ -9,7 +9,16 @@ opaque to the caller.
 ```ts
 export type NotificationTemplate =
   | { name: 'email-verification'; payload: { to: string; otp: string; expiresInMinutes: number } }
-  | { name: 'invitation';         payload: { to: string; orgName: string; acceptUrl: string; declineUrl: string; expiresAt: string /* ISO 8601 */ } };
+  | {
+      name: 'invitation';
+      payload: {
+        to: string;
+        orgName: string;
+        acceptUrl: string;
+        declineUrl: string;
+        expiresAt: string; /* ISO 8601 */
+      };
+    };
 
 export interface NotificationService {
   send(notification: NotificationTemplate): Promise<void>;
@@ -44,6 +53,7 @@ returning the service. `transport` is a thin Nodemailer wrapper:
 
 Subject: `Verify your GovernIQ email`
 Body:
+
 ```
 Hello,
 
@@ -60,6 +70,7 @@ If you didn't create a GovernIQ account, you can safely ignore this email.
 
 Subject: `You've been invited to join {orgName} on GovernIQ`
 Body:
+
 ```
 Hello,
 

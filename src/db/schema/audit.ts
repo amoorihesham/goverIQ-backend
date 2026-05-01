@@ -1,11 +1,4 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  timestamp,
-  jsonb,
-  index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
 
 export const auditLogs = pgTable(
   'audit_logs',
@@ -23,6 +16,10 @@ export const auditLogs = pgTable(
     orgCreatedIdx: index('audit_logs_org_created_idx').on(table.orgId, table.createdAt.desc()),
     orgActorIdx: index('audit_logs_org_actor_idx').on(table.orgId, table.actorId),
     orgEventIdx: index('audit_logs_org_event_idx').on(table.orgId, table.event),
-    orgEntityIdx: index('audit_logs_org_entity_idx').on(table.orgId, table.entityType, table.entityId),
+    orgEntityIdx: index('audit_logs_org_entity_idx').on(
+      table.orgId,
+      table.entityType,
+      table.entityId,
+    ),
   }),
 );

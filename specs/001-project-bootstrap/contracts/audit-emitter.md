@@ -8,20 +8,17 @@ Internal contract for the shared audit-emitting function used by every domain mo
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 
 export interface AuditEvent {
-  orgId: string | null;          // nullable per Q1 clarification (auth events have no org)
-  actorId: string | null;        // nullable for system-originated events
-  event: string;                 // dot-namespaced, e.g. "org.created", "user.registered"
-  entityType: string;            // e.g. "organization", "user", "vote"
-  entityId: string | null;       // nullable for events without an entity (logout)
+  orgId: string | null; // nullable per Q1 clarification (auth events have no org)
+  actorId: string | null; // nullable for system-originated events
+  event: string; // dot-namespaced, e.g. "org.created", "user.registered"
+  entityType: string; // e.g. "organization", "user", "vote"
+  entityId: string | null; // nullable for events without an entity (logout)
   payload:
     | { before: Record<string, unknown>; after: Record<string, unknown> }
     | { data: Record<string, unknown> };
 }
 
-export async function emitAudit(
-  tx: PgTransaction<any, any, any>,
-  event: AuditEvent
-): Promise<void>;
+export async function emitAudit(tx: PgTransaction<any, any, any>, event: AuditEvent): Promise<void>;
 ```
 
 ## Rules
@@ -49,9 +46,7 @@ To enforce rule 1 at compile time we expose a branded type:
 declare const __tx_brand: unique symbol;
 export type Tx = PgTransaction<any, any, any> & { readonly [__tx_brand]: true };
 
-export async function withTx<T>(
-  fn: (tx: Tx) => Promise<T>
-): Promise<T> {
+export async function withTx<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   return db.transaction((rawTx) => fn(rawTx as Tx));
 }
 ```
@@ -67,7 +62,7 @@ import { withTx } from '@/shared/database/transaction';
 await withTx(async (tx) => {
   const [user] = await tx.insert(users).values({ email, passwordHash }).returning();
   await emitAudit(tx, {
-    orgId: null,             // pre-org event
+    orgId: null, // pre-org event
     actorId: user.id,
     event: 'user.registered',
     entityType: 'user',

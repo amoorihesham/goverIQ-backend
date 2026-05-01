@@ -34,7 +34,9 @@ export const organizations = pgTable(
     slug: text('slug').notNull().unique(),
     description: text('description'),
     logoUrl: text('logo_url'),
-    quorumThreshold: numeric('quorum_threshold', { precision: 3, scale: 2 }).notNull().default('0.50'),
+    quorumThreshold: numeric('quorum_threshold', { precision: 3, scale: 2 })
+      .notNull()
+      .default('0.50'),
     onboardingStep: onboardingStepEnum('onboarding_step').notNull().default('PENDING_ROLES'),
     archivedAt: timestamp('archived_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),

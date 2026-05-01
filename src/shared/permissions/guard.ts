@@ -8,7 +8,6 @@ import { verifyAccessToken } from '@/shared/auth/jwt';
 import { db } from '@/shared/database/client';
 import { AppError } from '@/shared/errors/http-error';
 
-
 export function requirePermission(permission: PermissionKey) {
   return async (request: FastifyRequest) => {
     try {

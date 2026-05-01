@@ -28,13 +28,7 @@ export async function buildServer() {
       }),
     },
     redact: {
-      paths: [
-        'req.headers.authorization',
-        '*.password',
-        '*.password_hash',
-        '*.otp',
-        '*.token',
-      ],
+      paths: ['req.headers.authorization', '*.password', '*.password_hash', '*.otp', '*.token'],
       remove: true,
     },
   });

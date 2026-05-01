@@ -1,12 +1,4 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  timestamp,
-  pgEnum,
-  uniqueIndex,
-  index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 import { meetings } from './meeting';
 import { votes } from './vote';
@@ -61,6 +53,9 @@ export const minutesCorrections = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
-    minutesIdCreatedIdx: index('minutes_corrections_minutes_created_idx').on(table.minutesId, table.createdAt.desc()),
+    minutesIdCreatedIdx: index('minutes_corrections_minutes_created_idx').on(
+      table.minutesId,
+      table.createdAt.desc(),
+    ),
   }),
 );

@@ -53,7 +53,10 @@ export const meetingAgendaItems = pgTable(
     orderIndex: integer('order_index').notNull(),
   },
   (table) => ({
-    meetingOrderUnique: uniqueIndex('meeting_agenda_items_meeting_order_unique').on(table.meetingId, table.orderIndex),
+    meetingOrderUnique: uniqueIndex('meeting_agenda_items_meeting_order_unique').on(
+      table.meetingId,
+      table.orderIndex,
+    ),
   }),
 );
 

@@ -34,6 +34,7 @@ cp .env.example .env
 ```
 
 Edit `.env` and set at minimum:
+
 - `DATABASE_URL=postgres://groven:groven@localhost:5432/groven_dev`
 - `JWT_SECRET=<paste 32+ random characters>`
 - `SMTP_FROM=noreply@groven.local`
@@ -47,6 +48,7 @@ docker compose up -d
 ```
 
 Brings up:
+
 - Postgres 17 on `localhost:5432` (creds match `.env.example`)
 - Mailpit on `localhost:1025` (SMTP) and `localhost:8025` (web UI)
 
@@ -61,6 +63,7 @@ pnpm db:migrate
 ```
 
 Expected output:
+
 - `Acquired migration advisory lock`
 - `Applied migration 0000_init.sql`
 - `Released migration advisory lock`
@@ -108,6 +111,7 @@ curl -s http://localhost:3000/health | jq
 ```
 
 Expected:
+
 ```json
 {
   "success": true,
@@ -164,6 +168,7 @@ pnpm test
 ```
 
 Expected:
+
 - All unit tests pass (covers env validation, error envelope, audit emitter type
   guard, permission set lookup).
 - All integration tests pass (covers health endpoint, migration runner, permission
@@ -184,15 +189,15 @@ Expected: zero warnings, zero errors (Constitution I).
 
 ## Phase 0 Done When (mapped from implementation plan)
 
-| Criterion | Verified by |
-|-----------|-------------|
-| All 17 tables migrate cleanly from a blank database | Step 4 |
-| Server refuses to start with required env var missing | Step 5 |
-| System permission set is accessible as a typed constant | Unit test (Step 8) |
-| Error types and response helpers produce the correct envelope shapes | Unit test (Step 8) |
-| Audit Emitter is importable and callable inside a transaction | Integration test (Step 8) |
+| Criterion                                                                 | Verified by                                   |
+| ------------------------------------------------------------------------- | --------------------------------------------- |
+| All 17 tables migrate cleanly from a blank database                       | Step 4                                        |
+| Server refuses to start with required env var missing                     | Step 5                                        |
+| System permission set is accessible as a typed constant                   | Unit test (Step 8)                            |
+| Error types and response helpers produce the correct envelope shapes      | Unit test (Step 8)                            |
+| Audit Emitter is importable and callable inside a transaction             | Integration test (Step 8)                     |
 | Notification Service abstraction is wired to a working delivery mechanism | Integration test (Step 8) — sends via Mailpit |
-| Permission Guard correctly resolves membership and enforces Owner bypass | Integration test (Step 8) |
+| Permission Guard correctly resolves membership and enforces Owner bypass  | Integration test (Step 8)                     |
 
 If every step passes, Phase 0 is complete and ready to begin Phase 1 (`/speckit-tasks`
 followed by `/speckit-implement`).

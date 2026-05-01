@@ -14,7 +14,8 @@
       "Bash(pnpm db:generate)",
       "Bash(pnpm build *)",
       "Bash(pnpm lint *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(pnpm type-check *)"
     ]
   }
 }

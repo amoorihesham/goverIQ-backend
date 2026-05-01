@@ -5,7 +5,7 @@
 **Status**: Draft
 **Input**: User description: "Project Bootstrapping — bootstrap a new backend project to start working on project modules (Phase 0)"
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Clean Database Deployment (Priority: P1)
 
@@ -95,7 +95,7 @@ with all variables present and verify the application starts normally.
 - What if the audit emitter is called without a transaction handle? (programming error — must fail loudly, not silently write outside a transaction)
 - What if two concurrent migrations are attempted against the same database simultaneously?
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -146,7 +146,7 @@ with all variables present and verify the application starts normally.
 - **Error Code**: A machine-readable string from the fixed error registry; always paired
   with an HTTP status code and a human-readable message in the response envelope
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

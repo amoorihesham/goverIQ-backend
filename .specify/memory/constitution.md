@@ -24,6 +24,7 @@
 ### I. Code Quality
 
 All code MUST be clean, readable, and maintainable at all times.
+
 - Every function MUST have a single, clearly named responsibility.
 - Dead code, commented-out blocks, and unused imports MUST be removed before merge.
 - Magic numbers and strings MUST be replaced with named constants or configuration values.
@@ -33,6 +34,7 @@ All code MUST be clean, readable, and maintainable at all times.
 ### II. Testing Standards
 
 Testing is non-negotiable and drives implementation.
+
 - Tests MUST be written before implementation (TDD: Red → Green → Refactor).
 - Unit tests MUST cover all business logic; no business logic may be merged untested.
 - Integration tests MUST cover every service boundary and external dependency contract.
@@ -43,6 +45,7 @@ Testing is non-negotiable and drives implementation.
 ### III. API Design Consistency
 
 Every service boundary MUST feel like a single, coherent contract.
+
 - All APIs MUST follow a single, project-wide conventions document (REST, RPC, or GraphQL
   — one style per service; mixing styles in one service is prohibited).
 - Error responses MUST use a consistent structure across all endpoints
@@ -55,6 +58,7 @@ Every service boundary MUST feel like a single, coherent contract.
 ### IV. Performance Requirements
 
 Performance is a feature, not an afterthought.
+
 - API endpoints MUST respond within 200 ms at the 95th percentile under normal load.
 - Background jobs MUST NOT block request-handling threads or degrade response times.
 - Memory usage MUST NOT grow unboundedly; long-running services MUST be profiled quarterly.
@@ -65,6 +69,7 @@ Performance is a feature, not an afterthought.
 ## Quality Gates
 
 Pull requests MUST pass all of the following before merge:
+
 - All tests pass (unit + integration).
 - Linter and formatter report zero warnings.
 - Code coverage remains at or above the 80% threshold.
@@ -87,6 +92,7 @@ Pull requests MUST pass all of the following before merge:
 
 This constitution supersedes all other project practices and agreements.
 Amendments require:
+
 1. A written proposal describing the change and its rationale.
 2. Review and approval by at least two project maintainers.
 3. An update to this file with an incremented version number and today's date.

@@ -19,28 +19,28 @@ paths:
         Returns 200 with status "ok" when the database is reachable.
         Returns 503 with status "degraded" when the database is unreachable.
       responses:
-        "200":
+        '200':
           description: Server is healthy and database is reachable
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthOk"
+                $ref: '#/components/schemas/HealthOk'
               example:
                 success: true
                 data:
-                  status: "ok"
-                  timestamp: "2026-05-01T12:34:56.789Z"
-        "503":
+                  status: 'ok'
+                  timestamp: '2026-05-01T12:34:56.789Z'
+        '503':
           description: Server is running but database is unreachable
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthDegraded"
+                $ref: '#/components/schemas/HealthDegraded'
               example:
                 success: false
                 error:
-                  code: "INTERNAL_ERROR"
-                  message: "Database is unreachable"
+                  code: 'INTERNAL_ERROR'
+                  message: 'Database is unreachable'
                   statusCode: 503
 components:
   schemas:
@@ -57,7 +57,7 @@ components:
           properties:
             status:
               type: string
-              enum: ["ok"]
+              enum: ['ok']
             timestamp:
               type: string
               format: date-time
@@ -75,7 +75,7 @@ components:
           properties:
             code:
               type: string
-              enum: ["INTERNAL_ERROR"]
+              enum: ['INTERNAL_ERROR']
             message:
               type: string
             statusCode:

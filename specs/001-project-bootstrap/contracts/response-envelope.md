@@ -8,7 +8,9 @@ the two shapes below. No endpoint may deviate.
 ```json
 {
   "success": true,
-  "data": { /* endpoint-specific payload */ }
+  "data": {
+    /* endpoint-specific payload */
+  }
 }
 ```
 
@@ -44,7 +46,11 @@ The `src/shared/errors/envelope.ts` module exports:
 
 ```ts
 export function ok<T>(data: T): { success: true; data: T };
-export function fail(code: ErrorCode, message: string, statusCode: number): { success: false; error: { code, message, statusCode } };
+export function fail(
+  code: ErrorCode,
+  message: string,
+  statusCode: number,
+): { success: false; error: { code; message; statusCode } };
 ```
 
 All Fastify handlers route through these helpers (or throw `HttpError` instances which
@@ -58,7 +64,9 @@ For paginated endpoints (Phase 2+):
 {
   "success": true,
   "data": {
-    "items": [ /* ... */ ],
+    "items": [
+      /* ... */
+    ],
     "nextCursor": "<opaque-token-or-null>"
   }
 }
@@ -70,16 +78,29 @@ For paginated endpoints (Phase 2+):
 ## Examples
 
 **201 Create**:
+
 ```json
 { "success": true, "data": { "id": "5e0e…", "name": "Acme Inc." } }
 ```
 
 **404 Not Found**:
+
 ```json
-{ "success": false, "error": { "code": "NOT_FOUND", "message": "Organization not found.", "statusCode": 404 } }
+{
+  "success": false,
+  "error": { "code": "NOT_FOUND", "message": "Organization not found.", "statusCode": 404 }
+}
 ```
 
 **422 State machine violation**:
+
 ```json
-{ "success": false, "error": { "code": "INVALID_STATE_TRANSITION", "message": "Cannot transition meeting from DRAFT directly to COMPLETED.", "statusCode": 422 } }
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_STATE_TRANSITION",
+    "message": "Cannot transition meeting from DRAFT directly to COMPLETED.",
+    "statusCode": 422
+  }
+}
 ```

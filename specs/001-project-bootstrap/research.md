@@ -233,6 +233,7 @@ serializing the response within SC-006's 2-second budget.
 
 **Decision**: Fastify pre-handler factory. Each protected route registers
 `requirePermission('member:invite')` (or similar). The pre-handler:
+
 1. Verifies the JWT and extracts `userId`.
 2. Loads `org_id` from the route param (`:orgId`).
 3. Queries `memberships JOIN roles` filtered by `(user_id, org_id)`. If `roles.is_owner`
@@ -251,20 +252,20 @@ the guard well within its 50 ms budget.
 **Decision**: Single Zod schema in `src/shared/config/env.ts`. Required variables for
 Phase 0:
 
-| Variable | Type | Constraint |
-|----------|------|------------|
-| `NODE_ENV` | enum | `development` / `production` / `test` |
-| `PORT` | number | 1024–65535, default 3000 |
-| `DATABASE_URL` | URL | starts with `postgres://` or `postgresql://` |
-| `JWT_SECRET` | string | min 32 chars |
-| `JWT_ACCESS_TTL_SECONDS` | number | default 900 |
-| `JWT_REFRESH_TTL_SECONDS` | number | default 604800 |
-| `SMTP_HOST` | string | required if `NODE_ENV=production` |
-| `SMTP_PORT` | number | default 1025 (Mailpit) |
-| `SMTP_USER` | string | optional in dev |
-| `SMTP_PASSWORD` | string | min 8 chars in production |
-| `SMTP_FROM` | email | required |
-| `LOG_LEVEL` | enum | `trace`/`debug`/`info`/`warn`/`error`, default `info` |
+| Variable                  | Type   | Constraint                                            |
+| ------------------------- | ------ | ----------------------------------------------------- |
+| `NODE_ENV`                | enum   | `development` / `production` / `test`                 |
+| `PORT`                    | number | 1024–65535, default 3000                              |
+| `DATABASE_URL`            | URL    | starts with `postgres://` or `postgresql://`          |
+| `JWT_SECRET`              | string | min 32 chars                                          |
+| `JWT_ACCESS_TTL_SECONDS`  | number | default 900                                           |
+| `JWT_REFRESH_TTL_SECONDS` | number | default 604800                                        |
+| `SMTP_HOST`               | string | required if `NODE_ENV=production`                     |
+| `SMTP_PORT`               | number | default 1025 (Mailpit)                                |
+| `SMTP_USER`               | string | optional in dev                                       |
+| `SMTP_PASSWORD`           | string | min 8 chars in production                             |
+| `SMTP_FROM`               | email  | required                                              |
+| `LOG_LEVEL`               | enum   | `trace`/`debug`/`info`/`warn`/`error`, default `info` |
 
 The `parse(process.env)` call runs at the top of `main.ts` before anything else; on
 failure it prints a list of failing variables and `process.exit(1)`s within 5 seconds
