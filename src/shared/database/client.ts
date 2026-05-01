@@ -7,7 +7,7 @@ export type DatabaseClient = NeonHttpDatabase<typeof schema> & {
   $client: NeonQueryFunction<any, any>;
 };
 
-export let db: DatabaseClient | null = null;
+export let db: DatabaseClient;
 
 export const createDatabaseClient = (connectionUrl: string) => {
   db = drizzle(connectionUrl, { schema });
