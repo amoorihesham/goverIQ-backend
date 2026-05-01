@@ -8,9 +8,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
+    "types": ["node"],
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*", "tests/**/*"],
