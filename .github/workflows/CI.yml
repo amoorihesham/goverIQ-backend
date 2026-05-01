@@ -28,7 +28,7 @@ jobs:
         run: pnpm install
 
       - name: Type Checking...
-        run: tsc --no-Emit
+        run: pnpm type-check
 
   lint:
     runs-on: ubuntu-latest
