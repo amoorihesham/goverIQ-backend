@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsup src/main.ts --format esm",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc",
     "start": "node dist/main.js",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix",
