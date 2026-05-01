@@ -1,12 +1,13 @@
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 import { afterEach, beforeEach } from 'vitest';
 
-import { db } from '@/shared/database/client';
+import { getDatabaseClient } from '@/shared/database/client';
 
 let currentTx: PgTransaction<any, any, any> | null = null;
 
 export function useDb() {
   beforeEach(async () => {
+    const db = getDatabaseClient();
     currentTx = await db.transaction(async (tx) => {
       return tx;
     });

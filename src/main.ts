@@ -1,37 +1,21 @@
-import pino from 'pino';
-
 import { buildServer } from './server';
+import { createDatabaseClient } from './shared/database/client';
+import { logger } from './shared/logger';
 
-import { validateEnv } from '@/shared/config/env';
 import { runMigrations } from '@/shared/database/migrate';
 
 async function main() {
-  const envValidation = validateEnv();
+  const app = await buildServer();
 
-  if ('errors' in envValidation) {
-    console.error('❌ Environment validation failed:');
-    envValidation.errors.forEach((error) => console.error(`  - ${error}`));
-    process.exit(1);
-  }
+  logger.info('Initializing Database Connection...');
+  const db = createDatabaseClient(app.config.DATABASE_URL);
 
-  const env = envValidation.env;
-  const logger = pino({ level: env.LOG_LEVEL });
+  logger.info('Running database migrations...');
+  await runMigrations(db);
 
-  try {
-    logger.info('Running database migrations...');
-    await runMigrations();
+  logger.info('Building server...');
 
-    logger.info('Building server...');
-    const app = await buildServer();
-
-    logger.info(`Starting server on ${env.HOST}:${env.PORT}...`);
-    await app.listen({ port: env.PORT, host: env.HOST });
-
-    logger.info(`Server listening at http://${env.HOST}:${env.PORT}`);
-  } catch (err) {
-    logger.error({ err }, 'Fatal error during startup');
-    process.exit(1);
-  }
+  await app.listen({ port: app.config.PORT, host: '127.0.0.1' });
 }
 
 main();

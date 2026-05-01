@@ -31,7 +31,7 @@ export async function emitAudit(tx: Tx, event: AuditEvent): Promise<void> {
     throw AppError.internalError('Audit payload too large');
   }
 
-  await (tx as any).insert(auditLogs).values({
+  await tx.insert(auditLogs).values({
     orgId: event.orgId || null,
     actorId: event.actorId || null,
     event: event.event,

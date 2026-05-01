@@ -1,6 +1,7 @@
 import pino from 'pino';
 
-import { db } from '@/shared/database/client';
+import { getDatabaseClient } from '../database/client';
+
 import { success, failure } from '@/shared/errors/envelope';
 import { AppError } from '@/shared/errors/http-error';
 
@@ -8,6 +9,7 @@ const logger = pino();
 
 export async function checkHealth(): Promise<{ status: number; data: any }> {
   try {
+    const db = getDatabaseClient();
     logger.debug('Checking health...');
     await db.execute('SELECT 1');
     const timestamp = new Date().toISOString();

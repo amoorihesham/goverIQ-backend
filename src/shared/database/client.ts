@@ -1,11 +1,24 @@
-import { drizzle } from 'drizzle-orm/neon-http';
+import { NeonQueryFunction } from '@neondatabase/serverless';
+import { drizzle, NeonHttpDatabase } from 'drizzle-orm/neon-http';
 
-const databaseUrl = process.env.DATABASE_URL;
+import * as schema from '@/db/schema';
 
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL environment variable is required');
-}
+export type DatabaseClient = NeonHttpDatabase<typeof schema> & {
+  $client: NeonQueryFunction<any, any>;
+};
 
-export const db = drizzle(databaseUrl);
+let db: DatabaseClient | null = null;
 
-export type DbClient = typeof db;
+export const createDatabaseClient = (connectionUrl: string) => {
+  db = drizzle(connectionUrl, { schema });
+  return db;
+};
+
+export const getDatabaseClient = () => {
+  if (!db)
+    throw new Error(
+      'Database client has not been initialized. Please call createDatabaseClient first.',
+    );
+
+  return db;
+};

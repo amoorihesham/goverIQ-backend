@@ -1,15 +1,14 @@
 import { migrate } from 'drizzle-orm/neon-http/migrator';
-import pino from 'pino';
 
-import { db } from './client';
+import { logger } from '../logger';
+
+import { DatabaseClient } from './client';
 
 import { AppError } from '@/shared/errors/http-error';
 
-const logger = pino();
-
 const MIGRATION_LOCK_ID = 5432001;
 
-export async function runMigrations(): Promise<void> {
+export async function runMigrations(db: DatabaseClient): Promise<void> {
   try {
     logger.info('Acquiring migration advisory lock...');
 
@@ -30,16 +29,4 @@ export async function runMigrations(): Promise<void> {
     }
     throw AppError.migrationLockFailed('Failed to complete migrations');
   }
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runMigrations()
-    .then(() => {
-      logger.info('Migration runner completed');
-      process.exit(0);
-    })
-    .catch((err) => {
-      logger.error({ err }, 'Migration runner failed');
-      process.exit(1);
-    });
 }

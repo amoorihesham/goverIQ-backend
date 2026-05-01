@@ -4,16 +4,15 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node"],
-    "ignoreDeprecations": "6.0"
+    "types": ["node"]
   },
   "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]
