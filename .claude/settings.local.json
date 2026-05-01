@@ -9,7 +9,9 @@
       "PowerShell(.specify/extensions/git/scripts/powershell/auto-commit.ps1 before_implement)",
       "Bash(git -C d:/groven-iq status --short)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm db:generate)"
     ]
   }
 }

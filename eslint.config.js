@@ -4,7 +4,9 @@ import tseslint from 'typescript-eslint';
 import pluginImport from 'eslint-plugin-import';
 
 export default [
-  { ignores: ['dist/', 'node_modules/'] },
+  { ignores: ['dist/', 'node_modules/', '*.d.ts'] },
+  pluginJs.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     files: ['**/*.{js,mjs,cjs,ts}'],
     languageOptions: {
@@ -16,14 +18,13 @@ export default [
       },
     },
     plugins: {
+      '@typescript-eslint': tseslint.plugin,
       import: pluginImport,
     },
     rules: {
-      // Disable rules that conflict with Prettier
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': 'error',
-      'no-explicit-any': 'warn',
-      // Import rules
+      '@typescript-eslint/no-explicit-any': 'warn',
       'import/order': [
         'error',
         {

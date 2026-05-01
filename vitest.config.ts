@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/unit/**/*.{test,spec}.ts', 'tests/integration/**/*.{test,spec}.ts'],
+    include: ['tests/**/*.{test,spec}.ts'],
     exclude: ['node_modules', 'dist'],
     coverage: {
       provider: 'v8',
@@ -15,6 +15,5 @@ export default defineConfig({
       },
     },
     setupFiles: ['./tests/setup.ts'],
-    testTimeout: 30000,
   },
 });
