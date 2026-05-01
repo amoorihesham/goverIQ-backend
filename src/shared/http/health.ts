@@ -1,15 +1,10 @@
+import pino from 'pino';
+
 import { db } from '@/shared/database/client';
 import { success, failure } from '@/shared/errors/envelope';
 import { AppError } from '@/shared/errors/http-error';
-import pino from 'pino';
 
 const logger = pino();
-
-interface HealthResponse {
-  status: 'ok' | 'degraded';
-  timestamp: string;
-  reason?: string;
-}
 
 export async function checkHealth(): Promise<{ status: number; data: any }> {
   try {

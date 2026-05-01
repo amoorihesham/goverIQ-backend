@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, vi } from 'vitest';
-import { db } from '@/shared/database/client';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
+import { afterEach, beforeEach } from 'vitest';
+
+import { db } from '@/shared/database/client';
 
 let currentTx: PgTransaction<any, any, any> | null = null;
 

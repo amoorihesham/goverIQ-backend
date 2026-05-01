@@ -1,6 +1,6 @@
 import { FastifyError, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+
 import { AppError } from './http-error';
-import { ERROR_CODES } from './codes';
 
 export interface SuccessEnvelope<T> {
   success: true;

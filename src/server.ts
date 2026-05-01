@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import pino from 'pino';
+
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
 

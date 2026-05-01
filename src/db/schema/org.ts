@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
+
 import { users } from './auth';
 
 export const onboardingStepEnum = pgEnum('onboarding_step', [

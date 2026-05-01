@@ -1,12 +1,13 @@
 import { migrate } from 'drizzle-orm/neon-http/migrator';
-import { db } from './client';
-import { AppError } from '@/shared/errors/http-error';
 import pino from 'pino';
+
+import { db } from './client';
+
+import { AppError } from '@/shared/errors/http-error';
 
 const logger = pino();
 
 const MIGRATION_LOCK_ID = 5432001;
-const LOCK_TIMEOUT_MS = 30000;
 
 export async function runMigrations(): Promise<void> {
   try {

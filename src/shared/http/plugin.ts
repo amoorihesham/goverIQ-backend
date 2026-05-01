@@ -1,12 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { checkHealth } from './health';
-import { z } from 'zod';
 
-const healthResponseSchema = z.object({
-  status: z.enum(['ok', 'degraded']),
-  timestamp: z.string().datetime(),
-  reason: z.string().optional(),
-});
+import { checkHealth } from './health';
 
 export async function registerHealthPlugin(fastify: FastifyInstance) {
   fastify.get(

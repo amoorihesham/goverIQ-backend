@@ -8,6 +8,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
+
 import { organizations } from './org';
 import { memberships } from './org';
 

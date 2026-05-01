@@ -7,6 +7,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
+
 import { meetings } from './meeting';
 import { votes } from './vote';
 
