@@ -1,0 +1,83 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Health Check
+  version: 0.1.0
+  description: |
+    Phase 0 health-check endpoint. Used by load balancers and uptime monitors.
+    No authentication required. Performs a lightweight database connectivity check.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /health:
+    get:
+      summary: Server health check
+      operationId: getHealth
+      description: |
+        Returns the operational status of the server. Performs a lightweight
+        `SELECT 1` against the database with a 1-second timeout (FR-009, SC-006).
+        Returns 200 with status "ok" when the database is reachable.
+        Returns 503 with status "degraded" when the database is unreachable.
+      responses:
+        "200":
+          description: Server is healthy and database is reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthOk"
+              example:
+                success: true
+                data:
+                  status: "ok"
+                  timestamp: "2026-05-01T12:34:56.789Z"
+        "503":
+          description: Server is running but database is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthDegraded"
+              example:
+                success: false
+                error:
+                  code: "INTERNAL_ERROR"
+                  message: "Database is unreachable"
+                  statusCode: 503
+components:
+  schemas:
+    HealthOk:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [status, timestamp]
+          properties:
+            status:
+              type: string
+              enum: ["ok"]
+            timestamp:
+              type: string
+              format: date-time
+              description: ISO 8601 UTC timestamp at the moment of the check
+    HealthDegraded:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code:
+              type: string
+              enum: ["INTERNAL_ERROR"]
+            message:
+              type: string
+            statusCode:
+              type: integer
+              enum: [503]

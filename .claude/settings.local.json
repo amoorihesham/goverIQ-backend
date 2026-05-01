@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(& \"d:\\\\groven-iq\\\\.specify\\\\extensions\\\\git\\\\scripts\\\\powershell\\\\initialize-repo.ps1\")",
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
+      "Bash(ConvertFrom-Json)",
+      "Bash(ConvertTo-Json -Depth 10)",
+      "PowerShell(.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
+      "PowerShell(.specify/extensions/git/scripts/powershell/auto-commit.ps1 before_implement)",
+      "Bash(git -C d:/groven-iq status --short)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
