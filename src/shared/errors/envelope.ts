@@ -2,6 +2,9 @@ import { FastifyError, FastifyInstance, FastifyRequest, FastifyReply } from 'fas
 
 import { AppError } from './http-error';
 
+import { getConstraintName, isUniqueViolation } from '@/shared/database/errors';
+
+
 export interface SuccessEnvelope<T> {
   success: true;
   data: T;
@@ -43,6 +46,12 @@ function isValidationError(err: FastifyError | Error): err is FastifyError {
   );
 }
 
+// Maps PostgreSQL unique-constraint names to domain errors.
+// Add an entry here whenever a new unique index is added to the schema.
+const UNIQUE_CONSTRAINT_MAP: Record<string, () => AppError> = {
+  users_email_idx: () => AppError.duplicateEmail(),
+};
+
 export function createErrorHandler(fastify: FastifyInstance) {
   return async (err: FastifyError | Error, _req: FastifyRequest, reply: FastifyReply) => {
     if (err instanceof AppError) {
@@ -54,8 +63,14 @@ export function createErrorHandler(fastify: FastifyInstance) {
       return reply.status(appErr.statusCode).send(failure(appErr));
     }
 
-    const internalError = AppError.internalError();
+    if (isUniqueViolation(err)) {
+      const constraint = getConstraintName(err);
+      const factory = constraint ? UNIQUE_CONSTRAINT_MAP[constraint] : undefined;
+      const appErr = factory?.() ?? AppError.conflict();
+      return reply.status(appErr.statusCode).send(failure(appErr));
+    }
+
     fastify.log.error({ err }, 'Unhandled error');
-    return reply.status(internalError.statusCode).send(failure(internalError));
+    return reply.status(500).send(failure(AppError.internalError()));
   };
 }

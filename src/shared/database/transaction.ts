@@ -2,9 +2,10 @@ import type { ExtractTablesWithRelations } from 'drizzle-orm';
 import type { NeonQueryResultHKT } from 'drizzle-orm/neon-serverless';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 
+import { getDatabaseClient } from './client';
+
 import * as schema from '@/db/schema';
 
-import { getDatabaseClient } from './client';
 
 export type Tx = PgTransaction<
   NeonQueryResultHKT,

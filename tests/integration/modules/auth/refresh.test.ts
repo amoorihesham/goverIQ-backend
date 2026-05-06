@@ -2,8 +2,9 @@ import { randomUUID } from 'crypto';
 
 import { eq } from 'drizzle-orm';
 import { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { truncateAuthTables } from '../../helpers/db';
 import { buildAuthTestServer } from '../../helpers/server';
 
 import { refreshTokens, users } from '@/db/schema/auth';
@@ -15,6 +16,8 @@ let app: FastifyInstance;
 beforeAll(async () => {
   app = await buildAuthTestServer();
 });
+
+beforeEach(truncateAuthTables);
 
 afterAll(async () => {
   await app.close();

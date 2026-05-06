@@ -1,10 +1,11 @@
 import fastifyCookie from '@fastify/cookie';
 import Fastify from 'fastify';
+
 import { authPlugin } from './modules/auth';
+import { env } from './shared/config/env';
 
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
-import { env } from './shared/config/env';
 
 export async function buildApp() {
   const fastify = Fastify({

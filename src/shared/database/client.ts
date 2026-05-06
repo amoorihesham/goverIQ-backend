@@ -1,24 +1,35 @@
-import { neonConfig, Pool } from '@neondatabase/serverless';
-import { drizzle, NeonDatabase } from 'drizzle-orm/neon-serverless';
+import { neonConfig, Pool as NeonPool } from '@neondatabase/serverless';
+import { drizzle as neonDrizzle, NeonDatabase } from 'drizzle-orm/neon-serverless';
+import { drizzle as pgDrizzle } from 'drizzle-orm/node-postgres';
+import { Pool as PgPool } from 'pg';
 
 import * as schema from '@/db/schema';
 
-// Node.js v21+ has native WebSocket; required for Pool/transaction support
 neonConfig.webSocketConstructor = WebSocket;
 
 export type DatabaseClient = NeonDatabase<typeof schema> & {
-  $client: Pool;
+  $client: NeonPool;
 };
 
-let _pool: Pool | null = null;
+let _pool: NeonPool | PgPool | null = null;
 export let db: DatabaseClient;
+export let isNeonConnection = false;
 
-export const createDatabaseClient = (connectionUrl: string) => {
+export const createDatabaseClient = (connectionUrl: string): DatabaseClient => {
   if (_pool) {
     void _pool.end();
   }
-  _pool = new Pool({ connectionString: connectionUrl });
-  db = drizzle(_pool, { schema }) as DatabaseClient;
+
+  isNeonConnection = connectionUrl.includes('.neon.tech');
+
+  if (isNeonConnection) {
+    _pool = new NeonPool({ connectionString: connectionUrl });
+    db = neonDrizzle(_pool, { schema }) as DatabaseClient;
+  } else {
+    _pool = new PgPool({ connectionString: connectionUrl });
+    db = pgDrizzle(_pool, { schema }) as unknown as DatabaseClient;
+  }
+
   return db;
 };
 

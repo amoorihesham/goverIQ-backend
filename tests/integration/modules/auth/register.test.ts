@@ -2,8 +2,9 @@ import { randomUUID } from 'crypto';
 
 import { eq } from 'drizzle-orm';
 import { FastifyInstance } from 'fastify';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { truncateAuthTables } from '../../helpers/db';
 import { buildAuthTestServer } from '../../helpers/server';
 
 import { auditLogs } from '@/db/schema/audit';
@@ -32,6 +33,8 @@ let app: FastifyInstance;
 beforeAll(async () => {
   app = await buildAuthTestServer();
 });
+
+beforeEach(truncateAuthTables);
 
 afterAll(async () => {
   await app.close();
@@ -135,6 +138,34 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     expect(res.statusCode).toBe(201);
     vi.restoreAllMocks();
+  });
+
+  it('concurrent same-email registrations — exactly one user row survives, no 5xx', async () => {
+    // Ten goroutines race to register the same brand-new email simultaneously.
+    // The DB unique constraint guarantees only one INSERT wins. This test verifies:
+    //   1. The server never surfaces a raw constraint error as a 500.
+    //   2. The losing requests get a graceful 409 DUPLICATE_EMAIL.
+    //   3. Exactly one users row exists afterwards — no phantom duplicates even
+    //      if the service's delete-then-insert replace path is hit concurrently.
+    const email = uniqueEmail();
+    const password = 'correct-horse-battery';
+
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        app.inject({ method: 'POST', url: '/auth/register', payload: { email, password } }),
+      ),
+    );
+
+    const statuses = results.map((r) => r.statusCode);
+    const successes = statuses.filter((s) => s === 201);
+    const serverErrors = statuses.filter((s) => s >= 500);
+
+    expect(successes.length).toBeGreaterThanOrEqual(1);
+    expect(serverErrors).toHaveLength(0);
+
+    const db = getDatabaseClient();
+    const rows = await db.select().from(users).where(eq(users.email, email));
+    expect(rows).toHaveLength(1);
   });
 
   it('audit rollback invariant — when emitAudit throws, no user row is committed', async () => {

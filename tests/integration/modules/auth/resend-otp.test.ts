@@ -2,8 +2,9 @@ import { randomUUID } from 'crypto';
 
 import { eq } from 'drizzle-orm';
 import { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { truncateAuthTables } from '../../helpers/db';
 import { buildAuthTestServer } from '../../helpers/server';
 
 import { emailVerifications, users } from '@/db/schema/auth';
@@ -16,6 +17,8 @@ let app: FastifyInstance;
 beforeAll(async () => {
   app = await buildAuthTestServer();
 });
+
+beforeEach(truncateAuthTables);
 
 afterAll(async () => {
   await app.close();
@@ -107,6 +110,39 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
     expect(cooldownRes.statusCode).toBe(422);
     expect(unknownRes.statusCode).toBe(422);
     expect(cooldownRes.body).toBe(unknownRes.body);
+  });
+
+  it('422 OTP_COOLDOWN at cooldown boundary − 1s (59s ago, still blocked)', async () => {
+    // The cooldown is OTP_RESEND_COOLDOWN_SEC=60. At 59 s the window has not
+    // elapsed yet, so the server must reject. This pins the off-by-one: if the
+    // comparison were `<` instead of `<=` this test would flip to 200.
+    const email = uniqueEmail();
+    await createUnverifiedUserWithVerification(email, 59);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/resend-otp',
+      payload: { email },
+    });
+
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error.code).toBe('OTP_COOLDOWN');
+  });
+
+  it('200 at cooldown boundary + 1s (61s ago, just allowed)', async () => {
+    // At 61 s the cooldown has fully elapsed. This is the mirror of the test
+    // above: both together prove the boundary is [0, 60] closed, not open.
+    const email = uniqueEmail();
+    await createUnverifiedUserWithVerification(email, 61);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/resend-otp',
+      payload: { email },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.message).toBe('Verification code resent.');
   });
 
   it('422 OTP_COOLDOWN for verified user — byte-equal parity (no purpose post-verification)', async () => {

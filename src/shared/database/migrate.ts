@@ -1,12 +1,14 @@
-import { migrate } from 'drizzle-orm/neon-serverless/migrator';
+import { migrate as neonMigrate } from 'drizzle-orm/neon-serverless/migrator';
+import { migrate as pgMigrate } from 'drizzle-orm/node-postgres/migrator';
 
 import { logger } from '../logger';
 
-import { DatabaseClient } from './client';
+import { DatabaseClient, isNeonConnection } from './client';
 
 import { AppError } from '@/shared/errors/http-error';
 
 const MIGRATION_LOCK_ID = 5432001;
+const MIGRATIONS_FOLDER = 'src/db/migrations';
 
 export async function runMigrations(db: DatabaseClient): Promise<void> {
   try {
@@ -16,7 +18,11 @@ export async function runMigrations(db: DatabaseClient): Promise<void> {
     logger.info('Acquired migration advisory lock');
 
     logger.info('Running migrations...');
-    await migrate(db, { migrationsFolder: 'src/db/migrations' });
+    if (isNeonConnection) {
+      await neonMigrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+    } else {
+      await pgMigrate(db as never, { migrationsFolder: MIGRATIONS_FOLDER });
+    }
     logger.info('Migrations completed successfully');
 
     logger.info('Releasing migration advisory lock');

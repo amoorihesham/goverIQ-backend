@@ -17,13 +17,13 @@ import {
 import { emailVerifications, refreshTokens, users } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';
 import { signAccessToken } from '@/shared/auth/jwt';
+import { env } from '@/shared/config/env';
 import type { DatabaseClient } from '@/shared/database/client';
 import type { Tx } from '@/shared/database/transaction';
 import { AppError } from '@/shared/errors/http-error';
 import { logger } from '@/shared/logger';
 import { notificationService } from '@/shared/notifications/service';
 import { buildEmailVerificationEmail } from '@/shared/notifications/templates/email-verification';
-import { env } from '@/shared/config/env';
 
 export interface SessionResult {
   accessToken: string;
@@ -79,10 +79,16 @@ export function createAuthService(db: DatabaseClient) {
         }
 
         const passwordHash = await hashPassword(input.password);
+        // onConflictDoNothing makes the INSERT atomic: if two concurrent
+        // transactions both pass the findFirst check above (both see no row)
+        // and race to INSERT, the loser gets an empty result instead of a
+        // 23505 constraint error. No try/catch needed in the service.
         const [createdUser] = await tx
           .insert(users)
           .values({ email: input.email, passwordHash })
+          .onConflictDoNothing()
           .returning();
+        if (!createdUser) throw AppError.duplicateEmail();
 
         await tx.insert(emailVerifications).values({
           userId: createdUser!.id,

@@ -12,6 +12,9 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.{test,spec}.ts'],
     exclude: ['node_modules', 'dist'],
+    // Integration tests share a single Postgres instance; sequential execution
+    // prevents a beforeEach truncation in one file from wiping another file's live data.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

@@ -1,8 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { signAccessToken } from '@/shared/auth/jwt';
 
 import { buildAuthTestServer } from '../../helpers/server';
+
+import { signAccessToken } from '@/shared/auth/jwt';
+
 
 let app: FastifyInstance;
 

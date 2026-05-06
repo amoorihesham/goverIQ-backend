@@ -1,38 +1,12 @@
-import type { PgTransaction } from 'drizzle-orm/pg-core';
-import { afterEach, beforeEach } from 'vitest';
+import { sql } from 'drizzle-orm';
 
 import { getDatabaseClient } from '@/shared/database/client';
 
-let currentTx: PgTransaction<any, any, any> | null = null;
-let rejectTx: ((err: Error) => void) | null = null;
-
-export function useDb() {
-  beforeEach(async () => {
-    const db = getDatabaseClient();
-    await new Promise<void>((readyResolve) => {
-      db.transaction(async (tx) => {
-        currentTx = tx;
-        readyResolve();
-        await new Promise<void>((_, reject) => {
-          rejectTx = reject;
-        });
-      }).catch(() => {
-      });
-    });
-  });
-
-  afterEach(async () => {
-    rejectTx?.(new Error('rollback'));
-    currentTx = null;
-    rejectTx = null;
-  });
-
-  return {
-    get tx() {
-      if (!currentTx) {
-        throw new Error('Transaction not initialized. Make sure useDb() is called in the test.');
-      }
-      return currentTx;
-    },
-  };
+// Truncation order matters: child tables before parent, though CASCADE handles it.
+// audit_logs has no FK to users so it's listed first for clarity.
+export async function truncateAuthTables(): Promise<void> {
+  const db = getDatabaseClient();
+  await db.execute(
+    sql`TRUNCATE TABLE audit_logs, refresh_tokens, email_verifications, users RESTART IDENTITY CASCADE`,
+  );
 }

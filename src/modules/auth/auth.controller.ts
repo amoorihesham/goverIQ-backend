@@ -8,9 +8,9 @@ import {
   VerifyRequestType,
 } from './types/request';
 
+import { env } from '@/shared/config/env';
 import type { DatabaseClient } from '@/shared/database/client';
 import { success } from '@/shared/errors/envelope';
-import { env } from '@/shared/config/env';
 
 export const createAuthController = (db: DatabaseClient) => {
   const service = createAuthService(db);

@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
-import { AppError } from '@/shared/errors/http-error';
+
 import { env } from '../config/env';
+
+import { AppError } from '@/shared/errors/http-error';
 
 export interface AccessTokenPayload {
   sub: string;
