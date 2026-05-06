@@ -22,9 +22,8 @@ afterEach(async () => {
   const { emitAudit } = await import('@/shared/audit/emitter');
   vi.mocked(emitAudit).mockReset();
   // Restore the real implementation as the default; tests opt in to mock behavior.
-  const original = await vi.importActual<typeof import('@/shared/audit/emitter')>(
-    '@/shared/audit/emitter',
-  );
+  const original =
+    await vi.importActual<typeof import('@/shared/audit/emitter')>('@/shared/audit/emitter');
   vi.mocked(emitAudit).mockImplementation(original.emitAudit);
 });
 
@@ -144,21 +143,18 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
     vi.mocked(emitAudit).mockRejectedValueOnce(new Error('forced DB failure'));
 
     const { createAuthService } = await import('@/modules/auth/auth.service');
-    const { loadEnv } = await import('@/shared/config/env');
-    const env = loadEnv();
+
     const svc = createAuthService(getDatabaseClient(), {
-      ENV: env.NODE_ENV,
-      JWT_SECRET: env.JWT_SECRET,
-      OTP_TTL_MS: env.OTP_TTL,
-      OTP_RESEND_COOLDOWN_SEC: env.OTP_RESEND_COOLDOWN_SEC,
-      ACCESS_TTL_SECONDS: env.ACCESS_TTL_SECONDS,
-      REFRESH_TTL_SECONDS: env.REFRESH_TTL_SECONDS,
-      REFRESH_COOKIE_NAME: env.REFRESH_COOKIE_NAME,
+      ENV: app.config.NODE_ENV,
+      JWT_SECRET: app.config.JWT_SECRET,
+      OTP_TTL_MS: app.config.OTP_TTL,
+      OTP_RESEND_COOLDOWN_SEC: app.config.OTP_RESEND_COOLDOWN_SEC,
+      ACCESS_TTL_SECONDS: app.config.ACCESS_TTL_SECONDS,
+      REFRESH_TTL_SECONDS: app.config.REFRESH_TTL_SECONDS,
+      REFRESH_COOKIE_NAME: app.config.REFRESH_COOKIE_NAME,
     });
 
-    await expect(
-      svc.register({ email, password: 'correct-horse-battery' }),
-    ).rejects.toThrow();
+    await expect(svc.register({ email, password: 'correct-horse-battery' })).rejects.toThrow();
 
     const db = getDatabaseClient();
     const userRows = await db.select().from(users).where(eq(users.email, email));

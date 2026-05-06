@@ -2,8 +2,11 @@ import { and, count, eq } from 'drizzle-orm';
 
 import { generateOtp, hashOtp } from './otp';
 import { dummyVerifyPassword, hashPassword, verifyPassword } from './password';
-import { generateRefreshTokenCleartext, hashRefreshToken, parseUserIdFromCleartext } from './tokens';
-import type { AuthModuleConfig } from './types';
+import {
+  generateRefreshTokenCleartext,
+  hashRefreshToken,
+  parseUserIdFromCleartext,
+} from './tokens';
 import {
   LoginRequestType,
   RegisterRequestType,
@@ -20,13 +23,14 @@ import { AppError } from '@/shared/errors/http-error';
 import { logger } from '@/shared/logger';
 import { notificationService } from '@/shared/notifications/service';
 import { buildEmailVerificationEmail } from '@/shared/notifications/templates/email-verification';
+import { env } from '@/shared/config/env';
 
 export interface SessionResult {
   accessToken: string;
   refreshTokenCleartext: string;
 }
 
-export function createAuthService(db: DatabaseClient, config: AuthModuleConfig) {
+export function createAuthService(db: DatabaseClient) {
   async function issueSessionWithinTx(
     tx: Tx,
     user: { id: string; email: string },
@@ -38,13 +42,13 @@ export function createAuthService(db: DatabaseClient, config: AuthModuleConfig) 
     await tx.insert(refreshTokens).values({
       userId: user.id,
       tokenHash,
-      expiresAt: new Date(Date.now() + config.REFRESH_TTL_SECONDS * 1000),
+      expiresAt: new Date(Date.now() + env.REFRESH_TTL_SECONDS * 1000),
     });
 
     const accessToken = await signAccessToken(
       { sub: user.id, email: user.email },
-      config.JWT_SECRET,
-      config.ACCESS_TTL_SECONDS,
+      env.JWT_SECRET,
+      env.ACCESS_TTL_SECONDS,
     );
 
     return { accessToken, refreshTokenCleartext };
@@ -53,7 +57,7 @@ export function createAuthService(db: DatabaseClient, config: AuthModuleConfig) 
   function sendOtpEmail(email: string, code: string): void {
     const { subject, text } = buildEmailVerificationEmail({
       otp: code,
-      expiresInMinutes: Math.round(config.OTP_TTL_MS / 1000 / 60),
+      expiresInMinutes: Math.round(env.OTP_TTL_MS / 1000 / 60),
     });
     notificationService
       .send(email, subject, text)
@@ -83,7 +87,7 @@ export function createAuthService(db: DatabaseClient, config: AuthModuleConfig) 
         await tx.insert(emailVerifications).values({
           userId: createdUser!.id,
           otpHash,
-          expiresAt: new Date(Date.now() + config.OTP_TTL_MS),
+          expiresAt: new Date(Date.now() + env.OTP_TTL_MS),
           lastSentAt: new Date(),
         });
 
@@ -247,7 +251,7 @@ export function createAuthService(db: DatabaseClient, config: AuthModuleConfig) 
         if (!verification) throw AppError.otpCooldown();
 
         const secondsSinceLastSent = (Date.now() - verification.lastSentAt.getTime()) / 1000;
-        if (secondsSinceLastSent < config.OTP_RESEND_COOLDOWN_SEC) {
+        if (secondsSinceLastSent < env.OTP_RESEND_COOLDOWN_SEC) {
           throw AppError.otpCooldown();
         }
 
@@ -257,7 +261,7 @@ export function createAuthService(db: DatabaseClient, config: AuthModuleConfig) 
           .update(emailVerifications)
           .set({
             otpHash,
-            expiresAt: new Date(Date.now() + config.OTP_TTL_MS),
+            expiresAt: new Date(Date.now() + env.OTP_TTL_MS),
             lastSentAt: new Date(),
           })
           .where(and(eq(emailVerifications.userId, user.id)));

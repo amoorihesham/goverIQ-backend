@@ -1,35 +1,22 @@
 import fastifyCookie from '@fastify/cookie';
-import fastifyEnv from '@fastify/env';
 import Fastify from 'fastify';
-
-import { fastifySchema } from './shared/config/env';
-import { logger } from './shared/logger';
-import { runMigrations } from './shared/database/migrate';
-import { createDatabaseClient } from './shared/database/client';
 import { authPlugin } from './modules/auth';
 
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
+import { env } from './shared/config/env';
 
-export async function buildServer() {
+export async function buildApp() {
   const fastify = Fastify({
     logger: {
       transport: { target: 'pino-pretty', options: { colorize: true } },
     },
   });
 
-  await fastify.register(fastifyEnv, { dotenv: true, schema: fastifySchema });
-
   await fastify.register(fastifyCookie, {
-    secret: fastify.config.COOKIE_SECRET,
+    secret: env.COOKIE_SECRET,
     hook: 'onRequest',
   });
-
-  logger.info('Initializing Database Connection...');
-  const db = createDatabaseClient(fastify.config.DATABASE_URL);
-
-  logger.info('Running database migrations...');
-  await runMigrations(db);
 
   fastify.setErrorHandler(createErrorHandler(fastify));
 

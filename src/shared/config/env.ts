@@ -1,26 +1,31 @@
-import { config as loadDotenv } from 'dotenv';
+import dotenv from 'dotenv';
 import { z } from 'zod';
+import { logger } from '../logger';
+
+const envFilePath = `.env.${process.env.NODE_ENV}`;
+dotenv.config({ path: envFilePath });
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().default(3000),
-  HOST: z.string().default('127.0.0.1'),
-  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  NODE_ENV: z.enum(
+    ['development', 'production', 'test'],
+    'NODE_ENV must be one of development, production, or test',
+  ),
+  PORT: z.coerce.number('PORT must be a number').int().positive(),
+  HOST: z.string('HOST must be a valid string'),
+  LOG_LEVEL: z.enum(
+    ['debug', 'info', 'warn', 'error', 'fatal'],
+    'LOG_LEVEL must be one of debug, info, warn, error, or fatal',
+  ),
 
   DATABASE_URL: z.string('DATABASE_URL must be a valid URL'),
 
-  PASSWORD_SALT_ROUNDS: z.coerce.number().int().positive(),
-
-  OTP_LENGTH: z.coerce.number().int().positive(),
-  OTP_TTL: z.coerce.number().int().positive(),
-  OTP_RESEND_COOLDOWN_SEC: z.coerce.number().int().positive(),
-
-  ACCESS_TTL_SECONDS: z.coerce.number().int().positive(),
-  REFRESH_TTL_SECONDS: z.coerce.number().int().positive(),
-  REFRESH_COOKIE_NAME: z.string().default('refresh_token'),
-
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET must be at least 32 characters'),
+  REFRESH_COOKIE_NAME: z.string('REFRESH_COOKIE_NAME must be a valid string'),
+  ACCESS_TTL_SECONDS: z.coerce.number('ACCESS_TTL_SECONDS must be a number'),
+  REFRESH_TTL_SECONDS: z.coerce.number('REFRESH_TTL_SECONDS must be a number'),
+  OTP_TTL_MS: z.coerce.number('OTP_TTL_MS must be a number'),
+  OTP_RESEND_COOLDOWN_SEC: z.coerce.number('OTP_RESEND_COOLDOWN_SEC must be a number'),
 
   SMTP_HOST: z.string(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
@@ -30,13 +35,15 @@ const envSchema = z.object({
 });
 
 export type Env = z.infer<typeof envSchema>;
-export const fastifySchema = z.toJSONSchema(envSchema, { target: 'draft-07' });
 
-let cached: Env | null = null;
+const parsed = envSchema.safeParse(process.env);
 
-export function loadEnv(): Env {
-  if (cached) return cached;
-  loadDotenv();
-  cached = envSchema.parse(process.env);
-  return cached;
+if (!parsed.success) {
+  logger.error('❌ Invalid environment variables.');
+  logger.error(parsed.error.flatten());
+  process.exit(1);
 }
+
+export const env = parsed.data;
+
+// export const fastifySchema = z.toJSONSchema(envSchema, { target: 'draft-07' });

@@ -1,7 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 import { createAuthService } from './auth.service';
-import type { AuthModuleConfig } from './types';
 import {
   LoginRequestType,
   RegisterRequestType,
@@ -11,23 +10,24 @@ import {
 
 import type { DatabaseClient } from '@/shared/database/client';
 import { success } from '@/shared/errors/envelope';
+import { env } from '@/shared/config/env';
 
-export const createAuthController = (db: DatabaseClient, config: AuthModuleConfig) => {
-  const service = createAuthService(db, config);
+export const createAuthController = (db: DatabaseClient) => {
+  const service = createAuthService(db);
 
   function refreshCookieAttrs() {
     return {
       httpOnly: true,
-      secure: config.ENV === 'production',
+      secure: env.NODE_ENV === 'production',
       sameSite: 'lax' as const,
       path: '/',
       signed: true,
-      maxAge: config.REFRESH_TTL_SECONDS,
+      maxAge: env.REFRESH_TTL_SECONDS,
     };
   }
 
   function readRefreshCookie(request: FastifyRequest): string | undefined {
-    const raw = request.cookies[config.REFRESH_COOKIE_NAME];
+    const raw = request.cookies[env.REFRESH_COOKIE_NAME];
     if (!raw) return undefined;
     const unsigned = request.unsignCookie(raw);
     return unsigned.valid && unsigned.value ? unsigned.value : undefined;
@@ -47,11 +47,7 @@ export const createAuthController = (db: DatabaseClient, config: AuthModuleConfi
       reply: FastifyReply,
     ) => {
       const session = await service.verifyEmail(request.body);
-      reply.setCookie(
-        config.REFRESH_COOKIE_NAME,
-        session.refreshTokenCleartext,
-        refreshCookieAttrs(),
-      );
+      reply.setCookie(env.REFRESH_COOKIE_NAME, session.refreshTokenCleartext, refreshCookieAttrs());
       return reply.status(200).send(success({ accessToken: session.accessToken }));
     },
 
@@ -65,31 +61,23 @@ export const createAuthController = (db: DatabaseClient, config: AuthModuleConfi
 
     login: async (request: FastifyRequest<{ Body: LoginRequestType }>, reply: FastifyReply) => {
       const session = await service.login(request.body);
-      reply.setCookie(
-        config.REFRESH_COOKIE_NAME,
-        session.refreshTokenCleartext,
-        refreshCookieAttrs(),
-      );
+      reply.setCookie(env.REFRESH_COOKIE_NAME, session.refreshTokenCleartext, refreshCookieAttrs());
       return reply.status(200).send(success({ accessToken: session.accessToken }));
     },
 
     refresh: async (request: FastifyRequest, reply: FastifyReply) => {
       const cleartext = readRefreshCookie(request);
       const session = await service.refresh(cleartext);
-      reply.setCookie(
-        config.REFRESH_COOKIE_NAME,
-        session.refreshTokenCleartext,
-        refreshCookieAttrs(),
-      );
+      reply.setCookie(env.REFRESH_COOKIE_NAME, session.refreshTokenCleartext, refreshCookieAttrs());
       return reply.status(200).send(success({ accessToken: session.accessToken }));
     },
 
     logout: async (request: FastifyRequest, reply: FastifyReply) => {
       const cleartext = readRefreshCookie(request);
       await service.logout(cleartext);
-      reply.clearCookie(config.REFRESH_COOKIE_NAME, {
+      reply.clearCookie(env.REFRESH_COOKIE_NAME, {
         httpOnly: true,
-        secure: config.ENV === 'production',
+        secure: env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
       });

@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
-
-import { loadEnv } from '@/shared/config/env';
 import { AppError } from '@/shared/errors/http-error';
+import { env } from '../config/env';
 
 export interface AccessTokenPayload {
   sub: string;
@@ -10,7 +9,7 @@ export interface AccessTokenPayload {
 
 function getSecret(secret?: string): string {
   if (secret) return secret;
-  return loadEnv().JWT_SECRET;
+  return env.JWT_SECRET;
 }
 
 export async function signAccessToken(
@@ -18,7 +17,6 @@ export async function signAccessToken(
   secret?: string,
   expiresInSeconds?: number,
 ): Promise<string> {
-  const env = loadEnv();
   return jwt.sign(payload, secret ?? env.JWT_SECRET, {
     expiresIn: expiresInSeconds ?? env.ACCESS_TTL_SECONDS,
   });

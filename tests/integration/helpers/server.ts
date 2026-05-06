@@ -1,24 +1,18 @@
 import fastifyCookie from '@fastify/cookie';
-import fastifyEnv from '@fastify/env';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 
 import { authPlugin } from '@/modules/auth';
-import { fastifySchema, loadEnv } from '@/shared/config/env';
 import { createDatabaseClient } from '@/shared/database/client';
 import { createErrorHandler } from '@/shared/errors/envelope';
 
 export async function buildAuthTestServer(): Promise<FastifyInstance> {
-  const env = loadEnv();
-
-  createDatabaseClient(env.DATABASE_URL);
-
   const app = Fastify({ logger: false });
 
-  await app.register(fastifyEnv, { dotenv: true, schema: fastifySchema });
+  createDatabaseClient(app.config.DATABASE_URL);
 
   await app.register(fastifyCookie, {
-    secret: env.COOKIE_SECRET,
+    secret: app.config.COOKIE_SECRET,
     hook: 'onRequest',
   });
 

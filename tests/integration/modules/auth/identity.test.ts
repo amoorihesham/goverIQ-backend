@@ -1,32 +1,13 @@
-import fastifyCookie from '@fastify/cookie';
-import Fastify, { FastifyInstance } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
-import { identityRequired } from '@/shared/auth/identity';
 import { signAccessToken } from '@/shared/auth/jwt';
-import { loadEnv } from '@/shared/config/env';
-import { createErrorHandler } from '@/shared/errors/envelope';
+
+import { buildAuthTestServer } from '../../helpers/server';
 
 let app: FastifyInstance;
 
 beforeAll(async () => {
-  const env = loadEnv();
-  app = Fastify({ logger: false });
-
-  await app.register(fastifyCookie, {
-    secret: env.COOKIE_SECRET,
-    hook: 'onRequest',
-  });
-
-  app.setErrorHandler(createErrorHandler(app));
-
-  app.get(
-    '/protected',
-    { preHandler: [identityRequired] },
-    async (request) => ({ user: request.user }),
-  );
-
-  await app.ready();
+  app = await buildAuthTestServer();
 });
 
 afterAll(async () => {
