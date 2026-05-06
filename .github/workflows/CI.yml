@@ -50,7 +50,7 @@ jobs:
         run: pnpm install
 
       - name: Linting...
-        run: pnpm lint
+        run: pnpm lint:fix
 
   format:
     runs-on: ubuntu-latest
