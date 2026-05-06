@@ -1,0 +1,35 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Auth · Logout
+  version: 0.1.0
+  description: |
+    POST /auth/logout — invalidate the current refresh-token row server-side and
+    clear the cookie (FR-110). Idempotent: returns 204 even when no cookie is
+    presented or when the cookie matches no row (SC-107). Emits `user.logout`
+    audit event when an actual sign-out occurs (i.e. a row was deleted).
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /auth/logout:
+    post:
+      summary: End the current session
+      operationId: logout
+      description: |
+        Reads the signed `refresh_token` cookie if present, hashes it, deletes the
+        matching row (if any) inside `withTx`, emits `user.logout`, and clears the
+        cookie. If no cookie is present or the cookie matches no row, still returns
+        204 with the cookie cleared — no audit event is emitted in that case.
+      parameters:
+        - in: cookie
+          name: refresh_token
+          required: false
+          description: Signed httpOnly cookie. Optional — sign-out is idempotent.
+          schema: { type: string }
+      responses:
+        '204':
+          description: Sign-out complete (or already signed out — same response)
+          headers:
+            Set-Cookie:
+              description: Cleared refresh_token cookie
+              schema: { type: string }

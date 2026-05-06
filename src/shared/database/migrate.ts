@@ -1,4 +1,4 @@
-import { migrate } from 'drizzle-orm/neon-http/migrator';
+import { migrate } from 'drizzle-orm/neon-serverless/migrator';
 
 import { logger } from '../logger';
 

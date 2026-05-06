@@ -1,0 +1,78 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Auth · Resend OTP
+  version: 0.1.0
+  description: |
+    POST /auth/resend-otp — re-issue a verification code. Enforces a 60-second
+    cooldown against `email_verifications.last_sent_at` (FR-103). Returns the
+    same response for unknown emails as for cooldown failures to prevent email
+    enumeration (FR-106).
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /auth/resend-otp:
+    post:
+      summary: Resend the email verification code
+      operationId: resendOtp
+      description: |
+        Looks up the user by email. If found and the cooldown has elapsed, replaces
+        the verification record with a fresh OTP and re-sends the email. If the
+        cooldown has not elapsed, returns `OTP_COOLDOWN`. If the email is unknown,
+        returns the same `OTP_COOLDOWN` response (enumeration parity).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendOtpRequest'
+      responses:
+        '200':
+          description: A new verification email was queued for delivery
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResendSuccess' }
+              example:
+                success: true
+                data:
+                  message: 'Verification code resent.'
+        '422':
+          description: Cooldown not yet elapsed (or unknown email — same response)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  code: 'OTP_COOLDOWN'
+                  message: 'Please wait before requesting another code'
+                  statusCode: 422
+components:
+  schemas:
+    ResendOtpRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+    ResendSuccess:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [message]
+          properties:
+            message: { type: string, enum: ['Verification code resent.'] }
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

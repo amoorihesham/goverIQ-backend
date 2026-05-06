@@ -15,7 +15,18 @@
       "Bash(pnpm build *)",
       "Bash(pnpm lint *)",
       "Bash(npx eslint *)",
-      "Bash(pnpm type-check *)"
+      "Bash(pnpm type-check *)",
+      "Bash(cd /d d:\\\\groven-iq)",
+      "Bash(Get-ChildItem -Path .\\\\specs -Name)",
+      "PowerShell(& \"$PWD\\\\.specify\\\\extensions\\\\git\\\\scripts\\\\powershell\\\\create-new-feature.ps1\" -Json -ShortName \"auth-module\" \"Authentication Module, we want to build the Authentication module as a baseline for all the rest of the project functionality.\")",
+      "PowerShell(& \"$PWD\\\\.specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1\" -Json)",
+      "PowerShell(.specify/scripts/powershell/check-prerequisites.ps1 -Json)",
+      "Bash(cd /d D:\\\\groven-iq)",
+      "Bash(pnpm test:integration)",
+      "PowerShell(pnpm test:integration 2>&1)",
+      "Bash(pnpm test *)",
+      "Bash(node -e \"console.log\\(typeof WebSocket\\)\")",
+      "Bash(npx tsc *)"
     ]
   }
 }
