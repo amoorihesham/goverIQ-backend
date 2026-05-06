@@ -9,7 +9,6 @@ import {
 } from './schemas/json-schema';
 
 import { getDatabaseClient } from '@/shared/database/client';
-import { env } from '@/shared/config/env';
 
 export async function authRoutes(fastify: FastifyInstance) {
   const db = getDatabaseClient();

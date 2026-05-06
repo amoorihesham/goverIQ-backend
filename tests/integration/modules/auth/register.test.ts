@@ -144,15 +144,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     const { createAuthService } = await import('@/modules/auth/auth.service');
 
-    const svc = createAuthService(getDatabaseClient(), {
-      ENV: app.config.NODE_ENV,
-      JWT_SECRET: app.config.JWT_SECRET,
-      OTP_TTL_MS: app.config.OTP_TTL,
-      OTP_RESEND_COOLDOWN_SEC: app.config.OTP_RESEND_COOLDOWN_SEC,
-      ACCESS_TTL_SECONDS: app.config.ACCESS_TTL_SECONDS,
-      REFRESH_TTL_SECONDS: app.config.REFRESH_TTL_SECONDS,
-      REFRESH_COOKIE_NAME: app.config.REFRESH_COOKIE_NAME,
-    });
+    const svc = createAuthService(getDatabaseClient());
 
     await expect(svc.register({ email, password: 'correct-horse-battery' })).rejects.toThrow();
 
