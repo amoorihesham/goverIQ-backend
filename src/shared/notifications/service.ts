@@ -1,7 +1,6 @@
 import nodemailer from 'nodemailer';
-import pino from 'pino';
 
-const logger = pino();
+import { logger } from '@/shared/logger';
 
 export interface NotificationService {
   send(to: string, subject: string, text: string): Promise<void>;

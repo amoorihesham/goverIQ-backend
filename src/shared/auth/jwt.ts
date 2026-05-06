@@ -1,45 +1,46 @@
-import { jwtVerify } from 'jose';
+import jwt from 'jsonwebtoken';
 
+import { loadEnv } from '@/shared/config/env';
 import { AppError } from '@/shared/errors/http-error';
 
-export interface JwtPayload {
+export interface AccessTokenPayload {
   sub: string;
   email: string;
-  iat: number;
-  exp: number;
 }
 
-const jwtSecret = process.env.JWT_SECRET;
-
-if (!jwtSecret) {
-  throw new Error('JWT_SECRET environment variable is required');
+function getSecret(secret?: string): string {
+  if (secret) return secret;
+  return loadEnv().JWT_SECRET;
 }
 
-const secretKey = new TextEncoder().encode(jwtSecret);
+export async function signAccessToken(
+  payload: AccessTokenPayload,
+  secret?: string,
+  expiresInSeconds?: number,
+): Promise<string> {
+  const env = loadEnv();
+  return jwt.sign(payload, secret ?? env.JWT_SECRET, {
+    expiresIn: expiresInSeconds ?? env.ACCESS_TTL_SECONDS,
+  });
+}
 
-export async function verifyAccessToken(token: string): Promise<JwtPayload> {
+export async function verifyAccessToken(
+  token: string,
+  secret?: string,
+): Promise<AccessTokenPayload> {
   try {
-    const { payload } = await jwtVerify(token, secretKey);
-
-    if (!payload.sub || !payload.email || !payload.iat || !payload.exp) {
-      throw new Error('Invalid token claims');
+    const decoded = jwt.verify(token, getSecret(secret));
+    if (typeof decoded === 'string' || typeof decoded.sub !== 'string') {
+      throw AppError.invalidToken();
     }
-
-    return {
-      sub: payload.sub as string,
-      email: payload.email as string,
-      iat: payload.iat as number,
-      exp: payload.exp as number,
-    };
+    const email = (decoded as jwt.JwtPayload).email;
+    if (typeof email !== 'string') {
+      throw AppError.invalidToken();
+    }
+    return { sub: decoded.sub, email };
   } catch (err) {
-    if (err instanceof Error) {
-      if (err.message.includes('ERR_JWT_EXPIRED')) {
-        throw AppError.tokenExpired();
-      }
-      if (err.message.includes('ERR_JWS_VERIFICATION_FAILED')) {
-        throw AppError.invalidToken();
-      }
-    }
+    if (err instanceof AppError) throw err;
+    if (err instanceof jwt.TokenExpiredError) throw AppError.tokenExpired();
     throw AppError.invalidToken();
   }
 }

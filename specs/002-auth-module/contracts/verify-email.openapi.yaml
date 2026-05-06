@@ -1,0 +1,94 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Auth · Verify Email
+  version: 0.1.0
+  description: |
+    POST /auth/verify-email — submit the OTP. On success, marks the user verified,
+    deletes the verification record, issues an access JWT, and sets a refresh-token
+    cookie — all in one transaction (FR-104). Emits `user.verified` audit event.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /auth/verify-email:
+    post:
+      summary: Confirm email ownership and start a session
+      operationId: verifyEmail
+      description: |
+        Looks up the verification record by `email`, checks the OTP against the
+        stored hash, and verifies expiry. On success, atomically: sets
+        `users.is_verified = true`, deletes the verification row, inserts a new
+        refresh-token row, and emits the `user.verified` audit event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified; session started
+          headers:
+            Set-Cookie:
+              description: |
+                refresh_token cookie — `httpOnly; secure (prod); SameSite=Lax;
+                Path=/; Max-Age=604800; signed`. Cleartext format is opaque.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionSuccess' }
+              example:
+                success: true
+                data:
+                  accessToken: 'eyJhbGciOiJIUzI1NiIs...'
+        '401':
+          description: Wrong OTP (incl. unknown email — enumeration parity)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', statusCode: 401 }
+        '422':
+          description: OTP has expired
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'OTP_EXPIRED', message: 'Verification code has expired', statusCode: 422 }
+components:
+  schemas:
+    VerifyEmailRequest:
+      type: object
+      required: [email, otp]
+      properties:
+        email: { type: string, format: email }
+        otp:
+          type: string
+          pattern: '^\d{6}$'
+          description: 6-digit numeric verification code
+    SessionSuccess:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [accessToken]
+          properties:
+            accessToken:
+              type: string
+              description: Short-lived JWT; carries `{ sub, email, iat, exp }`. TTL 15 min.
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

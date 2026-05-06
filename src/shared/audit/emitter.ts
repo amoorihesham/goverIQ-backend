@@ -1,10 +1,7 @@
-import pino from 'pino';
-
 import { auditLogs } from '@/db/schema/audit';
 import type { Tx } from '@/shared/database/transaction';
 import { AppError } from '@/shared/errors/http-error';
-
-const logger = pino();
+import { logger } from '@/shared/logger';
 
 const MAX_PAYLOAD_SIZE = 64 * 1024; // 64 KiB
 

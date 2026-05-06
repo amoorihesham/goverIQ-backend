@@ -84,6 +84,16 @@ export const ERROR_CODES = {
     httpStatus: 500,
     message: 'Failed to acquire migration lock',
   },
+  OTP_EXPIRED: {
+    code: 'OTP_EXPIRED',
+    httpStatus: 422,
+    message: 'Verification code has expired',
+  },
+  OTP_COOLDOWN: {
+    code: 'OTP_COOLDOWN',
+    httpStatus: 422,
+    message: 'Please wait before requesting another code',
+  },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

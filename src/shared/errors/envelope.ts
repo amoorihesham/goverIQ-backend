@@ -36,10 +36,22 @@ export function failure(err: AppError): FailureEnvelope {
   };
 }
 
+function isValidationError(err: FastifyError | Error): err is FastifyError {
+  return (
+    typeof (err as FastifyError).validation !== 'undefined' &&
+    Array.isArray((err as FastifyError).validation)
+  );
+}
+
 export function createErrorHandler(fastify: FastifyInstance) {
   return async (err: FastifyError | Error, _req: FastifyRequest, reply: FastifyReply) => {
     if (err instanceof AppError) {
       return reply.status(err.statusCode).send(failure(err));
+    }
+
+    if (isValidationError(err)) {
+      const appErr = AppError.validationError(err.message);
+      return reply.status(appErr.statusCode).send(failure(appErr));
     }
 
     const internalError = AppError.internalError();

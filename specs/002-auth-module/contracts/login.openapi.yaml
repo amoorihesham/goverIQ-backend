@@ -1,0 +1,87 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Auth · Login
+  version: 0.1.0
+  description: |
+    POST /auth/login — verify password and start a session. Wrong-password,
+    unknown-email, and unverified-user paths all return byte-equal `INVALID_CREDENTIALS`
+    responses (FR-105 / FR-106 / SC-106). Emits `user.login` audit event.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /auth/login:
+    post:
+      summary: Sign in with email and password
+      operationId: login
+      description: |
+        Always performs a bcrypt comparison (against a precomputed dummy hash if
+        the email is unknown) so that wrong-password, unknown-email, and
+        unverified-user responses are timing-equivalent. On success, atomically:
+        inserts a new refresh-token row, issues an access JWT, and emits the
+        `user.login` audit event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated; session started
+          headers:
+            Set-Cookie:
+              description: refresh_token cookie (signed; httpOnly; SameSite=Lax)
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionSuccess' }
+              example:
+                success: true
+                data:
+                  accessToken: 'eyJhbGciOiJIUzI1NiIs...'
+        '401':
+          description: |
+            Invalid credentials. Returned identically (status code AND body) for
+            wrong password, unknown email, and unverified user — see SC-106.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  code: 'INVALID_CREDENTIALS'
+                  message: 'Invalid credentials'
+                  statusCode: 401
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
+    SessionSuccess:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [accessToken]
+          properties:
+            accessToken:
+              type: string
+              description: Short-lived JWT; carries `{ sub, email, iat, exp }`. TTL 15 min.
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

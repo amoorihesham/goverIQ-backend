@@ -1,0 +1,93 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Auth · Register
+  version: 0.1.0
+  description: |
+    POST /auth/register — create a new user in the unverified state and issue a
+    verification code by email.
+    Satisfies FR-101 and FR-102; emits the `user.registered` audit event (FR-112).
+    No authentication required.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /auth/register:
+    post:
+      summary: Create a new user account
+      operationId: register
+      description: |
+        Validates email format and the 12-character minimum password length
+        (spec clarification Q1). If the email already belongs to an **unverified**
+        account, the prior user record and verification record are deleted and
+        replaced atomically (FR-101 — clarification Q3). If the email belongs to a
+        **verified** account, returns `DUPLICATE_EMAIL`. Email-delivery failure
+        does not roll back registration (FR-102 — clarification Q4).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created (or unverified record replaced)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterSuccess'
+              example:
+                success: true
+                data:
+                  message: 'Verification email sent.'
+        '400':
+          description: Validation failure (malformed email or password too short)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'VALIDATION_ERROR', message: 'Validation failed', statusCode: 400 }
+        '409':
+          description: Email already belongs to a verified account
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'DUPLICATE_EMAIL', message: 'Email already exists', statusCode: 409 }
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 12
+          description: Minimum 12 characters; no further complexity rules.
+    RegisterSuccess:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [message]
+          properties:
+            message: { type: string, enum: ['Verification email sent.'] }
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

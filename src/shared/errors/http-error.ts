@@ -86,4 +86,12 @@ export class AppError extends Error {
   static migrationLockFailed(message?: string): AppError {
     return AppError.create('MIGRATION_LOCK_FAILED', message);
   }
+
+  static otpExpired(message?: string): AppError {
+    return AppError.create('OTP_EXPIRED', message);
+  }
+
+  static otpCooldown(message?: string): AppError {
+    return AppError.create('OTP_COOLDOWN', message);
+  }
 }

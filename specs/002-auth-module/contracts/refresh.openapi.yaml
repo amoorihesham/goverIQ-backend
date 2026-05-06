@@ -1,0 +1,83 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Auth · Refresh
+  version: 0.1.0
+  description: |
+    POST /auth/refresh — exchange the refresh-token cookie for a new access JWT
+    and a rotated cookie (FR-108). Detects token reuse and invalidates **all**
+    refresh tokens for the affected user (FR-109; SC-103).
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /auth/refresh:
+    post:
+      summary: Rotate the session credentials
+      operationId: refresh
+      description: |
+        No request body. Reads the signed `refresh_token` cookie, hashes it, looks
+        up the matching row, and inside a single transaction deletes the row and
+        inserts a fresh row. If the hash matches no row, the userId encoded in the
+        cleartext is parsed and **all** refresh-token rows for that user are deleted
+        (theft-recovery). Always responds with `UNAUTHORIZED` on any failure.
+      parameters:
+        - in: cookie
+          name: refresh_token
+          required: true
+          description: Signed httpOnly cookie carrying `<userId>.<random>`.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Session rotated successfully
+          headers:
+            Set-Cookie:
+              description: New refresh_token cookie (rotated)
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionSuccess' }
+              example:
+                success: true
+                data:
+                  accessToken: 'eyJhbGciOiJIUzI1NiIs...'
+        '401':
+          description: |
+            Refresh failed. Possible reasons (response is identical for all):
+              - missing / unsigned / invalid cookie
+              - cleartext does not parse to `<uuid>.<hex>`
+              - hash matches no row → theft signal: ALL rows for the parsed user deleted
+              - hash matches an expired row → that single row deleted
+          headers:
+            Set-Cookie:
+              description: Cleared refresh_token cookie
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'UNAUTHORIZED', message: 'Unauthorized', statusCode: 401 }
+components:
+  schemas:
+    SessionSuccess:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [accessToken]
+          properties:
+            accessToken: { type: string }
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string, enum: ['UNAUTHORIZED'] }
+            message: { type: string }
+            statusCode: { type: integer, enum: [401] }
