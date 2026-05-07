@@ -43,12 +43,12 @@ Onboarding step advances MUST happen in the same transaction as the triggering w
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principle | Status | Gate Verification |
-|---|---|---|
-| I. Code Quality | Pass | Module split into org / role / member sub-files (routes / controller / service / repository); pure helpers (slug, invite-token, privilege) have no Fastify dependency; lint + Prettier enforced; no `any` without inline justification |
-| II. Testing Standards | Pass | Unit tests for slug.ts, invite-token.ts, privilege.ts; integration tests per sub-domain (org, onboarding, role, member-invite, member-manage, sole-owner); coverage stays ≥ 80%; TDD enforced |
-| III. API Design Consistency | Pass | All responses use existing envelope; all errors use codes from registry (extended with 3 new codes here); contracts authored in `contracts/` before any handler; cursor pagination consistent with Phase 0 HTTP conventions |
-| IV. Performance Requirements | Pass | All queries hit unique indexes (`organizations_name_lower_idx`, `memberships_user_org_unique`, `invitations_token_hash_idx`, `roles_org_name_unique`); no N+1 patterns; invite-acceptance is fixed-shape regardless of member count |
+| Principle                    | Status | Gate Verification                                                                                                                                                                                                                      |
+| ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Code Quality              | Pass   | Module split into org / role / member sub-files (routes / controller / service / repository); pure helpers (slug, invite-token, privilege) have no Fastify dependency; lint + Prettier enforced; no `any` without inline justification |
+| II. Testing Standards        | Pass   | Unit tests for slug.ts, invite-token.ts, privilege.ts; integration tests per sub-domain (org, onboarding, role, member-invite, member-manage, sole-owner); coverage stays ≥ 80%; TDD enforced                                          |
+| III. API Design Consistency  | Pass   | All responses use existing envelope; all errors use codes from registry (extended with 3 new codes here); contracts authored in `contracts/` before any handler; cursor pagination consistent with Phase 0 HTTP conventions            |
+| IV. Performance Requirements | Pass   | All queries hit unique indexes (`organizations_name_lower_idx`, `memberships_user_org_unique`, `invitations_token_hash_idx`, `roles_org_name_unique`); no N+1 patterns; invite-acceptance is fixed-shape regardless of member count    |
 
 **Pre-design Constitution Check: PASS.** No violations. Complexity Tracking section
 is empty.
@@ -156,6 +156,7 @@ SOLE_OWNER: { code: 'SOLE_OWNER', httpStatus: 409,
 ### Key Invariant Implementations
 
 **Org creation atomicity (FR-201)**:
+
 ```ts
 await withTx(async (tx) => {
   const org = await tx.insert(organizations).values({...}).returning();
@@ -167,6 +168,7 @@ await withTx(async (tx) => {
 ```
 
 **Onboarding step advance on first role (FR-204)**:
+
 ```ts
 await withTx(async (tx) => {
   const role = await tx.insert(roles).values({...}).returning();
@@ -181,6 +183,7 @@ await withTx(async (tx) => {
 ```
 
 **Sole-owner check (FR-212)**:
+
 ```ts
 // Before remove or role-revoke:
 const ownerCount = await db.select(...).from(memberships)
@@ -192,6 +195,7 @@ if (ownerCount === 1 && targetMembership.role.isOwner) {
 ```
 
 **Privilege escalation check (FR-206)**:
+
 ```ts
 // src/modules/org/privilege.ts
 export function assertNoPrivilegeEscalation(
@@ -206,16 +210,23 @@ export function assertNoPrivilegeEscalation(
 ```
 
 **Slug generation with collision resolution (research §3)**:
+
 ```ts
 // src/modules/org/slug.ts
 export function generateSlug(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 export async function ensureUniqueSlug(db, base: string): Promise<string> {
   for (let i = 0; i <= SLUG_MAX_SUFFIX_ATTEMPTS; i++) {
     const candidate = i === 0 ? base : `${base}-${i + 1}`;
-    const exists = await db.select().from(organizations)
-      .where(eq(organizations.slug, candidate)).limit(1);
+    const exists = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.slug, candidate))
+      .limit(1);
     if (!exists.length) return candidate;
   }
   return `${base}-${randomBytes(SLUG_FALLBACK_RANDOM_BYTES).toString('hex')}`;
@@ -223,6 +234,7 @@ export async function ensureUniqueSlug(db, base: string): Promise<string> {
 ```
 
 **New-user invite acceptance (research §7, spec clarification Q1)**:
+
 ```ts
 // if email has no account:
 await withTx(async (tx) => {
@@ -248,12 +260,15 @@ await withTx(async (tx) => {
 
 ```ts
 // Existing: auth under /auth
-await fastify.register(async (instance) => {
-  await instance.register(authPlugin, { prefix: '/auth' });
-  await instance.register(orgPlugin, { prefix: '/api/v1' });       // NEW
-}, { prefix: '' });
+await fastify.register(
+  async (instance) => {
+    await instance.register(authPlugin, { prefix: '/auth' });
+    await instance.register(orgPlugin, { prefix: '/api/v1' }); // NEW
+  },
+  { prefix: '' },
+);
 
-await fastify.register(invitationsPublicPlugin);                   // NEW — no prefix
+await fastify.register(invitationsPublicPlugin); // NEW — no prefix
 ```
 
 ### Test Helper Addition
@@ -273,11 +288,11 @@ export async function truncateOrgTables(): Promise<void> {
 
 After generating `research.md`, `data-model.md`, `contracts/`, and `quickstart.md`:
 
-| Principle | Status | Notes |
-|---|---|---|
-| I. Code Quality | Pass | Pure helpers (slug, invite-token, privilege) have zero Fastify/DB imports; single-responsibility per file; service layer is the only place transactions begin |
-| II. Testing Standards | Pass | 3 unit test files (pure helpers) + 6 integration test files covering every FR/SC; sole-owner invariant has its own dedicated test file for exhaustive coverage |
-| III. API Design Consistency | Pass | 4 OpenAPI contract files + 2 internal contract docs authored before implementation; all 18 routes use existing envelope; 3 new error codes added to registry; cursor pagination consistent with Phase 0 HTTP conventions |
-| IV. Performance Requirements | Pass | Every query in the hot path hits a unique index; invite-acceptance is bounded fixed-cost regardless of org size; no N+1 patterns — list endpoints use joins, not per-row queries |
+| Principle                    | Status | Notes                                                                                                                                                                                                                    |
+| ---------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| I. Code Quality              | Pass   | Pure helpers (slug, invite-token, privilege) have zero Fastify/DB imports; single-responsibility per file; service layer is the only place transactions begin                                                            |
+| II. Testing Standards        | Pass   | 3 unit test files (pure helpers) + 6 integration test files covering every FR/SC; sole-owner invariant has its own dedicated test file for exhaustive coverage                                                           |
+| III. API Design Consistency  | Pass   | 4 OpenAPI contract files + 2 internal contract docs authored before implementation; all 18 routes use existing envelope; 3 new error codes added to registry; cursor pagination consistent with Phase 0 HTTP conventions |
+| IV. Performance Requirements | Pass   | Every query in the hot path hits a unique index; invite-acceptance is bounded fixed-cost regardless of org size; no N+1 patterns — list endpoints use joins, not per-row queries                                         |
 
 **Post-design Constitution Check: PASS.** Ready for `/speckit-tasks`.

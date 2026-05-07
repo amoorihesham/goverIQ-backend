@@ -11,10 +11,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { orgId: string } }>(
     '/orgs/:orgId/roles/permissions',
     {
-      preHandler: [
-        identityRequired,
-        requireOnboardingStep('role_creation'),
-      ],
+      preHandler: [identityRequired, requireOnboardingStep('role_creation')],
     },
     RoleController.listPermissions,
   );
@@ -39,10 +36,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { orgId: string } }>(
     '/orgs/:orgId/roles',
     {
-      preHandler: [
-        identityRequired,
-        requireOnboardingStep('invitation'),
-      ],
+      preHandler: [identityRequired, requireOnboardingStep('invitation')],
     },
     RoleController.listRoles,
   );
@@ -51,10 +45,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { orgId: string; roleId: string } }>(
     '/orgs/:orgId/roles/:roleId',
     {
-      preHandler: [
-        identityRequired,
-        requireOnboardingStep('invitation'),
-      ],
+      preHandler: [identityRequired, requireOnboardingStep('invitation')],
     },
     RoleController.getRole,
   );

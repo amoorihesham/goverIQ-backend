@@ -1,5 +1,6 @@
 import fastifyCookie from '@fastify/cookie';
 import Fastify from 'fastify';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 
 import { authPlugin } from './modules/auth';
 import { orgPlugin, invitationsPublicPlugin } from './modules/org';
@@ -14,6 +15,9 @@ export async function buildApp() {
       transport: { target: 'pino-pretty', options: { colorize: true } },
     },
   });
+
+  await fastify.setValidatorCompiler(validatorCompiler);
+  await fastify.setSerializerCompiler(serializerCompiler);
 
   await fastify.register(fastifyCookie, {
     secret: env.COOKIE_SECRET,

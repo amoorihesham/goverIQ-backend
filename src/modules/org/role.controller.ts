@@ -52,10 +52,7 @@ export class RoleController {
   /**
    * GET /api/v1/orgs/:orgId/roles/:roleId - Get specific role
    */
-  static async getRole(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) {
+  static async getRole(request: FastifyRequest, reply: FastifyReply) {
     const { orgId, roleId } = request.params as {
       orgId: string;
       roleId: string;
@@ -70,21 +67,13 @@ export class RoleController {
   /**
    * PATCH /api/v1/orgs/:orgId/roles/:roleId - Update role
    */
-  static async updateRole(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) {
+  static async updateRole(request: FastifyRequest, reply: FastifyReply) {
     const { orgId, roleId } = request.params as {
       orgId: string;
       roleId: string;
     };
     const body = request.body as UpdateRoleBody;
-    const role = await RoleService.updateRole(
-      request.user!.userId,
-      orgId,
-      roleId,
-      body,
-    );
+    const role = await RoleService.updateRole(request.user!.userId, orgId, roleId, body);
     return reply.send({
       success: true,
       data: role,
@@ -94,10 +83,7 @@ export class RoleController {
   /**
    * DELETE /api/v1/orgs/:orgId/roles/:roleId - Delete role
    */
-  static async deleteRole(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) {
+  static async deleteRole(request: FastifyRequest, reply: FastifyReply) {
     const { orgId, roleId } = request.params as {
       orgId: string;
       roleId: string;

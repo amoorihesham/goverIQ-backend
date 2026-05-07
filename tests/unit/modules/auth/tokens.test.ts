@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
-import { generateRefreshTokenCleartext, parseUserIdFromCleartext, hashRefreshToken } from '@/modules/auth/tokens';
+import {
+  generateRefreshTokenCleartext,
+  parseUserIdFromCleartext,
+  hashRefreshToken,
+} from '@/modules/auth/tokens';
 
 describe('tokens', () => {
   it('generates cleartext with correct shape', () => {

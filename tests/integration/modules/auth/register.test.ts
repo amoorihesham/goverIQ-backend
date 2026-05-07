@@ -9,7 +9,7 @@ import { buildAuthTestServer } from '../../helpers/server';
 
 import { auditLogs } from '@/db/schema/audit';
 import { users } from '@/db/schema/auth';
-import { getDatabaseClient } from '@/shared/database/client';
+import { db } from '@/shared/database/client';
 
 // Wrap emitAudit so the rollback test can mock-once without persisting state across
 // tests. vi.mock is hoisted so this still affects the auth.service import chain.
@@ -58,7 +58,6 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
     expect(body.success).toBe(true);
     expect(body.data.message).toBe('Verification email sent.');
 
-    const db = getDatabaseClient();
     const auditRows = await db
       .select()
       .from(auditLogs)
@@ -87,7 +86,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
       url: '/auth/register',
       payload: { email, password: 'correct-horse-battery' },
     });
-    const db = getDatabaseClient();
+
     await db.update(users).set({ isVerified: true }).where(eq(users.email, email));
 
     const res = await app.inject({
@@ -107,7 +106,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
       url: '/auth/register',
       payload: { email, password: 'first-password-12chr' },
     });
-    const db = getDatabaseClient();
+
     const [firstUser] = await db.select().from(users).where(eq(users.email, email));
     const firstId = firstUser?.id;
 
@@ -163,7 +162,6 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
     expect(successes.length).toBeGreaterThanOrEqual(1);
     expect(serverErrors).toHaveLength(0);
 
-    const db = getDatabaseClient();
     const rows = await db.select().from(users).where(eq(users.email, email));
     expect(rows).toHaveLength(1);
   });
@@ -175,11 +173,10 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     const { createAuthService } = await import('@/modules/auth/auth.service');
 
-    const svc = createAuthService(getDatabaseClient());
+    const svc = createAuthService(db);
 
     await expect(svc.register({ email, password: 'correct-horse-battery' })).rejects.toThrow();
 
-    const db = getDatabaseClient();
     const userRows = await db.select().from(users).where(eq(users.email, email));
     expect(userRows).toHaveLength(0);
 

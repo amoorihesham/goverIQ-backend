@@ -44,12 +44,12 @@ new source files plus tests.
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principle                    | Status | Gate Verification                                                                                                                                                |
-| ---------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I. Code Quality              | Pass   | Module split (routes / service / repository / pure helpers); no cross-domain imports; lint + Prettier configured; `any` requires inline justification           |
-| II. Testing Standards        | Pass   | Unit tests for `password.ts`, `tokens.ts`, `otp.ts`; integration tests for every route and every FR; coverage stays ≥ 80%; TDD enforced                          |
+| Principle                    | Status | Gate Verification                                                                                                                                                                                   |
+| ---------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Code Quality              | Pass   | Module split (routes / service / repository / pure helpers); no cross-domain imports; lint + Prettier configured; `any` requires inline justification                                               |
+| II. Testing Standards        | Pass   | Unit tests for `password.ts`, `tokens.ts`, `otp.ts`; integration tests for every route and every FR; coverage stays ≥ 80%; TDD enforced                                                             |
 | III. API Design Consistency  | Pass   | All responses use the existing envelope; all error responses use codes from the registry (extended with `OTP_EXPIRED` + `OTP_COOLDOWN` here); contracts authored in `contracts/` before any handler |
-| IV. Performance Requirements | Pass   | Login p95 < 200 ms via bcrypt cost = 11 + indexed `users_email_idx` lookup + RAM-only JWT signing; refresh and verify-email also single-query                    |
+| IV. Performance Requirements | Pass   | Login p95 < 200 ms via bcrypt cost = 11 + indexed `users_email_idx` lookup + RAM-only JWT signing; refresh and verify-email also single-query                                                       |
 
 **Pre-design Constitution Check: PASS.** No violations. Complexity Tracking section
 is empty. Re-evaluation post-design recorded at the bottom of this file.
@@ -135,11 +135,11 @@ No violations. This section is intentionally empty.
 
 After generating `research.md`, `data-model.md`, `contracts/`, and `quickstart.md`:
 
-| Principle                    | Status | Notes                                                                                                                                                                                                                          |
-| ---------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| I. Code Quality              | Pass   | Single responsibility per file; pure helpers (`password`, `tokens`, `otp`) have no Fastify dependency; service layer is the only place transactions begin                                                                       |
-| II. Testing Standards        | Pass   | Test plan in this file lists 1 unit-test file per pure helper and 1 integration-test file per route + 1 for the pre-handler; covers every FR / SC                                                                              |
-| III. API Design Consistency  | Pass   | Six OpenAPI fragments authored in `contracts/` use the exact envelope from Phase 0's `response-envelope.md`; only registry error codes referenced                                                                              |
+| Principle                    | Status | Notes                                                                                                                                                                                                                             |
+| ---------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Code Quality              | Pass   | Single responsibility per file; pure helpers (`password`, `tokens`, `otp`) have no Fastify dependency; service layer is the only place transactions begin                                                                         |
+| II. Testing Standards        | Pass   | Test plan in this file lists 1 unit-test file per pure helper and 1 integration-test file per route + 1 for the pre-handler; covers every FR / SC                                                                                 |
+| III. API Design Consistency  | Pass   | Six OpenAPI fragments authored in `contracts/` use the exact envelope from Phase 0's `response-envelope.md`; only registry error codes referenced                                                                                 |
 | IV. Performance Requirements | Pass   | bcrypt cost calibrated to 11 in `research.md` item 3; lookups all hit unique indexes (`users_email_idx`, `email_verifications_user_idx`, `refresh_tokens_hash_idx`); no N+1 patterns possible — every flow is a fixed-shape query |
 
 **Post-design Constitution Check: PASS.** Ready for `/speckit-tasks`.

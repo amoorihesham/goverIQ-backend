@@ -61,11 +61,7 @@ export class RoleRepository {
     if (data.name !== undefined) updates.name = data.name;
     if (data.permissions !== undefined) updates.permissions = data.permissions;
 
-    const [role] = await tx
-      .update(roles)
-      .set(updates)
-      .where(eq(roles.id, roleId))
-      .returning();
+    const [role] = await tx.update(roles).set(updates).where(eq(roles.id, roleId)).returning();
     return role!;
   }
 

@@ -1,86 +1,86 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import { OrgService } from './org.service';
+import { organizationService } from './org.service';
+import {
+  CreateOrganizationRequestType,
+  OrganizationIdParamRequestType,
+  UpdateOrganizationRequestType,
+} from './types/request';
 
-interface CreateOrgBody {
-  name: string;
-  description?: string;
-  logoUrl?: string;
-}
+import { DatabaseClient } from '@/shared/database/types';
+import { success } from '@/shared/errors/envelope';
 
-interface UpdateOrgBody {
-  name?: string;
-  description?: string;
-  logoUrl?: string;
-}
+export const organizationController = (db: DatabaseClient) => {
+  const orgService = organizationService(db);
+  return {
+    create: async (
+      request: FastifyRequest<{ Body: CreateOrganizationRequestType }>,
+      reply: FastifyReply,
+    ) => {
+      const org = await orgService.createOrg(request.user!.userId, request.body);
+      return reply.code(201).send(success({ data: org }));
+    },
 
-export class OrgController {
-  /**
-   * POST /api/v1/orgs - Create organization
-   */
-  static async createOrg(request: FastifyRequest, reply: FastifyReply) {
-    const org = await OrgService.createOrg(request.user!.userId, request.body as CreateOrgBody);
-    return reply.code(201).send({
-      success: true,
-      data: org,
-    });
-  }
+    async getOrg(
+      request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>,
+      reply: FastifyReply,
+    ) {
+      const org = await orgService.getOrg(request.user!.userId, request.params.orgId);
+      return reply.status(200).send(
+        success({
+          data: org,
+        }),
+      );
+    },
+    async getOnboardingStep(
+      request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>,
+      reply: FastifyReply,
+    ) {
+      const step = await orgService.getOnboardingStep(request.user!.userId, request.params.orgId);
+      return reply.status(200).send(
+        success({
+          data: step,
+        }),
+      );
+    },
 
-  /**
-   * GET /api/v1/orgs/:orgId - Get organization
-   */
-  static async getOrg(request: FastifyRequest, reply: FastifyReply) {
-    const orgId = (request.params as { orgId: string }).orgId;
-    const org = await OrgService.getOrg(request.user!.userId, orgId);
-    return reply.send({
-      success: true,
-      data: org,
-    });
-  }
+    async skipOnboarding(
+      request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>,
+      reply: FastifyReply,
+    ) {
+      const result = await orgService.skipOnboarding(request.user!.userId, request.params.orgId);
+      return reply.status(201).send(
+        success({
+          data: result,
+        }),
+      );
+    },
 
-  /**
-   * GET /api/v1/orgs/:orgId/onboarding - Get onboarding step
-   */
-  static async getOnboardingStep(request: FastifyRequest, reply: FastifyReply) {
-    const orgId = (request.params as { orgId: string }).orgId;
-    const step = await OrgService.getOnboardingStep(request.user!.userId, orgId);
-    return reply.send({
-      success: true,
-      data: step,
-    });
-  }
+    async updateOrg(
+      request: FastifyRequest<{
+        Body: UpdateOrganizationRequestType;
+        Params: OrganizationIdParamRequestType;
+      }>,
+      reply: FastifyReply,
+    ) {
+      const org = await orgService.updateOrg(
+        request.user!.userId,
+        request.params.orgId,
+        request.body,
+      );
+      return reply.status(201).send(
+        success({
+          data: org,
+        }),
+      );
+    },
 
-  /**
-   * POST /api/v1/orgs/:orgId/onboarding/skip - Skip to COMPLETE
-   */
-  static async skipOnboarding(request: FastifyRequest, reply: FastifyReply) {
-    const orgId = (request.params as { orgId: string }).orgId;
-    const result = await OrgService.skipOnboarding(request.user!.userId, orgId);
-    return reply.send({
-      success: true,
-      data: result,
-    });
-  }
-
-  /**
-   * PATCH /api/v1/orgs/:orgId - Update organization
-   */
-  static async updateOrg(request: FastifyRequest, reply: FastifyReply) {
-    const orgId = (request.params as { orgId: string }).orgId;
-    const body = request.body as UpdateOrgBody;
-    const org = await OrgService.updateOrg(request.user!.userId, orgId, body);
-    return reply.send({
-      success: true,
-      data: org,
-    });
-  }
-
-  /**
-   * DELETE /api/v1/orgs/:orgId - Archive organization
-   */
-  static async archiveOrg(request: FastifyRequest, reply: FastifyReply) {
-    const orgId = (request.params as { orgId: string }).orgId;
-    await OrgService.archiveOrg(request.user!.userId, orgId);
-    return reply.code(204).send();
-  }
-}
+    async archiveOrg(
+      request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>,
+      reply: FastifyReply,
+    ) {
+      await orgService.archiveOrg(request.user!.userId, request.params.orgId);
+      return reply.status(200).send();
+    },
+  };
+};

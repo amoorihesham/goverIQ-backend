@@ -47,8 +47,7 @@ export class RoleService {
   static async listRoles(userId: string, orgId: string) {
     // Verify membership
     const membership = await db.query.memberships.findFirst({
-      where: (m, { and, eq }) =>
-        and(eq(m.userId, userId), eq(m.orgId, orgId)),
+      where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
     });
 
     if (!membership) {
@@ -79,8 +78,7 @@ export class RoleService {
     return await withTx(async (tx) => {
       // Get caller's permissions
       const membership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
         with: { role: true },
       });
 
@@ -144,8 +142,7 @@ export class RoleService {
   static async getRole(userId: string, orgId: string, roleId: string) {
     // Verify membership
     const membership = await db.query.memberships.findFirst({
-      where: (m, { and, eq }) =>
-        and(eq(m.userId, userId), eq(m.orgId, orgId)),
+      where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
     });
 
     if (!membership) {
@@ -181,8 +178,7 @@ export class RoleService {
     return await withTx(async (tx) => {
       // Verify membership and get permissions
       const membership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
         with: { role: true },
       });
 
@@ -244,8 +240,7 @@ export class RoleService {
     return await withTx(async (tx) => {
       // Verify membership
       const membership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
       });
 
       if (!membership) {
@@ -259,10 +254,7 @@ export class RoleService {
       }
 
       // Check if role is in use (has members assigned)
-      const hasMembers = await RoleRepository.countMembersHoldingRole(
-        db,
-        roleId,
-      );
+      const hasMembers = await RoleRepository.countMembersHoldingRole(db, roleId);
       if (hasMembers) {
         throw AppError.roleInUse();
       }

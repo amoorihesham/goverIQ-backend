@@ -35,8 +35,6 @@
       "Bash(Select-Object Name, Mode)",
       "Bash(pnpm tsc *)"
     ],
-    "additionalDirectories": [
-      "d:\\groven-iq\\specs\\003-org-roles-members"
-    ]
+    "additionalDirectories": ["d:\\groven-iq\\specs\\003-org-roles-members"]
   }
 }

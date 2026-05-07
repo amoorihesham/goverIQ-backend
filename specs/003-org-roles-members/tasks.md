@@ -4,8 +4,8 @@
 **Prerequisites**: plan.md ✓, spec.md ✓, research.md ✓, data-model.md ✓, contracts/ ✓
 
 **Tests**: Included — TDD is mandated by the project constitution (§II Testing Standards).
-Unit tests for pure utilities are written *inside* Phase 2 immediately before their implementations.
-Integration tests for each user story are written *first* inside that story's phase.
+Unit tests for pure utilities are written _inside_ Phase 2 immediately before their implementations.
+Integration tests for each user story are written _first_ inside that story's phase.
 
 **Organization**: Tasks group by user story to enable independent implementation and testing.
 
@@ -295,6 +295,7 @@ Task T031: Register role routes in index.ts (after T030)
 ### Parallel Team Strategy (if staffed)
 
 After Phase 3 (US1) completes:
+
 - Dev A: Phase 4 (US2) → Phase 5 (US3) → Phase 6 (US4) → Phase 7 (US5) [sequential chain]
 - Dev B: Phase 8 (US6) [independent of US3–US5 after US1 exists]
 

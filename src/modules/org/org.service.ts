@@ -1,355 +1,246 @@
 import { and, eq } from 'drizzle-orm';
-import { z } from 'zod';
 
-import { OrgRepository } from './org.repository';
-import { ensureUniqueSlug, generateSlug } from './slug';
+import { CreateOrganizationRequestType, UpdateOrganizationRequestType } from './types/request';
+import { ensureUniqueSlug, generateSlug } from './utils/slug';
 
-import { organizations, memberships } from '@/db/schema/org';
+import { organizations, memberships, roles } from '@/db/schema/org';
 import { emitAudit } from '@/shared/audit/emitter';
-import { db } from '@/shared/database/client';
 import { withTx } from '@/shared/database/transaction';
+import { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
+import { ALL_PERMISSIONS } from '@/shared/permissions/set';
 
-// All permissions available in the system
-const ALL_PERMISSIONS = [
-  'org:read',
-  'org:update',
-  'org:archive',
-  'role:create',
-  'role:read',
-  'role:update',
-  'role:delete',
-  'member:read',
-  'member:invite',
-  'member:remove',
-  'member:update_role',
-  'audit:view',
-  'audit:export',
-];
-
-const CreateOrgInput = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  logoUrl: z.string().url().optional(),
-});
-
-type CreateOrgInput = z.infer<typeof CreateOrgInput>;
-
-export class OrgService {
-  /**
-   * Create a new organization atomically with Owner role and creator membership.
-   */
-  static async createOrg(userId: string, body: CreateOrgInput) {
-    const input = CreateOrgInput.parse(body);
-
-    // Check for duplicate name (case-insensitive)
-    const nameLower = input.name.toLowerCase();
-    const existing = await OrgRepository.findByNameLower(db, nameLower);
-    if (existing) {
-      throw AppError.duplicateOrgName();
-    }
-
-    // Atomic transaction: create org + Owner role + membership + audit
-    return await withTx(async (tx) => {
-      // Generate and ensure unique slug
-      const baseSlug = generateSlug(input.name);
-      const uniqueSlug = await ensureUniqueSlug(tx, baseSlug);
-
-      // Insert organization
-      const org = await OrgRepository.insertOrg(tx, {
-        name: input.name,
-        nameLower,
-        slug: uniqueSlug,
-        description: input.description,
-        logoUrl: input.logoUrl,
+export function organizationService(db: DatabaseClient) {
+  return {
+    async createOrg(userId: string, body: CreateOrganizationRequestType) {
+      const existing = await db.query.organizations.findFirst({
+        where: eq(organizations.name, body.name),
       });
+      if (existing) throw AppError.duplicateOrgName();
 
-      // Insert Owner role with all permissions
-      const ownerRole = await OrgRepository.insertOwnerRole(tx, org.id, ALL_PERMISSIONS);
+      return await withTx(async (tx) => {
+        const baseSlug = generateSlug(body.name);
+        const uniqueSlug = await ensureUniqueSlug(tx, baseSlug);
 
-      // Insert creator's membership as Owner
-      await OrgRepository.insertMembership(tx, userId, org.id, ownerRole.id);
+        const [org] = await tx
+          .insert(organizations)
+          .values({
+            name: body.name,
+            nameLower: body.name.toLowerCase(),
+            slug: uniqueSlug,
+            description: body.description,
+            logoUrl: body.logo,
+          })
+          .returning();
 
-      // Emit audit event
-      await emitAudit(tx, {
-        orgId: org.id,
-        actorId: userId,
-        event: 'org.created',
-        entityType: 'org',
-        entityId: org.id,
-        payload: {
-          name: org.name,
-          slug: org.slug,
-        },
+        const [ownerRole] = await tx
+          .insert(roles)
+          .values({
+            name: 'owner',
+            orgId: org.id,
+            isOwner: true,
+            permissions: ALL_PERMISSIONS,
+          })
+          .returning();
+
+        await tx.insert(memberships).values({
+          orgId: org.id,
+          userId,
+          roleId: ownerRole.id,
+          joinedAt: new Date(),
+        });
+
+        await emitAudit(tx, {
+          orgId: org.id,
+          actorId: userId,
+          event: 'org.created',
+          entityType: 'org',
+          entityId: org.id,
+          payload: {
+            name: org.name,
+            slug: org.slug,
+          },
+        });
+
+        return org;
       });
+    },
+
+    async getOrg(userId: string, orgId: string) {
+      const [membership, org] = await Promise.all([
+        db.query.memberships.findFirst({
+          where: and(eq(organizations.id, orgId), eq(memberships.userId, userId)),
+          with: { role: true },
+        }),
+
+        db.query.organizations.findFirst({
+          where: eq(organizations.id, orgId),
+        }),
+      ]);
+
+      if (!membership || !org)
+        throw AppError.notFound(
+          !membership ? 'Not a member of this organization' : 'Organization not found',
+        );
+
+      if (org.archivedAt) throw AppError.orgArchived();
+
+      return org;
+    },
+
+    async getOnboardingStep(userId: string, orgId: string) {
+      const [membership, org] = await Promise.all([
+        db.query.memberships.findFirst({
+          where: and(eq(organizations.id, orgId), eq(memberships.userId, userId)),
+          with: { role: true },
+        }),
+
+        db.query.organizations.findFirst({
+          where: eq(organizations.id, orgId),
+        }),
+      ]);
+
+      if (!membership || !org)
+        throw AppError.notFound(
+          !membership ? 'Not a member of this organization' : 'Organization not found',
+        );
+
+      if (org.archivedAt) throw AppError.orgArchived();
 
       return {
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        description: org.description,
-        logoUrl: org.logoUrl,
-        onboardingStep: org.onboardingStep,
-        quorumThreshold: org.quorumThreshold,
-        archivedAt: org.archivedAt,
-        createdAt: org.createdAt,
-        updatedAt: org.updatedAt,
+        step: org.onboardingStep,
       };
-    });
-  }
+    },
 
-  /**
-   * Get organization by ID after verifying caller is a member.
-   */
-  static async getOrg(userId: string, orgId: string) {
-    const result = await OrgRepository.findOrgWithMembershipForUser(db, orgId, userId);
+    async updateOrg(userId: string, orgId: string, body: UpdateOrganizationRequestType) {
+      return await withTx(async (tx) => {
+        const membership = await tx.query.memberships.findFirst({
+          where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
+        });
 
-    if (!result) {
-      throw AppError.notFound('Organization not found');
-    }
+        if (!membership) throw AppError.forbidden('Not a member of this organization');
 
-    const { org, membership } = result;
+        const org = await tx.query.organizations.findFirst({
+          where: eq(organizations.id, orgId),
+        });
 
-    if (!membership) {
-      throw AppError.forbidden('Not a member of this organization');
-    }
+        if (!org) throw AppError.notFound('Organization not found');
+        if (org.archivedAt) throw AppError.orgArchived();
 
-    // Check if org is archived
-    if (org.archivedAt) {
-      throw AppError.orgArchived();
-    }
-
-    return {
-      id: org.id,
-      name: org.name,
-      slug: org.slug,
-      description: org.description,
-      logoUrl: org.logoUrl,
-      onboardingStep: org.onboardingStep,
-      quorumThreshold: org.quorumThreshold,
-      archivedAt: org.archivedAt,
-      createdAt: org.createdAt,
-      updatedAt: org.updatedAt,
-    };
-  }
-
-  /**
-   * Get current onboarding step for an organization.
-   */
-  static async getOnboardingStep(userId: string, orgId: string) {
-    const result = await OrgRepository.findOrgWithMembershipForUser(db, orgId, userId);
-
-    if (!result) {
-      throw AppError.notFound('Organization not found');
-    }
-
-    const { org, membership } = result;
-
-    if (!membership) {
-      throw AppError.forbidden('Not a member of this organization');
-    }
-
-    if (org.archivedAt) {
-      throw AppError.orgArchived();
-    }
-
-    return {
-      step: org.onboardingStep,
-    };
-  }
-
-  /**
-   * Update organization name and/or description.
-   */
-  static async updateOrg(
-    userId: string,
-    orgId: string,
-    body: { name?: string; description?: string; logoUrl?: string },
-  ) {
-    return await withTx(async (tx) => {
-      // Verify caller is a member
-      const membership = await tx.query.memberships.findFirst({
-        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
-      });
-
-      if (!membership) {
-        throw AppError.forbidden('Not a member of this organization');
-      }
-
-      // Get current org
-      const org = await tx.query.organizations.findFirst({
-        where: eq(organizations.id, orgId),
-      });
-
-      if (!org) {
-        throw AppError.notFound('Organization not found');
-      }
-
-      if (org.archivedAt) {
-        throw AppError.orgArchived();
-      }
-
-      // Check for name conflict if changing name
-      if (body.name && body.name !== org.name) {
-        const nameLower = body.name.toLowerCase();
-        const existing = await OrgRepository.findByNameLower(db, nameLower);
-        if (existing && existing.id !== orgId) {
-          throw AppError.duplicateOrgName();
+        if (body.name && body.name !== org.name) {
+          const nameLower = body.name.toLowerCase();
+          const existing = await tx.query.organizations.findFirst({
+            where: eq(organizations.nameLower, nameLower),
+          });
+          if (existing && existing.id !== orgId) throw AppError.duplicateOrgName();
         }
-      }
 
-      // Update org
-      const updateData: {
-        name?: string;
-        nameLower?: string;
-        description?: string;
-        logoUrl?: string;
-      } = {};
-      if (body.name) {
-        updateData.name = body.name;
-        updateData.nameLower = body.name.toLowerCase();
-      }
-      if (body.description !== undefined) {
-        updateData.description = body.description;
-      }
-      if (body.logoUrl !== undefined) {
-        updateData.logoUrl = body.logoUrl;
-      }
+        const [updated] = await tx
+          .update(organizations)
+          .set({
+            name: body.name ?? org.name,
+            description: body.description ?? org.description,
+            logoUrl: body.logo ?? org.logoUrl,
+          })
+          .where(eq(organizations.id, orgId))
+          .returning();
 
-      const updated = await OrgRepository.updateOrg(tx, orgId, updateData);
+        await emitAudit(tx, {
+          orgId,
+          actorId: userId,
+          event: 'org.updated',
+          entityType: 'org',
+          entityId: orgId,
+          payload: {
+            name: body.name,
+            description: body.description,
+          },
+        });
 
-      // Emit audit event
-      await emitAudit(tx, {
-        orgId,
-        actorId: userId,
-        event: 'org.updated',
-        entityType: 'org',
-        entityId: orgId,
-        payload: {
-          name: body.name,
-          description: body.description,
-        },
+        return updated;
       });
+    },
 
-      return {
-        id: updated.id,
-        name: updated.name,
-        slug: updated.slug,
-        description: updated.description,
-        logoUrl: updated.logoUrl,
-        onboardingStep: updated.onboardingStep,
-        quorumThreshold: updated.quorumThreshold,
-        archivedAt: updated.archivedAt,
-        createdAt: updated.createdAt,
-        updatedAt: updated.updatedAt,
-      };
-    });
-  }
+    async archiveOrg(userId: string, orgId: string) {
+      return await withTx(async (tx) => {
+        const membership = await tx.query.memberships.findFirst({
+          where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
+          with: { role: true },
+        });
 
-  /**
-   * Archive organization (soft delete). Owner-only.
-   */
-  static async archiveOrg(userId: string, orgId: string) {
-    return await withTx(async (tx) => {
-      // Verify caller is owner
-      const membership = await tx.query.memberships.findFirst({
-        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
-        with: { role: true },
+        if (!membership) throw AppError.forbidden('Not a member of this organization');
+
+        if (!(membership.role as any)?.isOwner)
+          throw AppError.forbidden('Only owners can archive organizations');
+
+        const org = await tx.query.organizations.findFirst({
+          where: eq(organizations.id, orgId),
+        });
+
+        if (!org) throw AppError.notFound('Organization not found');
+
+        await tx
+          .update(organizations)
+          .set({ archivedAt: new Date() })
+          .where(eq(organizations.id, orgId))
+          .returning();
+
+        await emitAudit(tx, {
+          orgId,
+          actorId: userId,
+          event: 'org.archived',
+          entityType: 'org',
+          entityId: orgId,
+          payload: {},
+        });
       });
+    },
 
-      if (!membership) {
-        throw AppError.forbidden('Not a member of this organization');
-      }
+    async skipOnboarding(userId: string, orgId: string) {
+      return await withTx(async (tx) => {
+        const org = await tx.query.organizations.findFirst({
+          where: eq(organizations.id, orgId),
+        });
 
-      if (!(membership.role as any)?.isOwner) {
-        throw AppError.forbidden('Only owners can archive organizations');
-      }
+        if (!org) throw AppError.notFound('Organization not found');
 
-      // Get current org
-      const org = await tx.query.organizations.findFirst({
-        where: eq(organizations.id, orgId),
+        if (org.archivedAt) throw AppError.orgArchived();
+
+        if (org.onboardingStep !== 'PENDING_INVITES')
+          throw AppError.conflict('Invalid state transition: can only skip from PENDING_INVITES');
+
+        const membership = await tx.query.memberships.findFirst({
+          where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
+          with: { role: true },
+        });
+
+        if (!membership) throw AppError.forbidden('Not a member of this organization');
+
+        if (!(membership.role as any)?.isOwner)
+          throw AppError.forbidden('Only owners can skip onboarding');
+
+        const [updated] = await tx
+          .update(organizations)
+          .set({ onboardingStep: 'COMPLETE' })
+          .where(eq(organizations.id, orgId))
+          .returning();
+
+        await emitAudit(tx, {
+          orgId,
+          actorId: userId,
+          event: 'org.onboarding_skipped',
+          entityType: 'org',
+          entityId: orgId,
+          payload: {
+            fromStep: 'PENDING_INVITES',
+            toStep: 'COMPLETE',
+          },
+        });
+
+        return {
+          step: updated.onboardingStep || 'COMPLETE',
+        };
       });
-
-      if (!org) {
-        throw AppError.notFound('Organization not found');
-      }
-
-      // Archive
-      await OrgRepository.archiveOrg(tx, orgId);
-
-      // Emit audit event
-      await emitAudit(tx, {
-        orgId,
-        actorId: userId,
-        event: 'org.archived',
-        entityType: 'org',
-        entityId: orgId,
-        payload: {},
-      });
-    });
-  }
-
-  /**
-   * Skip from PENDING_INVITES to COMPLETE (Owner-only).
-   * Throws CONFLICT if current step is not PENDING_INVITES.
-   */
-  static async skipOnboarding(userId: string, orgId: string) {
-    return await withTx(async (tx) => {
-      // Get current org state and verify step
-      const org = await tx.query.organizations.findFirst({
-        where: eq(organizations.id, orgId),
-      });
-
-      if (!org) {
-        throw AppError.notFound('Organization not found');
-      }
-
-      if (org.archivedAt) {
-        throw AppError.orgArchived();
-      }
-
-      // Verify current step is PENDING_INVITES
-      if (org.onboardingStep !== 'PENDING_INVITES') {
-        throw AppError.conflict('Invalid state transition: can only skip from PENDING_INVITES');
-      }
-
-      // Verify caller is owner
-      const membership = await tx.query.memberships.findFirst({
-        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
-        with: { role: true },
-      });
-
-      if (!membership) {
-        throw AppError.forbidden('Not a member of this organization');
-      }
-
-      if (!(membership.role as any)?.isOwner) {
-        throw AppError.forbidden('Only owners can skip onboarding');
-      }
-
-      // Update onboarding step to COMPLETE
-      const updated = await tx
-        .update(organizations)
-        .set({ onboardingStep: 'COMPLETE' })
-        .where(eq(organizations.id, orgId))
-        .returning();
-
-      // Emit audit event
-      await emitAudit(tx, {
-        orgId,
-        actorId: userId,
-        event: 'org.onboarding_skipped',
-        entityType: 'org',
-        entityId: orgId,
-        payload: {
-          fromStep: 'PENDING_INVITES',
-          toStep: 'COMPLETE',
-        },
-      });
-
-      return {
-        step: updated[0]?.onboardingStep || 'COMPLETE',
-      };
-    });
-  }
+    },
+  };
 }

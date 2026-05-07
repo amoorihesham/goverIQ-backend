@@ -9,7 +9,7 @@ import { buildAuthTestServer } from '../../helpers/server';
 
 import { refreshTokens, users } from '@/db/schema/auth';
 import { hashPassword } from '@/modules/auth/password';
-import { getDatabaseClient } from '@/shared/database/client';
+import { db } from '@/shared/database/client';
 
 let app: FastifyInstance;
 
@@ -45,7 +45,7 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
   it('200 with new accessToken + rotated cookie; prior row gone; exactly one row remains', async () => {
     const email = uniqueEmail();
     const password = 'correct-horse-battery';
-    const db = getDatabaseClient();
+
     const passwordHash = await hashPassword(password);
     const [user] = await db
       .insert(users)
@@ -71,17 +71,14 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
     const cookieB = matchB![1]!;
     expect(cookieB).not.toBe(cookieA);
 
-    const rows = await db
-      .select()
-      .from(refreshTokens)
-      .where(eq(refreshTokens.userId, user!.id));
+    const rows = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, user!.id));
     expect(rows).toHaveLength(1);
   });
 
   it('401 UNAUTHORIZED + ALL tokens deleted on replay of rotated cleartext (SC-103)', async () => {
     const email = uniqueEmail();
     const password = 'correct-horse-battery';
-    const db = getDatabaseClient();
+
     const passwordHash = await hashPassword(password);
     const [user] = await db
       .insert(users)
@@ -109,17 +106,14 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
     expect(replayRes.json().error.code).toBe('UNAUTHORIZED');
 
     // All tokens for this user must be gone
-    const rows = await db
-      .select()
-      .from(refreshTokens)
-      .where(eq(refreshTokens.userId, user!.id));
+    const rows = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, user!.id));
     expect(rows).toHaveLength(0);
   });
 
   it('401 UNAUTHORIZED when hash matches an expired row — only that row deleted', async () => {
     const email = uniqueEmail();
     const password = 'correct-horse-battery';
-    const db = getDatabaseClient();
+
     const passwordHash = await hashPassword(password);
     const [user] = await db
       .insert(users)
@@ -143,10 +137,7 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('UNAUTHORIZED');
 
-    const rows = await db
-      .select()
-      .from(refreshTokens)
-      .where(eq(refreshTokens.userId, user!.id));
+    const rows = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, user!.id));
     expect(rows).toHaveLength(0);
   });
 

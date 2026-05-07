@@ -9,10 +9,7 @@ export const registerRequestSchema = z.object({
 
 export const verifyRequestSchema = z.object({
   email: z.email(),
-  otp: z
-    .string()
-    .length(OTP_LENGTH)
-    .regex(/^\d+$/),
+  otp: z.string().length(OTP_LENGTH).regex(/^\d+$/),
 });
 
 export const resendOtpRequestSchema = z.object({

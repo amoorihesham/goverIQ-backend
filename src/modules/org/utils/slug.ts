@@ -2,39 +2,33 @@ import { randomBytes } from 'crypto';
 
 import { eq } from 'drizzle-orm';
 
-import { SLUG_MAX_SUFFIX_ATTEMPTS, SLUG_FALLBACK_RANDOM_BYTES } from '../constants';
+import { CONFIGURATIONS } from '../constants';
 
 import { organizations } from '@/db/schema/org';
+import { Tx } from '@/shared/database/types';
 
 export function generateSlug(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric chars with hyphens
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
-export async function ensureUniqueSlug(db: any, base: string): Promise<string> {
-  // Try base slug first
-  const checkExists = (slug: string) => {
-    return db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
-  };
+export async function checkSlugExist(tx: Tx, slug: string) {
+  return tx.query.organizations.findFirst({ where: eq(organizations.slug, slug) });
+}
 
-  const exists = await checkExists(base);
-  if (exists.length === 0) {
-    return base;
-  }
+export async function ensureUniqueSlug(tx: Tx, base: string): Promise<string> {
+  const exists = await checkSlugExist(tx, base);
+  if (exists) return base;
 
-  // Try numeric suffixes starting from 2, up to SLUG_MAX_SUFFIX_ATTEMPTS + 1
-  for (let i = 2; i <= SLUG_MAX_SUFFIX_ATTEMPTS + 1; i++) {
+  for (let i = 2; i <= CONFIGURATIONS.SLUG_MAX_SUFFIX_ATTEMPTS + 1; i++) {
     const candidate = `${base}-${i}`;
-    const existsCandidate = await checkExists(candidate);
+    const existsCandidate = await checkSlugExist(tx, candidate);
 
-    if (existsCandidate.length === 0) {
-      return candidate;
-    }
+    if (existsCandidate) return candidate;
   }
 
-  // Fallback to random suffix
-  const randomSuffix = randomBytes(SLUG_FALLBACK_RANDOM_BYTES).toString('hex');
+  const randomSuffix = randomBytes(CONFIGURATIONS.SLUG_FALLBACK_RANDOM_BYTES).toString('hex');
   return `${base}-${randomSuffix}`;
 }

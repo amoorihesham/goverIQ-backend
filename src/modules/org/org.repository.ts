@@ -61,12 +61,7 @@ export class OrgRepository {
   /**
    * Insert a membership in a transaction.
    */
-  static async insertMembership(
-    tx: Tx,
-    userId: string,
-    orgId: string,
-    roleId: string,
-  ) {
+  static async insertMembership(tx: Tx, userId: string, orgId: string, roleId: string) {
     const [membership] = await tx
       .insert(memberships)
       .values({
@@ -91,11 +86,7 @@ export class OrgRepository {
    * Find organization with membership details for a user.
    * Returns org and the user's membership/role info if they're a member.
    */
-  static async findOrgWithMembershipForUser(
-    db: DatabaseClient,
-    orgId: string,
-    userId: string,
-  ) {
+  static async findOrgWithMembershipForUser(db: DatabaseClient, orgId: string, userId: string) {
     const org = await db.query.organizations.findFirst({
       where: eq(organizations.id, orgId),
     });
@@ -103,10 +94,7 @@ export class OrgRepository {
     if (!org) return null;
 
     const membership = await db.query.memberships.findFirst({
-      where: and(
-        eq(memberships.orgId, orgId),
-        eq(memberships.userId, userId),
-      ),
+      where: and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)),
       with: {
         role: true,
       },

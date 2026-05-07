@@ -43,12 +43,12 @@ Used for: `DELETE /api/v1/orgs/:orgId` (archive) and
 
 ## Updated pre-handler chain for each route category
 
-| Category | Pre-handler array |
-|---|---|
-| Identity only (tier=always) | `[identityRequired, requireOnboardingStep('always')]` |
-| Identity + permission | `[identityRequired, requireOnboardingStep(tier), requirePermission(perm)]` |
-| Owner only | `[identityRequired, requireOnboardingStep(tier), requireOwner()]` |
-| Public (invite accept/decline) | `[]` (no pre-handlers) |
+| Category                       | Pre-handler array                                                          |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| Identity only (tier=always)    | `[identityRequired, requireOnboardingStep('always')]`                      |
+| Identity + permission          | `[identityRequired, requireOnboardingStep(tier), requirePermission(perm)]` |
+| Owner only                     | `[identityRequired, requireOnboardingStep(tier), requireOwner()]`          |
+| Public (invite accept/decline) | `[]` (no pre-handlers)                                                     |
 
 ## What does NOT change
 

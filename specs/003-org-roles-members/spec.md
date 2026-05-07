@@ -146,7 +146,7 @@ advanced to `COMPLETE` if it was still `PENDING_INVITES`.
    **Then** a user account is created with that password, a membership is created under
    the invited role, invitation `status = ACCEPTED`, and if the org was
    `PENDING_INVITES` the step advances to `COMPLETE` — all in one operation.
-2a. **Given** a pending invitation for an email that already has an account, **When**
+   2a. **Given** a pending invitation for an email that already has an account, **When**
    the invitee follows the accept link before expiry, **Then** a membership is created
    (no new user account is created, no password prompt is shown), invitation
    `status = ACCEPTED`, and onboarding advances if applicable.
@@ -269,7 +269,7 @@ verify the org is excluded from normal listing but is still retrievable.
   - `PENDING_INVITES`: invitation routes and the explicit skip route pass; others
     are blocked
   - `COMPLETE`: all routes pass
-  Clients MUST NOT be able to bypass a step by navigating around it.
+    Clients MUST NOT be able to bypass a step by navigating around it.
 
 - **FR-204**: `onboardingStep` MUST advance from `PENDING_ROLES` to `PENDING_INVITES`
   when the first non-Owner custom role is created, inside the same transaction as the
@@ -313,8 +313,8 @@ verify the org is excluded from normal listing but is still retrievable.
     transaction. The password MUST meet the same minimum length policy as registration
     (12 characters). The new user is created in a verified state (the invite token
     serves as email proof).
-  The accept and decline links MUST use an opaque token; the raw token is placed in the
-  URL and matched against the stored hash.
+    The accept and decline links MUST use an opaque token; the raw token is placed in the
+    URL and matched against the stored hash.
 
 - **FR-212**: System MUST enforce the single-owner invariant: the last member with an
   Owner role (`is_owner = true`) MUST NOT be removable or have their role revoked.

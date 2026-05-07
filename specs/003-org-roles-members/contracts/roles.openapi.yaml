@@ -122,11 +122,17 @@ paths:
                 forbidden:
                   value:
                     success: false
-                    error: { code: 'FORBIDDEN', message: 'Insufficient permissions', statusCode: 403 }
+                    error:
+                      { code: 'FORBIDDEN', message: 'Insufficient permissions', statusCode: 403 }
                 escalation:
                   value:
                     success: false
-                    error: { code: 'PRIVILEGE_ESCALATION', message: 'Privilege escalation not permitted', statusCode: 403 }
+                    error:
+                      {
+                        code: 'PRIVILEGE_ESCALATION',
+                        message: 'Privilege escalation not permitted',
+                        statusCode: 403,
+                      }
         '409':
           description: Role name already exists in this org
           content:
@@ -229,7 +235,12 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorEnvelope' }
               example:
                 success: false
-                error: { code: 'ROLE_IN_USE', message: 'Role is assigned to one or more members', statusCode: 409 }
+                error:
+                  {
+                    code: 'ROLE_IN_USE',
+                    message: 'Role is assigned to one or more members',
+                    statusCode: 409,
+                  }
 
 components:
   securitySchemes:

@@ -181,6 +181,7 @@ curl -i -X POST http://localhost:3000/auth/resend-otp \
 ```
 
 Expected: second call returns `422 Unprocessable Entity`, `OTP_COOLDOWN`. Wait
+
 > 60 s and retry — second call now succeeds with `200 OK` and a fresh email.
 
 Enumeration parity check:
@@ -275,15 +276,15 @@ Expected: line + branch coverage ≥ 80%; `auth` module specifically reports ≥
 
 ## Done-When mapping
 
-| Phase 1 "Done When" bullet                                                           | Verified by step |
-| ------------------------------------------------------------------------------------ | ---------------- |
-| Registration creates an unverified user and triggers a notification                  | 1                |
-| OTP verification marks user verified and issues a valid session                      | 2, 3             |
-| OTP expiry is enforced — expired OTPs are rejected                                   | (integration test) |
-| OTP resend cooldown is enforced                                                      | 8                |
-| Login is blocked for unverified users                                                | (integration test — SC-104) |
-| Refresh rotates the cookie and issues a new access credential                        | 6                |
-| Refresh token reuse returns `UNAUTHORIZED` and invalidates all sessions for that user | 7               |
-| Logout deletes the token row and clears the cookie                                   | 10               |
-| Identity preHandler rejects requests with missing or expired access credentials      | 3 + integration test |
-| All 4 audit events confirmed in the log after running each flow                      | 1, 2, 5, 10      |
+| Phase 1 "Done When" bullet                                                            | Verified by step            |
+| ------------------------------------------------------------------------------------- | --------------------------- |
+| Registration creates an unverified user and triggers a notification                   | 1                           |
+| OTP verification marks user verified and issues a valid session                       | 2, 3                        |
+| OTP expiry is enforced — expired OTPs are rejected                                    | (integration test)          |
+| OTP resend cooldown is enforced                                                       | 8                           |
+| Login is blocked for unverified users                                                 | (integration test — SC-104) |
+| Refresh rotates the cookie and issues a new access credential                         | 6                           |
+| Refresh token reuse returns `UNAUTHORIZED` and invalidates all sessions for that user | 7                           |
+| Logout deletes the token row and clears the cookie                                    | 10                          |
+| Identity preHandler rejects requests with missing or expired access credentials       | 3 + integration test        |
+| All 4 audit events confirmed in the log after running each flow                       | 1, 2, 5, 10                 |

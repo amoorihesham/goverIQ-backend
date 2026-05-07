@@ -10,7 +10,7 @@ import { buildAuthTestServer } from '../../helpers/server';
 import { auditLogs } from '@/db/schema/audit';
 import { refreshTokens, users } from '@/db/schema/auth';
 import { hashPassword } from '@/modules/auth/password';
-import { getDatabaseClient } from '@/shared/database/client';
+import { db } from '@/shared/database/client';
 
 let app: FastifyInstance;
 
@@ -45,7 +45,7 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
   it('204 + cookie cleared + DB row gone + user.logout audit row', async () => {
     const email = uniqueEmail();
     const password = 'correct-horse-battery';
-    const db = getDatabaseClient();
+
     const passwordHash = await hashPassword(password);
     const [user] = await db
       .insert(users)
@@ -66,10 +66,7 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
     const cookieStr = Array.isArray(setCookie) ? setCookie[0]! : (setCookie as string);
     expect(cookieStr).toContain('Max-Age=0');
 
-    const rows = await db
-      .select()
-      .from(refreshTokens)
-      .where(eq(refreshTokens.userId, user!.id));
+    const rows = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, user!.id));
     expect(rows).toHaveLength(0);
 
     const auditRows = await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.logout'));
@@ -80,7 +77,7 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
   it('204 on second logout with same cookie — idempotent, no additional audit row (SC-107)', async () => {
     const email = uniqueEmail();
     const password = 'correct-horse-battery';
-    const db = getDatabaseClient();
+
     const passwordHash = await hashPassword(password);
     const [user] = await db
       .insert(users)
@@ -96,10 +93,7 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
     });
 
     const auditCountBefore = (
-      await db
-        .select()
-        .from(auditLogs)
-        .where(eq(auditLogs.event, 'user.logout'))
+      await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.logout'))
     ).filter((r) => r.actorId === user!.id).length;
 
     const res = await app.inject({
@@ -111,10 +105,7 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
     expect(res.statusCode).toBe(204);
 
     const auditCountAfter = (
-      await db
-        .select()
-        .from(auditLogs)
-        .where(eq(auditLogs.event, 'user.logout'))
+      await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.logout'))
     ).filter((r) => r.actorId === user!.id).length;
 
     expect(auditCountAfter).toBe(auditCountBefore);
@@ -132,7 +123,7 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
   it('rotated cookie cannot refresh after logout (FR-110)', async () => {
     const email = uniqueEmail();
     const password = 'correct-horse-battery';
-    const db = getDatabaseClient();
+
     const passwordHash = await hashPassword(password);
     await db.insert(users).values({ email, passwordHash, isVerified: true });
 

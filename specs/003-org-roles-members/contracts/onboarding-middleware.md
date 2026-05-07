@@ -22,31 +22,31 @@ When attached as a Fastify pre-handler, the function:
 
 ## Tier gate logic
 
-| `onboardingStep` | `'always'` | `'role_creation'` | `'invitation'` | `'complete'` |
-|---|---|---|---|---|
-| `PENDING_ROLES` | ✅ pass | ✅ pass | ❌ block | ❌ block |
-| `PENDING_INVITES` | ✅ pass | ❌ block | ✅ pass | ❌ block |
-| `COMPLETE` | ✅ pass | ✅ pass | ✅ pass | ✅ pass |
+| `onboardingStep`  | `'always'` | `'role_creation'` | `'invitation'` | `'complete'` |
+| ----------------- | ---------- | ----------------- | -------------- | ------------ |
+| `PENDING_ROLES`   | ✅ pass    | ✅ pass           | ❌ block       | ❌ block     |
+| `PENDING_INVITES` | ✅ pass    | ❌ block          | ✅ pass        | ❌ block     |
+| `COMPLETE`        | ✅ pass    | ✅ pass           | ✅ pass        | ✅ pass      |
 
 Rationale for `'role_creation'` blocking during `PENDING_INVITES`: role creation is
-the action that *transitions* out of `PENDING_ROLES`. Once the org is at
+the action that _transitions_ out of `PENDING_ROLES`. Once the org is at
 `PENDING_INVITES`, role creation via the onboarding path is complete. However, role
 creation should still be available once `COMPLETE` (orgs can always add new roles).
 Therefore `COMPLETE` passes all tiers.
 
 ## Route tier assignments
 
-| Route | Tier |
-|---|---|
-| `GET /api/v1/orgs/:orgId` | `'always'` |
-| `GET /api/v1/orgs/:orgId/onboarding` | `'always'` |
-| `GET /api/v1/orgs/:orgId/roles/permissions` | `'role_creation'` |
-| `POST /api/v1/orgs/:orgId/roles` | `'role_creation'` |
-| `GET /api/v1/orgs/:orgId/roles` | `'invitation'` |
-| `GET /api/v1/orgs/:orgId/roles/:roleId` | `'invitation'` |
-| `POST /api/v1/orgs/:orgId/members/invitations` | `'invitation'` |
-| `POST /api/v1/orgs/:orgId/onboarding/skip` | `'invitation'` |
-| All other protected routes | `'complete'` |
+| Route                                          | Tier              |
+| ---------------------------------------------- | ----------------- |
+| `GET /api/v1/orgs/:orgId`                      | `'always'`        |
+| `GET /api/v1/orgs/:orgId/onboarding`           | `'always'`        |
+| `GET /api/v1/orgs/:orgId/roles/permissions`    | `'role_creation'` |
+| `POST /api/v1/orgs/:orgId/roles`               | `'role_creation'` |
+| `GET /api/v1/orgs/:orgId/roles`                | `'invitation'`    |
+| `GET /api/v1/orgs/:orgId/roles/:roleId`        | `'invitation'`    |
+| `POST /api/v1/orgs/:orgId/members/invitations` | `'invitation'`    |
+| `POST /api/v1/orgs/:orgId/onboarding/skip`     | `'invitation'`    |
+| All other protected routes                     | `'complete'`      |
 
 ## Usage example
 
@@ -55,13 +55,17 @@ import { identityRequired } from '@/shared/auth/identity';
 import { requireOnboardingStep } from '@/modules/org/onboarding.prehandler';
 import { requirePermission } from '@/shared/permissions/guard';
 
-fastify.post('/api/v1/orgs/:orgId/roles', {
-  preHandler: [
-    identityRequired,
-    requireOnboardingStep('role_creation'),
-    requirePermission('role:create'),
-  ],
-}, controller.createRole);
+fastify.post(
+  '/api/v1/orgs/:orgId/roles',
+  {
+    preHandler: [
+      identityRequired,
+      requireOnboardingStep('role_creation'),
+      requirePermission('role:create'),
+    ],
+  },
+  controller.createRole,
+);
 ```
 
 ## Test coverage

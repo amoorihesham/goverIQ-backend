@@ -149,15 +149,19 @@ beforeEach(async () => {
     getDatabaseClient()
       .transaction(async (tx) => {
         currentTx = tx;
-        readyResolve();           // unblock the test
-        await new Promise<void>((_, reject) => { rejectTx = reject; });
+        readyResolve(); // unblock the test
+        await new Promise<void>((_, reject) => {
+          rejectTx = reject;
+        });
       })
-      .catch(() => { /* expected — we throw to roll back */ });
+      .catch(() => {
+        /* expected — we throw to roll back */
+      });
   });
 });
 
 afterEach(async () => {
-  rejectTx?.(new Error('rollback'));    // forces the transaction to abort
+  rejectTx?.(new Error('rollback')); // forces the transaction to abort
   currentTx = null;
 });
 ```
@@ -192,7 +196,7 @@ export const identityRequired: preHandlerHookHandler = async (request) => {
   const header = request.headers.authorization;
   if (!header?.startsWith('Bearer ')) throw AppError.unauthorized();
   const token = header.slice('Bearer '.length);
-  const payload = await verifyAccessToken(token);    // re-uses Phase 0 helper
+  const payload = await verifyAccessToken(token); // re-uses Phase 0 helper
   request.user = { userId: payload.sub, email: payload.email };
 };
 ```
@@ -233,14 +237,14 @@ non-null assertions.
 
 All values live in `src/modules/auth/constants.ts`:
 
-| Constant                  | Value                  | Source                |
-| ------------------------- | ---------------------- | --------------------- |
-| `PASSWORD_MIN_LENGTH`     | 12                     | spec clarification Q1 |
-| `PASSWORD_COST_FACTOR`    | 11                     | research §3            |
-| `OTP_LENGTH`              | 6                      | research §4            |
-| `OTP_TTL_MINUTES`         | 10                     | research §4            |
-| `OTP_RESEND_COOLDOWN_SEC` | 60                     | research §4            |
-| `ACCESS_TTL_SECONDS`      | 900   (15 min)         | master plan Phase 1   |
-| `REFRESH_TTL_SECONDS`     | 604_800 (7 days)       | master plan Phase 1   |
-| `REFRESH_COOKIE_NAME`     | `'refresh_token'`      | research §2            |
-| `REFRESH_RANDOM_BYTES`    | 32                     | research §1            |
+| Constant                  | Value             | Source                |
+| ------------------------- | ----------------- | --------------------- |
+| `PASSWORD_MIN_LENGTH`     | 12                | spec clarification Q1 |
+| `PASSWORD_COST_FACTOR`    | 11                | research §3           |
+| `OTP_LENGTH`              | 6                 | research §4           |
+| `OTP_TTL_MINUTES`         | 10                | research §4           |
+| `OTP_RESEND_COOLDOWN_SEC` | 60                | research §4           |
+| `ACCESS_TTL_SECONDS`      | 900 (15 min)      | master plan Phase 1   |
+| `REFRESH_TTL_SECONDS`     | 604_800 (7 days)  | master plan Phase 1   |
+| `REFRESH_COOKIE_NAME`     | `'refresh_token'` | research §2           |
+| `REFRESH_RANDOM_BYTES`    | 32                | research §1           |

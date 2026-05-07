@@ -65,7 +65,12 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorEnvelope' }
               example:
                 success: false
-                error: { code: 'PENDING_INVITE_EXISTS', message: 'Pending invitation already exists', statusCode: 409 }
+                error:
+                  {
+                    code: 'PENDING_INVITE_EXISTS',
+                    message: 'Pending invitation already exists',
+                    statusCode: 409,
+                  }
 
   /api/v1/orgs/{orgId}/members:
     get:
@@ -133,7 +138,12 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorEnvelope' }
               example:
                 success: false
-                error: { code: 'SOLE_OWNER', message: 'Cannot remove the sole owner of an organization', statusCode: 409 }
+                error:
+                  {
+                    code: 'SOLE_OWNER',
+                    message: 'Cannot remove the sole owner of an organization',
+                    statusCode: 409,
+                  }
 
   /api/v1/orgs/{orgId}/members/{memberId}/role:
     put:

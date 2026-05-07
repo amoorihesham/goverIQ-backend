@@ -27,10 +27,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { orgId: string } }>(
     '/orgs/:orgId/members',
     {
-      preHandler: [
-        identityRequired,
-        requireOnboardingStep('complete'),
-      ],
+      preHandler: [identityRequired, requireOnboardingStep('complete')],
     },
     MemberController.listMembers,
   );

@@ -60,6 +60,7 @@ on a busy week, short enough to keep the invite list clean.
 ## 3. Slug Generation & Collision Resolution
 
 **Decision**: Slug auto-derived from org name at creation time via:
+
 1. Lowercase the name.
 2. Replace any run of non-alphanumeric characters with a single hyphen.
 3. Strip leading and trailing hyphens.
@@ -93,12 +94,12 @@ no cache) and blocks mismatches.
 
 Four tiers:
 
-| Tier | Allowed when step is |
-|---|---|
-| `'always'` | PENDING_ROLES, PENDING_INVITES, COMPLETE |
-| `'role_creation'` | PENDING_ROLES, COMPLETE |
-| `'invitation'` | PENDING_INVITES, COMPLETE |
-| `'complete'` | COMPLETE only (default) |
+| Tier              | Allowed when step is                     |
+| ----------------- | ---------------------------------------- |
+| `'always'`        | PENDING_ROLES, PENDING_INVITES, COMPLETE |
+| `'role_creation'` | PENDING_ROLES, COMPLETE                  |
+| `'invitation'`    | PENDING_INVITES, COMPLETE                |
+| `'complete'`      | COMPLETE only (default)                  |
 
 If the org has `archived_at != null`, the middleware throws `ORG_ARCHIVED` (already in
 error codes registry).
@@ -148,11 +149,11 @@ the module rather than the shared layer (only org/role operations need it). Sett
 **Decision**: Add three codes to `src/shared/errors/codes.ts` and three factory
 methods to `src/shared/errors/http-error.ts`:
 
-| Code | HTTP | Message |
-|---|---|---|
-| `PRIVILEGE_ESCALATION` | 403 | Privilege escalation not permitted |
-| `ROLE_IN_USE` | 409 | Role is assigned to one or more members |
-| `SOLE_OWNER` | 409 | Cannot remove the sole owner of an organization |
+| Code                   | HTTP | Message                                         |
+| ---------------------- | ---- | ----------------------------------------------- |
+| `PRIVILEGE_ESCALATION` | 403  | Privilege escalation not permitted              |
+| `ROLE_IN_USE`          | 409  | Role is assigned to one or more members         |
+| `SOLE_OWNER`           | 409  | Cannot remove the sole owner of an organization |
 
 **Rationale**: All three are domain-specific codes called out in the master
 implementation plan. Using `FORBIDDEN` or `CONFLICT` with custom messages would work
@@ -219,10 +220,10 @@ implementation plan specifies "Owner only" (not permission-based).
 
 All values live in `src/modules/org/constants.ts`:
 
-| Constant | Value | Source |
-|---|---|---|
-| `INVITATION_TOKEN_BYTES` | `32` | research §2 |
-| `INVITATION_TTL_DAYS` | `7` | research §2 |
-| `DEFAULT_QUORUM_THRESHOLD` | `'0.50'` | schema default |
-| `SLUG_MAX_SUFFIX_ATTEMPTS` | `9` | research §3 |
-| `SLUG_FALLBACK_RANDOM_BYTES` | `2` | research §3 |
+| Constant                     | Value    | Source         |
+| ---------------------------- | -------- | -------------- |
+| `INVITATION_TOKEN_BYTES`     | `32`     | research §2    |
+| `INVITATION_TTL_DAYS`        | `7`      | research §2    |
+| `DEFAULT_QUORUM_THRESHOLD`   | `'0.50'` | schema default |
+| `SLUG_MAX_SUFFIX_ATTEMPTS`   | `9`      | research §3    |
+| `SLUG_FALLBACK_RANDOM_BYTES` | `2`      | research §3    |

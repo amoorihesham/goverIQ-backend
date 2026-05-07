@@ -39,12 +39,12 @@ After `identityRequired` resolves, downstream handlers may safely read
 
 ## Error mapping (FR-111)
 
-| Condition                                               | Throws                                | Error code      | HTTP |
-| ------------------------------------------------------- | ------------------------------------- | --------------- | ---- |
-| `Authorization` header missing                          | `AppError.unauthorized()`             | `UNAUTHORIZED`  | 401  |
-| `Authorization` header does not start with `Bearer `    | `AppError.unauthorized()`             | `UNAUTHORIZED`  | 401  |
-| Token signature invalid / claims malformed              | `AppError.invalidToken()` (via `verifyAccessToken`) | `INVALID_TOKEN` | 401  |
-| Token expired                                           | `AppError.tokenExpired()` (via `verifyAccessToken`) | `TOKEN_EXPIRED` | 401  |
+| Condition                                            | Throws                                              | Error code      | HTTP |
+| ---------------------------------------------------- | --------------------------------------------------- | --------------- | ---- |
+| `Authorization` header missing                       | `AppError.unauthorized()`                           | `UNAUTHORIZED`  | 401  |
+| `Authorization` header does not start with `Bearer ` | `AppError.unauthorized()`                           | `UNAUTHORIZED`  | 401  |
+| Token signature invalid / claims malformed           | `AppError.invalidToken()` (via `verifyAccessToken`) | `INVALID_TOKEN` | 401  |
+| Token expired                                        | `AppError.tokenExpired()` (via `verifyAccessToken`) | `TOKEN_EXPIRED` | 401  |
 
 The global `createErrorHandler` in
 [`src/shared/errors/envelope.ts`](../../../src/shared/errors/envelope.ts) converts
@@ -55,12 +55,16 @@ any thrown `AppError` into the standard `{ success: false, error }` envelope.
 ```ts
 import { identityRequired } from '@/shared/auth/identity';
 
-fastify.get('/api/v1/orgs/:orgId', {
-  preHandler: [identityRequired],
-}, async (request) => {
-  const { userId, email } = request.user!;
-  // ... domain logic ...
-});
+fastify.get(
+  '/api/v1/orgs/:orgId',
+  {
+    preHandler: [identityRequired],
+  },
+  async (request) => {
+    const { userId, email } = request.user!;
+    // ... domain logic ...
+  },
+);
 ```
 
 ## Test coverage (FR-111 / verification)

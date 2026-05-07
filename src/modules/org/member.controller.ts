@@ -18,11 +18,7 @@ export class MemberController {
   static async sendInvitation(request: FastifyRequest, reply: FastifyReply) {
     const orgId = (request.params as { orgId: string }).orgId;
     const body = request.body as SendInvitationBody;
-    const invitation = await MemberService.sendInvitation(
-      request.user!.userId,
-      orgId,
-      body,
-    );
+    const invitation = await MemberService.sendInvitation(request.user!.userId, orgId, body);
     return reply.code(201).send({
       success: true,
       data: invitation,
@@ -47,15 +43,11 @@ export class MemberController {
 
     // Set refresh token cookie for new users
     if (result.refreshTokenCleartext) {
-      reply.setCookie(
-        'refresh_token',
-        result.refreshTokenCleartext,
-        {
-          httpOnly: true,
-          sameSite: 'lax',
-          path: '/',
-        },
-      );
+      reply.setCookie('refresh_token', result.refreshTokenCleartext, {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+      });
     }
 
     return response;

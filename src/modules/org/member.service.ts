@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 
-import { INVITATION_TTL_DAYS } from './constants';
+import { CONFIGURATIONS } from './constants';
 import { generateInviteToken, hashInviteToken } from './invite-token';
 import { MemberRepository } from './member.repository';
 import { RoleRepository } from './role.repository';
@@ -27,8 +27,7 @@ export class MemberService {
     return await withTx(async (tx) => {
       // Verify caller is a member with invite permission
       const membership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
         with: { role: true },
       });
 
@@ -37,11 +36,7 @@ export class MemberService {
       }
 
       // Check for pending invite
-      const pending = await MemberRepository.findPendingInviteByOrgEmail(
-        db,
-        orgId,
-        body.email,
-      );
+      const pending = await MemberRepository.findPendingInviteByOrgEmail(db, orgId, body.email);
       if (pending) {
         throw AppError.pendingInviteExists();
       }
@@ -63,7 +58,7 @@ export class MemberService {
 
       // Calculate expiration
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + INVITATION_TTL_DAYS);
+      expiresAt.setDate(expiresAt.getDate() + CONFIGURATIONS.INVITATION_TTL_DAYS);
 
       // Insert invitation
       const invitation = await MemberRepository.insertInvitation(tx, {
@@ -102,18 +97,12 @@ export class MemberService {
   /**
    * Accept invitation (handles both new and existing users).
    */
-  static async acceptInvitation(
-    token: string,
-    body?: { password?: string },
-  ) {
+  static async acceptInvitation(token: string, body?: { password?: string }) {
     const tokenHash = hashInviteToken(token);
 
     return await withTx(async (tx) => {
       // Find invitation
-      const invitation = await MemberRepository.findInvitationByTokenHash(
-        db,
-        tokenHash,
-      );
+      const invitation = await MemberRepository.findInvitationByTokenHash(db, tokenHash);
       if (!invitation) {
         throw AppError.notFound('Invitation not found');
       }
@@ -143,9 +132,7 @@ export class MemberService {
       } else {
         // New user: create account
         if (!body?.password) {
-          throw AppError.validationError(
-            'Password is required for new account creation',
-          );
+          throw AppError.validationError('Password is required for new account creation');
         }
 
         if (body.password.length < 12) {
@@ -190,11 +177,7 @@ export class MemberService {
       );
 
       // Update invitation status
-      await MemberRepository.updateInvitationStatus(
-        tx,
-        invitation.id,
-        'ACCEPTED',
-      );
+      await MemberRepository.updateInvitationStatus(tx, invitation.id, 'ACCEPTED');
 
       // Check if need to advance onboarding
       const org = await tx.query.organizations.findFirst({
@@ -242,20 +225,13 @@ export class MemberService {
 
     return await withTx(async (tx) => {
       // Find invitation
-      const invitation = await MemberRepository.findInvitationByTokenHash(
-        db,
-        tokenHash,
-      );
+      const invitation = await MemberRepository.findInvitationByTokenHash(db, tokenHash);
       if (!invitation) {
         throw AppError.notFound('Invitation not found');
       }
 
       // Update status (idempotent - don't error if already declined)
-      await MemberRepository.updateInvitationStatus(
-        tx,
-        invitation.id,
-        'DECLINED',
-      );
+      await MemberRepository.updateInvitationStatus(tx, invitation.id, 'DECLINED');
 
       // Emit audit event
       await emitAudit(tx, {
@@ -277,12 +253,7 @@ export class MemberService {
   /**
    * List members in an organization (paginated).
    */
-  static async listMembers(
-    userId: string,
-    orgId: string,
-    cursor?: string,
-    limit: number = 20,
-  ) {
+  static async listMembers(userId: string, orgId: string, cursor?: string, limit: number = 20) {
     // Verify membership
     const membership = await db.query.memberships.findFirst({
       where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
@@ -359,12 +330,7 @@ export class MemberService {
   /**
    * Assign a role to a member.
    */
-  static async assignMemberRole(
-    userId: string,
-    orgId: string,
-    memberId: string,
-    roleId: string,
-  ) {
+  static async assignMemberRole(userId: string, orgId: string, memberId: string, roleId: string) {
     return await withTx(async (tx) => {
       // Verify caller is a member
       const callerMembership = await tx.query.memberships.findFirst({
@@ -391,11 +357,7 @@ export class MemberService {
       }
 
       // Update membership
-      const updated = await MemberRepository.updateMemberRole(
-        tx,
-        memberId,
-        roleId,
-      );
+      const updated = await MemberRepository.updateMemberRole(tx, memberId, roleId);
 
       // Emit audit event
       await emitAudit(tx, {
@@ -422,11 +384,7 @@ export class MemberService {
   /**
    * Revoke a member's role.
    */
-  static async revokeMemberRole(
-    userId: string,
-    orgId: string,
-    memberId: string,
-  ) {
+  static async revokeMemberRole(userId: string, orgId: string, memberId: string) {
     return await withTx(async (tx) => {
       // Verify caller is a member
       const callerMembership = await tx.query.memberships.findFirst({

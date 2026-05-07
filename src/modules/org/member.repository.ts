@@ -7,11 +7,7 @@ export class MemberRepository {
   /**
    * Find a pending invitation by org and email.
    */
-  static async findPendingInviteByOrgEmail(
-    db: DatabaseClient,
-    orgId: string,
-    email: string,
-  ) {
+  static async findPendingInviteByOrgEmail(db: DatabaseClient, orgId: string, email: string) {
     return db.query.invitations.findFirst({
       where: and(
         eq(invitations.orgId, orgId),
@@ -80,12 +76,7 @@ export class MemberRepository {
   /**
    * Insert or update membership in a transaction.
    */
-  static async upsertMembership(
-    tx: Tx,
-    userId: string,
-    orgId: string,
-    roleId: string,
-  ) {
+  static async upsertMembership(tx: Tx, userId: string, orgId: string, roleId: string) {
     // Check if membership exists
     const existing = await tx.query.memberships.findFirst({
       where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
@@ -101,10 +92,7 @@ export class MemberRepository {
       return updated!;
     } else {
       // Insert new membership
-      const [inserted] = await tx
-        .insert(memberships)
-        .values({ userId, orgId, roleId })
-        .returning();
+      const [inserted] = await tx.insert(memberships).values({ userId, orgId, roleId }).returning();
       return inserted!;
     }
   }
@@ -112,12 +100,7 @@ export class MemberRepository {
   /**
    * List members in an org with cursor pagination.
    */
-  static async listMembers(
-    db: DatabaseClient,
-    orgId: string,
-    cursor?: string,
-    limit: number = 20,
-  ) {
+  static async listMembers(db: DatabaseClient, orgId: string, cursor?: string, limit: number = 20) {
     // Implement cursor pagination
     // For now, return all members for the org
     return db.query.memberships.findMany({
