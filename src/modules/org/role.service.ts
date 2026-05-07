@@ -1,12 +1,13 @@
 import { eq } from 'drizzle-orm';
-import { AppError } from '@/shared/errors/http-error';
-import { withTx } from '@/shared/database/transaction';
+
+import { assertNoPrivilegeEscalation } from './privilege';
+import { RoleRepository } from './role.repository';
+
+import { organizations } from '@/db/schema/org';
 import { emitAudit } from '@/shared/audit/emitter';
 import { db } from '@/shared/database/client';
-import { organizations } from '@/db/schema/org';
-import { RoleRepository } from './role.repository';
-import { OrgRepository } from './org.repository';
-import { assertNoPrivilegeEscalation } from './privilege';
+import { withTx } from '@/shared/database/transaction';
+import { AppError } from '@/shared/errors/http-error';
 
 const ALL_PERMISSIONS = [
   'org:read',
@@ -87,8 +88,8 @@ export class RoleService {
         throw AppError.forbidden('Not a member of this organization');
       }
 
-      const callerPermissions = membership.role?.permissions || [];
-      const isOwner = membership.role?.isOwner ?? false;
+      const callerPermissions = (membership.role as any)?.permissions || [];
+      const isOwner = (membership.role as any)?.isOwner ?? false;
 
       // Check for privilege escalation (unless caller is owner)
       if (!isOwner && callerPermissions.length > 0) {
@@ -189,8 +190,8 @@ export class RoleService {
         throw AppError.forbidden('Not a member of this organization');
       }
 
-      const callerPermissions = membership.role?.permissions || [];
-      const isOwner = membership.role?.isOwner ?? false;
+      const callerPermissions = (membership.role as any)?.permissions || [];
+      const isOwner = (membership.role as any)?.isOwner ?? false;
 
       // Get the role to update
       const role = await RoleRepository.findRoleById(db, orgId, roleId);

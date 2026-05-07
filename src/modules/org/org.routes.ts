@@ -1,18 +1,16 @@
 import type { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 
-import { OrgController } from './org.controller';
-import { identityRequired } from '@/shared/auth/identity';
 import { requireOnboardingStep } from './onboarding.prehandler';
-import { requireOwner } from '@/shared/permissions/guard';
+import { OrgController } from './org.controller';
 
-const CreateOrgRequestSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  logoUrl: z.string().url().optional(),
-});
+import { identityRequired } from '@/shared/auth/identity';
+import { requireOwner, requirePermission } from '@/shared/permissions/guard';
 
-type CreateOrgRequest = z.infer<typeof CreateOrgRequestSchema>;
+interface CreateOrgRequest {
+  name: string;
+  description?: string;
+  logoUrl?: string;
+}
 
 export async function orgRoutes(fastify: FastifyInstance) {
   // POST /api/v1/orgs - Create organization

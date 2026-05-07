@@ -7,6 +7,7 @@ import {
   resendOtpRequestJsonSchema,
   verifyRequestJsonSchema,
 } from './schemas/json-schema';
+
 import { db } from '@/shared/database/client';
 
 export async function authRoutes(fastify: FastifyInstance) {

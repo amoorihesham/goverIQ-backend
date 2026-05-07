@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 
+import { MemberController } from './member.controller';
+import { memberRoutes } from './member.routes';
 import { orgRoutes } from './org.routes';
 import { roleRoutes } from './role.routes';
-import { memberRoutes } from './member.routes';
-import { MemberController } from './member.controller';
 
 export async function orgPlugin(fastify: FastifyInstance) {
   await fastify.register(orgRoutes);

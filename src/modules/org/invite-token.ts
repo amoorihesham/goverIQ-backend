@@ -1,4 +1,5 @@
 import { randomBytes, createHash } from 'crypto';
+
 import { INVITATION_TOKEN_BYTES } from './constants';
 
 export function generateInviteToken(): string {

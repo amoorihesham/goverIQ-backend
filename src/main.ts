@@ -1,7 +1,6 @@
 import { buildApp } from './app';
 import { env } from './shared/config/env';
 import { db } from './shared/database/client';
-
 import { runMigrations } from './shared/database/migrate';
 import { logger } from './shared/logger';
 

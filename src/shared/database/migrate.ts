@@ -2,8 +2,9 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 
 import { logger } from '../logger';
 
-import { AppError } from '@/shared/errors/http-error';
 import { DatabaseClient } from './types';
+
+import { AppError } from '@/shared/errors/http-error';
 
 const MIGRATION_LOCK_ID = 5432001;
 const MIGRATIONS_FOLDER = 'src/db/migrations';

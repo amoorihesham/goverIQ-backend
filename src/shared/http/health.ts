@@ -1,8 +1,9 @@
 import pino from 'pino';
 
+import { db } from '../database/client';
+
 import { success, failure } from '@/shared/errors/envelope';
 import { AppError } from '@/shared/errors/http-error';
-import { db } from '../database/client';
 
 const logger = pino();
 

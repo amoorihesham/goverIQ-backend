@@ -9,7 +9,7 @@ import {
 } from './types/request';
 
 import { env } from '@/shared/config/env';
-import type { DatabaseClient } from '@/shared/database/client';
+import type { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 
 export const createAuthController = (db: DatabaseClient) => {

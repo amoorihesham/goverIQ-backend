@@ -1,5 +1,5 @@
-import { FastifyRequest, preHandlerHookHandler } from 'fastify';
 import { eq } from 'drizzle-orm';
+import { FastifyRequest, preHandlerHookHandler } from 'fastify';
 
 import { organizations } from '@/db/schema/org';
 import { db } from '@/shared/database/client';

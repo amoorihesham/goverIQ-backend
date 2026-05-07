@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { assertNoPrivilegeEscalation } from '@/modules/org/privilege';
 import { AppError } from '@/shared/errors/http-error';
 

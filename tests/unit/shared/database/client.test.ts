@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, test } from 'vitest';
+
 import {
   createDatabaseClient,
   closeDatabaseClient,

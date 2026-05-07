@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { generateSlug, ensureUniqueSlug } from '@/modules/org/slug';
+import { generateSlug, ensureUniqueSlug } from '@/modules/org/utils/slug';
 
 // Mock database for slug tests
 const mockDb = {
@@ -57,7 +57,10 @@ describe('slug utilities', () => {
           from: () => ({
             where: (condition: any) => {
               // Simulate that 'test-org' exists
-              if (condition._left?.columnName === 'slug' && condition._right?.value === 'test-org') {
+              if (
+                condition._left?.columnName === 'slug' &&
+                condition._right?.value === 'test-org'
+              ) {
                 return {
                   limit: () => [{ id: 'existing-id' }],
                 };

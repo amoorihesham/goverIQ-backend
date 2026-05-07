@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 
-import { RoleController } from './role.controller';
-import { identityRequired } from '@/shared/auth/identity';
 import { requireOnboardingStep } from './onboarding.prehandler';
+import { RoleController } from './role.controller';
+
+import { identityRequired } from '@/shared/auth/identity';
 import { requirePermission } from '@/shared/permissions/guard';
 
 export async function roleRoutes(fastify: FastifyInstance) {

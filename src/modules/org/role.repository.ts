@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
-import type { DatabaseClient, Tx } from '@/shared/database/types';
+
 import { roles, memberships } from '@/db/schema/org';
+import type { DatabaseClient, Tx } from '@/shared/database/types';
 
 export class RoleRepository {
   /**

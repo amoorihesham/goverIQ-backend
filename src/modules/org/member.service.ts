@@ -1,22 +1,19 @@
-import { AppError } from '@/shared/errors/http-error';
-import { withTx } from '@/shared/database/transaction';
-import { emitAudit } from '@/shared/audit/emitter';
-import { db } from '@/shared/database/client';
-import { users, refreshTokens } from '@/db/schema/auth';
-import { organizations } from '@/db/schema/org';
+import { and, eq } from 'drizzle-orm';
+
+import { INVITATION_TTL_DAYS } from './constants';
+import { generateInviteToken, hashInviteToken } from './invite-token';
 import { MemberRepository } from './member.repository';
 import { RoleRepository } from './role.repository';
-import { OrgRepository } from './org.repository';
-import { generateInviteToken, hashInviteToken } from './invite-token';
-import { hashPassword } from '@/modules/auth/password';
-import {
-  generateRefreshTokenCleartext,
-  hashRefreshToken,
-  issueAccessToken,
-} from '@/shared/auth/jwt';
-import { eq } from 'drizzle-orm';
 
-const INVITATION_TTL_DAYS = 7;
+import { users, refreshTokens } from '@/db/schema/auth';
+import { organizations, memberships } from '@/db/schema/org';
+import { hashPassword } from '@/modules/auth/password';
+import { generateRefreshTokenCleartext, hashRefreshToken } from '@/modules/auth/tokens';
+import { emitAudit } from '@/shared/audit/emitter';
+import { signAccessToken } from '@/shared/auth/jwt';
+import { db } from '@/shared/database/client';
+import { withTx } from '@/shared/database/transaction';
+import { AppError } from '@/shared/errors/http-error';
 
 export class MemberService {
   /**
@@ -133,7 +130,7 @@ export class MemberService {
 
       // Check if user exists
       const existingUser = await tx.query.users.findFirst({
-        where: (u, { eq }) => eq(u.email, invitation.email),
+        where: eq(users.email, invitation.email),
       });
 
       let userId: string;
@@ -178,7 +175,7 @@ export class MemberService {
         });
 
         // Issue access token
-        accessToken = await issueAccessToken({
+        accessToken = await signAccessToken({
           sub: userId,
           email: invitation.email,
         });
@@ -208,7 +205,7 @@ export class MemberService {
         await tx
           .update(organizations)
           .set({ onboardingStep: 'COMPLETE' })
-          .where((o) => eq(o.id, invitation.orgId));
+          .where(eq(organizations.id, invitation.orgId));
       }
 
       // Emit audit event
@@ -229,7 +226,7 @@ export class MemberService {
           id: membership.id,
           orgId: membership.orgId,
           roleId: membership.roleId,
-          joinedAt: membership.createdAt,
+          joinedAt: membership.joinedAt,
         },
         accessToken,
         refreshTokenCleartext, // Will be set as cookie by controller
@@ -288,8 +285,7 @@ export class MemberService {
   ) {
     // Verify membership
     const membership = await db.query.memberships.findFirst({
-      where: (m, { and, eq }) =>
-        and(eq(m.userId, userId), eq(m.orgId, orgId)),
+      where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
     });
 
     if (!membership) {
@@ -300,14 +296,14 @@ export class MemberService {
 
     return {
       items: members.slice(0, limit).map((m) => ({
-        id: m.memberships.id,
-        userId: m.memberships.userId,
-        email: m.users.email,
-        roleId: m.memberships.roleId,
-        roleName: m.roles?.name || null,
-        joinedAt: m.memberships.createdAt,
+        id: m.id,
+        userId: m.userId,
+        email: (m.user as any)?.email || '',
+        roleId: m.roleId,
+        roleName: (m.role as any)?.name || null,
+        joinedAt: m.joinedAt,
       })),
-      nextCursor: members.length > limit ? members[limit]?.memberships.id : null,
+      nextCursor: members.length > limit ? members[limit]?.id : null,
     };
   }
 
@@ -318,8 +314,7 @@ export class MemberService {
     return await withTx(async (tx) => {
       // Verify caller is a member
       const callerMembership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
       });
 
       if (!callerMembership) {
@@ -328,7 +323,7 @@ export class MemberService {
 
       // Get target membership
       const targetMembership = await tx.query.memberships.findFirst({
-        where: (m, { eq }) => eq(m.id, memberId),
+        where: eq(memberships.id, memberId),
         with: { role: true },
       });
 
@@ -337,7 +332,7 @@ export class MemberService {
       }
 
       // Sole-owner check: cannot remove if target is sole owner
-      if (targetMembership.role?.isOwner) {
+      if ((targetMembership.role as any)?.isOwner) {
         const ownerCount = await MemberRepository.countOwnersInOrg(db, orgId);
         if (ownerCount === 1) {
           throw AppError.soleOwner();
@@ -373,8 +368,7 @@ export class MemberService {
     return await withTx(async (tx) => {
       // Verify caller is a member
       const callerMembership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
       });
 
       if (!callerMembership) {
@@ -383,7 +377,7 @@ export class MemberService {
 
       // Get target membership
       const targetMembership = await tx.query.memberships.findFirst({
-        where: (m, { eq }) => eq(m.id, memberId),
+        where: eq(memberships.id, memberId),
       });
 
       if (!targetMembership) {
@@ -436,8 +430,7 @@ export class MemberService {
     return await withTx(async (tx) => {
       // Verify caller is a member
       const callerMembership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
       });
 
       if (!callerMembership) {
@@ -446,7 +439,7 @@ export class MemberService {
 
       // Get target membership
       const targetMembership = await tx.query.memberships.findFirst({
-        where: (m, { eq }) => eq(m.id, memberId),
+        where: eq(memberships.id, memberId),
         with: { role: true },
       });
 
@@ -455,7 +448,7 @@ export class MemberService {
       }
 
       // Sole-owner check
-      if (targetMembership.role?.isOwner) {
+      if ((targetMembership.role as any)?.isOwner) {
         const ownerCount = await MemberRepository.countOwnersInOrg(db, orgId);
         if (ownerCount === 1) {
           throw AppError.soleOwner();

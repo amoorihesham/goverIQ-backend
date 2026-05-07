@@ -1,4 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
+
 import { MemberService } from './member.service';
 
 interface SendInvitationBody {

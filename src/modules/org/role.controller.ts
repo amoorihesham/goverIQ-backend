@@ -1,4 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
+
 import { RoleService } from './role.service';
 
 interface CreateRoleBody {

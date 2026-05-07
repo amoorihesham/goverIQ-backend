@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { createHash } from 'crypto';
+
+import { describe, it, expect } from 'vitest';
+
 import { generateInviteToken, hashInviteToken } from '@/modules/org/invite-token';
 
 describe('invite-token utilities', () => {

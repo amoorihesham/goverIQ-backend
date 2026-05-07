@@ -1,4 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
+
 import { OrgService } from './org.service';
 
 interface CreateOrgBody {

@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 
 import { MemberController } from './member.controller';
-import { identityRequired } from '@/shared/auth/identity';
 import { requireOnboardingStep } from './onboarding.prehandler';
+
+import { identityRequired } from '@/shared/auth/identity';
 import { requirePermission } from '@/shared/permissions/guard';
 
 export async function memberRoutes(fastify: FastifyInstance) {
@@ -57,7 +58,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
       preHandler: [
         identityRequired,
         requireOnboardingStep('complete'),
-        requirePermission('role:assign'),
+        requirePermission('member:update_role'),
       ],
     },
     MemberController.assignMemberRole,
@@ -70,7 +71,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
       preHandler: [
         identityRequired,
         requireOnboardingStep('complete'),
-        requirePermission('role:revoke'),
+        requirePermission('member:update_role'),
       ],
     },
     MemberController.revokeMemberRole,

@@ -1,10 +1,14 @@
-import { AppError } from '@/shared/errors/http-error';
-import { withTx } from '@/shared/database/transaction';
-import { emitAudit } from '@/shared/audit/emitter';
-import { db } from '@/shared/database/client';
+import { and, eq } from 'drizzle-orm';
+import { z } from 'zod';
+
 import { OrgRepository } from './org.repository';
 import { ensureUniqueSlug, generateSlug } from './slug';
-import { z } from 'zod';
+
+import { organizations, memberships } from '@/db/schema/org';
+import { emitAudit } from '@/shared/audit/emitter';
+import { db } from '@/shared/database/client';
+import { withTx } from '@/shared/database/transaction';
+import { AppError } from '@/shared/errors/http-error';
 
 // All permissions available in the system
 const ALL_PERMISSIONS = [
@@ -15,20 +19,12 @@ const ALL_PERMISSIONS = [
   'role:read',
   'role:update',
   'role:delete',
-  'member:invite',
   'member:read',
-  'member:assign',
+  'member:invite',
   'member:remove',
-  'member:revoke',
-  'audit:read',
-  'billing:read',
-  'billing:update',
-  'settings:read',
-  'settings:update',
-  'webhook:create',
-  'webhook:read',
-  'webhook:update',
-  'webhook:delete',
+  'member:update_role',
+  'audit:view',
+  'audit:export',
 ];
 
 const CreateOrgInput = z.object({
@@ -69,11 +65,7 @@ export class OrgService {
       });
 
       // Insert Owner role with all permissions
-      const ownerRole = await OrgRepository.insertOwnerRole(
-        tx,
-        org.id,
-        ALL_PERMISSIONS,
-      );
+      const ownerRole = await OrgRepository.insertOwnerRole(tx, org.id, ALL_PERMISSIONS);
 
       // Insert creator's membership as Owner
       await OrgRepository.insertMembership(tx, userId, org.id, ownerRole.id);
@@ -110,11 +102,7 @@ export class OrgService {
    * Get organization by ID after verifying caller is a member.
    */
   static async getOrg(userId: string, orgId: string) {
-    const result = await OrgRepository.findOrgWithMembershipForUser(
-      db,
-      orgId,
-      userId,
-    );
+    const result = await OrgRepository.findOrgWithMembershipForUser(db, orgId, userId);
 
     if (!result) {
       throw AppError.notFound('Organization not found');
@@ -149,11 +137,7 @@ export class OrgService {
    * Get current onboarding step for an organization.
    */
   static async getOnboardingStep(userId: string, orgId: string) {
-    const result = await OrgRepository.findOrgWithMembershipForUser(
-      db,
-      orgId,
-      userId,
-    );
+    const result = await OrgRepository.findOrgWithMembershipForUser(db, orgId, userId);
 
     if (!result) {
       throw AppError.notFound('Organization not found');
@@ -185,8 +169,7 @@ export class OrgService {
     return await withTx(async (tx) => {
       // Verify caller is a member
       const membership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
       });
 
       if (!membership) {
@@ -195,7 +178,7 @@ export class OrgService {
 
       // Get current org
       const org = await tx.query.organizations.findFirst({
-        where: (o, { eq }) => eq(o.id, orgId),
+        where: eq(organizations.id, orgId),
       });
 
       if (!org) {
@@ -270,8 +253,7 @@ export class OrgService {
     return await withTx(async (tx) => {
       // Verify caller is owner
       const membership = await tx.query.memberships.findFirst({
-        where: (m, { and, eq }) =>
-          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
         with: { role: true },
       });
 
@@ -279,13 +261,13 @@ export class OrgService {
         throw AppError.forbidden('Not a member of this organization');
       }
 
-      if (!membership.role?.isOwner) {
+      if (!(membership.role as any)?.isOwner) {
         throw AppError.forbidden('Only owners can archive organizations');
       }
 
       // Get current org
       const org = await tx.query.organizations.findFirst({
-        where: (o, { eq }) => eq(o.id, orgId),
+        where: eq(organizations.id, orgId),
       });
 
       if (!org) {
@@ -313,12 +295,9 @@ export class OrgService {
    */
   static async skipOnboarding(userId: string, orgId: string) {
     return await withTx(async (tx) => {
-      const { memberships, roles, organizations } = await import('@/db/schema/org');
-      const { and, eq } = await import('drizzle-orm');
-
       // Get current org state and verify step
       const org = await tx.query.organizations.findFirst({
-        where: (o) => eq(o.id, orgId),
+        where: eq(organizations.id, orgId),
       });
 
       if (!org) {
@@ -331,14 +310,12 @@ export class OrgService {
 
       // Verify current step is PENDING_INVITES
       if (org.onboardingStep !== 'PENDING_INVITES') {
-        throw AppError.conflict(
-          'Invalid state transition: can only skip from PENDING_INVITES',
-        );
+        throw AppError.conflict('Invalid state transition: can only skip from PENDING_INVITES');
       }
 
       // Verify caller is owner
       const membership = await tx.query.memberships.findFirst({
-        where: (m) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
         with: { role: true },
       });
 
@@ -346,7 +323,7 @@ export class OrgService {
         throw AppError.forbidden('Not a member of this organization');
       }
 
-      if (!membership.role?.isOwner) {
+      if (!(membership.role as any)?.isOwner) {
         throw AppError.forbidden('Only owners can skip onboarding');
       }
 

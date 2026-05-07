@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
+
+import { memberships, invitations, roles } from '@/db/schema/org';
 import type { DatabaseClient, Tx } from '@/shared/database/types';
-import { memberships, invitations } from '@/db/schema/org';
 
 export class MemberRepository {
   /**
@@ -12,12 +13,11 @@ export class MemberRepository {
     email: string,
   ) {
     return db.query.invitations.findFirst({
-      where: (i, { and, eq }) =>
-        and(
-          eq(i.orgId, orgId),
-          eq(i.email, email),
-          eq(i.status, 'PENDING'),
-        ),
+      where: and(
+        eq(invitations.orgId, orgId),
+        eq(invitations.email, email),
+        eq(invitations.status, 'PENDING'),
+      ),
     });
   }
 
@@ -53,7 +53,7 @@ export class MemberRepository {
    */
   static async findInvitationByTokenHash(db: DatabaseClient, tokenHash: string) {
     return db.query.invitations.findFirst({
-      where: (i, { eq }) => eq(i.tokenHash, tokenHash),
+      where: eq(invitations.tokenHash, tokenHash),
       with: {
         role: true,
         org: true,
@@ -72,7 +72,7 @@ export class MemberRepository {
     const [updated] = await tx
       .update(invitations)
       .set({ status })
-      .where((i) => eq(i.id, invitationId))
+      .where(eq(invitations.id, invitationId))
       .returning();
     return updated!;
   }
@@ -88,8 +88,7 @@ export class MemberRepository {
   ) {
     // Check if membership exists
     const existing = await tx.query.memberships.findFirst({
-      where: (m, { and, eq }) =>
-        and(eq(m.userId, userId), eq(m.orgId, orgId)),
+      where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
     });
 
     if (existing) {
@@ -97,10 +96,7 @@ export class MemberRepository {
       const [updated] = await tx
         .update(memberships)
         .set({ roleId })
-        .where(
-          (m, { and, eq }) =>
-            and(eq(m.userId, userId), eq(m.orgId, orgId)),
-        )
+        .where(and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)))
         .returning();
       return updated!;
     } else {
@@ -125,7 +121,7 @@ export class MemberRepository {
     // Implement cursor pagination
     // For now, return all members for the org
     return db.query.memberships.findMany({
-      where: (m, { eq }) => eq(m.orgId, orgId),
+      where: eq(memberships.orgId, orgId),
       with: {
         user: true,
         role: true,
@@ -138,7 +134,7 @@ export class MemberRepository {
    * Delete a membership in a transaction.
    */
   static async deleteMembership(tx: Tx, membershipId: string) {
-    await tx.delete(memberships).where((m) => eq(m.id, membershipId));
+    await tx.delete(memberships).where(eq(memberships.id, membershipId));
   }
 
   /**
@@ -148,7 +144,7 @@ export class MemberRepository {
     const [updated] = await tx
       .update(memberships)
       .set({ roleId })
-      .where((m) => eq(m.id, membershipId))
+      .where(eq(memberships.id, membershipId))
       .returning();
     return updated!;
   }
@@ -160,7 +156,7 @@ export class MemberRepository {
     const [updated] = await tx
       .update(memberships)
       .set({ roleId: null })
-      .where((m) => eq(m.id, membershipId))
+      .where(eq(memberships.id, membershipId))
       .returning();
     return updated!;
   }
@@ -169,14 +165,11 @@ export class MemberRepository {
    * Count how many owners are in an organization.
    */
   static async countOwnersInOrg(db: DatabaseClient, orgId: string) {
-    const { roles } = await import('@/db/schema/org');
     const result = await db
       .select()
       .from(memberships)
-      .innerJoin(roles, (m, r) => eq(m.roleId, r.id))
-      .where((m, r) =>
-        and(eq(m.orgId, orgId), eq(r.isOwner, true)),
-      );
+      .innerJoin(roles, eq(memberships.roleId, roles.id))
+      .where(and(eq(memberships.orgId, orgId), eq(roles.isOwner, true)));
     return result.length;
   }
 }

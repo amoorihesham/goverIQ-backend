@@ -85,13 +85,13 @@ user story depends on. Unit tests for pure utilities are written first (TDD).
 
 ### Tests for User Story 2 — write FIRST
 
-- [ ] T022 [P] [US2] Write integration tests in `tests/integration/modules/org/onboarding.test.ts` covering all 8 scenarios from `contracts/onboarding-middleware.md`: tier pass/block at each step, archived org returns `ORG_ARCHIVED`, unknown orgId returns 404
+- [x] T022 [P] [US2] Write integration tests in `tests/integration/modules/org/onboarding.test.ts` covering all 8 scenarios from `contracts/onboarding-middleware.md`: tier pass/block at each step, archived org returns `ORG_ARCHIVED`, unknown orgId returns 404
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Add `getOnboardingStep(userId, orgId)` and `skipOnboarding(userId, orgId)` methods to `src/modules/org/org.service.ts` (skipOnboarding advances `PENDING_INVITES → COMPLETE` in a `withTx`; throws `INVALID_STATE_TRANSITION` if step is not `PENDING_INVITES`)
-- [ ] T024 [US2] Add `getOnboardingStep` and `skipOnboarding` handler methods to `src/modules/org/org.controller.ts`
-- [ ] T025 [US2] Add `GET /api/v1/orgs/:orgId/onboarding` (`identityRequired`, `requireOnboardingStep('always')`) and `POST /api/v1/orgs/:orgId/onboarding/skip` (`identityRequired`, `requireOnboardingStep('invitation')`, `requireOwner()`) to `src/modules/org/org.routes.ts`
+- [x] T023 [US2] Add `getOnboardingStep(userId, orgId)` and `skipOnboarding(userId, orgId)` methods to `src/modules/org/org.service.ts` (skipOnboarding advances `PENDING_INVITES → COMPLETE` in a `withTx`; throws `INVALID_STATE_TRANSITION` if step is not `PENDING_INVITES`)
+- [x] T024 [US2] Add `getOnboardingStep` and `skipOnboarding` handler methods to `src/modules/org/org.controller.ts`
+- [x] T025 [US2] Add `GET /api/v1/orgs/:orgId/onboarding` (`identityRequired`, `requireOnboardingStep('always')`) and `POST /api/v1/orgs/:orgId/onboarding/skip` (`identityRequired`, `requireOnboardingStep('invitation')`, `requireOwner()`) to `src/modules/org/org.routes.ts`
 
 **Checkpoint**: Onboarding tier enforcement active on all registered routes; step transitions correct
 
@@ -107,15 +107,15 @@ First non-Owner role creation advances onboarding from `PENDING_ROLES → PENDIN
 
 ### Tests for User Story 3 — write FIRST
 
-- [ ] T026 [P] [US3] Write integration tests in `tests/integration/modules/org/role.test.ts` covering FR-205 (permissions list), FR-206 (escalation check on create + update), FR-207 (Owner immutability), FR-208 (ROLE_IN_USE), FR-204 (onboarding advance on first role in same tx), SC-203
+- [x] T026 [P] [US3] Write integration tests in `tests/integration/modules/org/role.test.ts` covering FR-205 (permissions list), FR-206 (escalation check on create + update), FR-207 (Owner immutability), FR-208 (ROLE_IN_USE), FR-204 (onboarding advance on first role in same tx), SC-203
 
 ### Implementation for User Story 3
 
-- [ ] T027 [P] [US3] Create `src/modules/org/role.repository.ts` with `listRoles(db, orgId)`, `findRoleById(db, orgId, roleId)`, `insertRole(tx, data)`, `updateRole(tx, roleId, data)`, `deleteRole(tx, roleId)`, `countMembersHoldingRole(db, roleId)`, `countNonOwnerRoles(tx, orgId)` Drizzle queries
-- [ ] T028 [US3] Create `src/modules/org/role.service.ts` with `listPermissions()` (returns hardcoded 22-key array), `createRole(userId, orgId, body)` (privilege check via `assertNoPrivilegeEscalation` + `withTx` insert + onboarding advance if first non-Owner role + `role.created` audit), `getRole(userId, orgId, roleId)`, `updateRole(userId, orgId, roleId, body)` (Owner immutability check + escalation check + `role.updated` audit), `deleteRole(userId, orgId, roleId)` (`ROLE_IN_USE` check + `role.deleted` audit) (depends on T027)
-- [ ] T029 [US3] Create `src/modules/org/role.controller.ts` with `listPermissions`, `createRole`, `getRole`, `updateRole`, `deleteRole` handlers (depends on T028)
-- [ ] T030 [US3] Create `src/modules/org/role.routes.ts` with: `GET /orgs/:orgId/roles/permissions` (tier=`role_creation`), `POST /orgs/:orgId/roles` (tier=`role_creation`, `role:create`), `GET /orgs/:orgId/roles` (tier=`invitation`), `GET /orgs/:orgId/roles/:roleId` (tier=`invitation`), `PATCH /orgs/:orgId/roles/:roleId` (tier=`complete`, `role:update`), `DELETE /orgs/:orgId/roles/:roleId` (tier=`complete`, `role:delete`) — all with `identityRequired` + `requireOnboardingStep` + optional `requirePermission` (depends on T013, T029)
-- [ ] T031 [US3] Import and register role routes in `src/modules/org/index.ts` within `orgPlugin` (depends on T030)
+- [x] T027 [P] [US3] Create `src/modules/org/role.repository.ts` with `listRoles(db, orgId)`, `findRoleById(db, orgId, roleId)`, `insertRole(tx, data)`, `updateRole(tx, roleId, data)`, `deleteRole(tx, roleId)`, `countMembersHoldingRole(db, roleId)`, `countNonOwnerRoles(tx, orgId)` Drizzle queries
+- [x] T028 [US3] Create `src/modules/org/role.service.ts` with `listPermissions()` (returns hardcoded 22-key array), `createRole(userId, orgId, body)` (privilege check via `assertNoPrivilegeEscalation` + `withTx` insert + onboarding advance if first non-Owner role + `role.created` audit), `getRole(userId, orgId, roleId)`, `updateRole(userId, orgId, roleId, body)` (Owner immutability check + escalation check + `role.updated` audit), `deleteRole(userId, orgId, roleId)` (`ROLE_IN_USE` check + `role.deleted` audit) (depends on T027)
+- [x] T029 [US3] Create `src/modules/org/role.controller.ts` with `listPermissions`, `createRole`, `getRole`, `updateRole`, `deleteRole` handlers (depends on T028)
+- [x] T030 [US3] Create `src/modules/org/role.routes.ts` with: `GET /orgs/:orgId/roles/permissions` (tier=`role_creation`), `POST /orgs/:orgId/roles` (tier=`role_creation`, `role:create`), `GET /orgs/:orgId/roles` (tier=`invitation`), `GET /orgs/:orgId/roles/:roleId` (tier=`invitation`), `PATCH /orgs/:orgId/roles/:roleId` (tier=`complete`, `role:update`), `DELETE /orgs/:orgId/roles/:roleId` (tier=`complete`, `role:delete`) — all with `identityRequired` + `requireOnboardingStep` + optional `requirePermission` (depends on T013, T029)
+- [x] T031 [US3] Import and register role routes in `src/modules/org/index.ts` within `orgPlugin` (depends on T030)
 
 **Checkpoint**: All 6 role endpoints functional; escalation prevention and Owner immutability enforced
 
@@ -131,16 +131,16 @@ First non-Owner role creation advances onboarding from `PENDING_ROLES → PENDIN
 
 ### Tests for User Story 4 — write FIRST
 
-- [ ] T032 [P] [US4] Write integration tests in `tests/integration/modules/org/member-invite.test.ts` covering: send invite success, duplicate invite (`PENDING_INVITE_EXISTS`), Owner role invite rejection, accept (new user: membership + account + session created, rollback-injection passes SC-205), accept (existing user: membership upsert, no new account), decline (no membership), expired token rejection, already-accepted token rejection, onboarding advance on acceptance
+- [x] T032 [P] [US4] Write integration tests in `tests/integration/modules/org/member-invite.test.ts` covering: send invite success, duplicate invite (`PENDING_INVITE_EXISTS`), Owner role invite rejection, accept (new user: membership + account + session created, rollback-injection passes SC-205), accept (existing user: membership upsert, no new account), decline (no membership), expired token rejection, already-accepted token rejection, onboarding advance on acceptance
 
 ### Implementation for User Story 4
 
-- [ ] T033 [P] [US4] Add invitation methods to `src/modules/org/member.repository.ts`: `findPendingInviteByOrgEmail(db, orgId, email)`, `insertInvitation(tx, data)`, `findInvitationByTokenHash(db, tokenHash)`, `updateInvitationStatus(tx, invitationId, status)`, `upsertMembership(tx, userId, orgId, roleId)` Drizzle queries
-- [ ] T034 [US4] Create `src/modules/org/member.service.ts` with `sendInvitation(userId, orgId, body)` (pending-invite check + token gen + hash store + notification dispatch + `member.invited` audit), `acceptInvitation(token, body)` branching on existing vs. new user (existing: upsert membership + `ACCEPTED` + onboarding advance + `member.joined` audit; new: `withTx` create user as `is_verified=true` + hash password + insert refresh token + upsert membership + `ACCEPTED` + onboarding advance + `member.joined` audit + return access token), `declineInvitation(token)` (`DECLINED` + `member.declined` audit) (depends on T033)
-- [ ] T035 [US4] Create `src/modules/org/member.controller.ts` with `sendInvitation`, `acceptInvitation`, `declineInvitation` handlers — `acceptInvitation` sets `Set-Cookie` refresh token for new-user path (depends on T034)
-- [ ] T036 [US4] Create `src/modules/org/member.routes.ts` with `POST /orgs/:orgId/members/invitations` (`identityRequired`, `requireOnboardingStep('invitation')`, `requirePermission('member:invite')`, Zod body validation) wiring to `member.controller.ts` (depends on T013, T035)
-- [ ] T037 [US4] Complete `invitationsPublicPlugin` in `src/modules/org/index.ts`: register `POST /invitations/:token/accept` and `POST /invitations/:token/decline` with no pre-handlers, wiring to `member.controller.ts` handlers (depends on T035, T036)
-- [ ] T038 [US4] Register `invitationsPublicPlugin` (no `/api/v1` prefix) in `src/app.ts` (depends on T037)
+- [x] T033 [P] [US4] Add invitation methods to `src/modules/org/member.repository.ts`: `findPendingInviteByOrgEmail(db, orgId, email)`, `insertInvitation(tx, data)`, `findInvitationByTokenHash(db, tokenHash)`, `updateInvitationStatus(tx, invitationId, status)`, `upsertMembership(tx, userId, orgId, roleId)` Drizzle queries
+- [x] T034 [US4] Create `src/modules/org/member.service.ts` with `sendInvitation(userId, orgId, body)` (pending-invite check + token gen + hash store + notification dispatch + `member.invited` audit), `acceptInvitation(token, body)` branching on existing vs. new user (existing: upsert membership + `ACCEPTED` + onboarding advance + `member.joined` audit; new: `withTx` create user as `is_verified=true` + hash password + insert refresh token + upsert membership + `ACCEPTED` + onboarding advance + `member.joined` audit + return access token), `declineInvitation(token)` (`DECLINED` + `member.declined` audit) (depends on T033)
+- [x] T035 [US4] Create `src/modules/org/member.controller.ts` with `sendInvitation`, `acceptInvitation`, `declineInvitation` handlers — `acceptInvitation` sets `Set-Cookie` refresh token for new-user path (depends on T034)
+- [x] T036 [US4] Create `src/modules/org/member.routes.ts` with `POST /orgs/:orgId/members/invitations` (`identityRequired`, `requireOnboardingStep('invitation')`, `requirePermission('member:invite')`, Zod body validation) wiring to `member.controller.ts` (depends on T013, T035)
+- [x] T037 [US4] Complete `invitationsPublicPlugin` in `src/modules/org/index.ts`: register `POST /invitations/:token/accept` and `POST /invitations/:token/decline` with no pre-handlers, wiring to `member.controller.ts` handlers (depends on T035, T036)
+- [x] T038 [US4] Register `invitationsPublicPlugin` (no `/api/v1` prefix) in `src/app.ts` (depends on T037)
 
 **Checkpoint**: Invitation flow fully functional including new-user account creation and session issuance
 
@@ -154,15 +154,15 @@ First non-Owner role creation advances onboarding from `PENDING_ROLES → PENDIN
 
 ### Tests for User Story 5 — write FIRST
 
-- [ ] T039 [P] [US5] Write integration tests in `tests/integration/modules/org/member-manage.test.ts` covering: `GET /members` paginated response (FR-212a), remove non-owner (204 + audit), assign role (200 + audit), revoke non-owner role (204 + audit)
-- [ ] T040 [P] [US5] Write integration tests in `tests/integration/modules/org/sole-owner.test.ts` covering all SC-204 attack vectors: remove last owner, revoke last owner's role, assign-away sole-owner role simultaneously, verify at least one owner always remains after every operation sequence
+- [x] T039 [P] [US5] Write integration tests in `tests/integration/modules/org/member-manage.test.ts` covering: `GET /members` paginated response (FR-212a), remove non-owner (204 + audit), assign role (200 + audit), revoke non-owner role (204 + audit)
+- [x] T040 [P] [US5] Write integration tests in `tests/integration/modules/org/sole-owner.test.ts` covering all SC-204 attack vectors: remove last owner, revoke last owner's role, assign-away sole-owner role simultaneously, verify at least one owner always remains after every operation sequence
 
 ### Implementation for User Story 5
 
-- [ ] T041 [US5] Add to `src/modules/org/member.repository.ts`: `listMembers(db, orgId, cursor, limit)` (JOIN memberships+users+roles, cursor-paginated), `deleteMembership(tx, membershipId)`, `updateMemberRole(tx, membershipId, roleId)`, `clearMemberRole(tx, membershipId)`, `countOwnersInOrg(db, orgId)` Drizzle queries
-- [ ] T042 [US5] Add `listMembers`, `removeMember` (sole-owner check + `member.removed` audit), `assignMemberRole` (role-in-org check + escalation check + `member.role_assigned` audit), `revokeMemberRole` (sole-owner check + `member.role_revoked` audit) methods to `src/modules/org/member.service.ts` (depends on T041)
-- [ ] T043 [US5] Add `listMembers`, `removeMember`, `assignMemberRole`, `revokeMemberRole` handlers to `src/modules/org/member.controller.ts` (depends on T042)
-- [ ] T044 [US5] Add to `src/modules/org/member.routes.ts`: `GET /orgs/:orgId/members` (tier=`complete`, identity only), `DELETE /orgs/:orgId/members/:memberId` (tier=`complete`, `member:remove`), `PUT /orgs/:orgId/members/:memberId/role` (tier=`complete`, `role:assign`), `DELETE /orgs/:orgId/members/:memberId/role` (tier=`complete`, `role:revoke`) — all `identityRequired` + `requireOnboardingStep('complete')` (depends on T013, T043); import and register member routes in `src/modules/org/index.ts`
+- [x] T041 [US5] Add to `src/modules/org/member.repository.ts`: `listMembers(db, orgId, cursor, limit)` (JOIN memberships+users+roles, cursor-paginated), `deleteMembership(tx, membershipId)`, `updateMemberRole(tx, membershipId, roleId)`, `clearMemberRole(tx, membershipId)`, `countOwnersInOrg(db, orgId)` Drizzle queries
+- [x] T042 [US5] Add `listMembers`, `removeMember` (sole-owner check + `member.removed` audit), `assignMemberRole` (role-in-org check + escalation check + `member.role_assigned` audit), `revokeMemberRole` (sole-owner check + `member.role_revoked` audit) methods to `src/modules/org/member.service.ts` (depends on T041)
+- [x] T043 [US5] Add `listMembers`, `removeMember`, `assignMemberRole`, `revokeMemberRole` handlers to `src/modules/org/member.controller.ts` (depends on T042)
+- [x] T044 [US5] Add to `src/modules/org/member.routes.ts`: `GET /orgs/:orgId/members` (tier=`complete`, identity only), `DELETE /orgs/:orgId/members/:memberId` (tier=`complete`, `member:remove`), `PUT /orgs/:orgId/members/:memberId/role` (tier=`complete`, `role:assign`), `DELETE /orgs/:orgId/members/:memberId/role` (tier=`complete`, `role:revoke`) — all `identityRequired` + `requireOnboardingStep('complete')` (depends on T013, T043); import and register member routes in `src/modules/org/index.ts`
 
 **Checkpoint**: Full member management operational; sole-owner invariant exhaustively tested
 
@@ -177,14 +177,14 @@ First non-Owner role creation advances onboarding from `PENDING_ROLES → PENDIN
 
 ### Tests for User Story 6 — write FIRST
 
-- [ ] T045 [US6] Extend `tests/integration/modules/org/org.test.ts` with update scenarios (success, name conflict returns `DUPLICATE_ORG_NAME`) and archive scenarios (204, `archived_at` non-null, subsequent request returns `ORG_ARCHIVED`, `org.archived` audit written)
+- [x] T045 [US6] Extend `tests/integration/modules/org/org.test.ts` with update scenarios (success, name conflict returns `DUPLICATE_ORG_NAME`) and archive scenarios (204, `archived_at` non-null, subsequent request returns `ORG_ARCHIVED`, `org.archived` audit written)
 
 ### Implementation for User Story 6
 
-- [ ] T046 [P] [US6] Add `updateOrg(tx, orgId, data)` and `archiveOrg(tx, orgId)` methods to `src/modules/org/org.repository.ts`
-- [ ] T047 [US6] Add `updateOrg(userId, orgId, body)` (name uniqueness re-check if name changing + `org.updated` audit inside `withTx`) and `archiveOrg(userId, orgId)` (set `archivedAt` + `org.archived` audit inside `withTx`) methods to `src/modules/org/org.service.ts` (depends on T046)
-- [ ] T048 [US6] Add `updateOrg` and `archiveOrg` handlers to `src/modules/org/org.controller.ts` (depends on T047)
-- [ ] T049 [US6] Add `PATCH /api/v1/orgs/:orgId` (`identityRequired`, `requireOnboardingStep('complete')`, `requirePermission('org:update')`) and `DELETE /api/v1/orgs/:orgId` (`identityRequired`, `requireOnboardingStep('complete')`, `requireOwner()`) to `src/modules/org/org.routes.ts` (depends on T005, T013, T048)
+- [x] T046 [P] [US6] Add `updateOrg(tx, orgId, data)` and `archiveOrg(tx, orgId)` methods to `src/modules/org/org.repository.ts`
+- [x] T047 [US6] Add `updateOrg(userId, orgId, body)` (name uniqueness re-check if name changing + `org.updated` audit inside `withTx`) and `archiveOrg(userId, orgId)` (set `archivedAt` + `org.archived` audit inside `withTx`) methods to `src/modules/org/org.service.ts` (depends on T046)
+- [x] T048 [US6] Add `updateOrg` and `archiveOrg` handlers to `src/modules/org/org.controller.ts` (depends on T047)
+- [x] T049 [US6] Add `PATCH /api/v1/orgs/:orgId` (`identityRequired`, `requireOnboardingStep('complete')`, `requirePermission('org:update')`) and `DELETE /api/v1/orgs/:orgId` (`identityRequired`, `requireOnboardingStep('complete')`, `requireOwner()`) to `src/modules/org/org.routes.ts` (depends on T005, T013, T048)
 
 **Checkpoint**: Organization update and archiving complete; all 18 protected routes + 2 public routes registered
 
@@ -194,10 +194,10 @@ First non-Owner role creation advances onboarding from `PENDING_ROLES → PENDIN
 
 **Purpose**: End-to-end verification, audit integrity, type safety, and lint compliance.
 
-- [ ] T050 [P] Run `pnpm lint` and `pnpm tsc --noEmit` — fix any type errors or lint violations before final validation
-- [ ] T051 [P] Verify all 12 audit events appear in the correct order after running `quickstart.md` steps 1–9 end-to-end (`org.created`, `role.created`, `member.invited`, `member.joined`, `member.removed`, `member.invited`, `member.declined`, `org.archived`) per SC-207
-- [ ] T052 Verify rollback-injection tests pass for SC-201 (org creation), SC-205 (invite acceptance), and SC-207 (all audit writes): confirm no partial rows survive a forced mid-transaction error
-- [ ] T053 [P] Review list endpoints (`GET /members`, `GET /roles`) for N+1 patterns — confirm both use JOINs and hit declared indexes (`memberships_user_org_unique`, `roles_org_idx`)
+- [x] T050 [P] Run `pnpm lint` and `pnpm tsc --noEmit` — fix any type errors or lint violations before final validation
+- [x] T051 [P] Verify all 12 audit events appear in the correct order after running `quickstart.md` steps 1–9 end-to-end (`org.created`, `role.created`, `member.invited`, `member.joined`, `member.removed`, `member.invited`, `member.declined`, `org.archived`) per SC-207
+- [x] T052 Verify rollback-injection tests pass for SC-201 (org creation), SC-205 (invite acceptance), and SC-207 (all audit writes): confirm no partial rows survive a forced mid-transaction error
+- [x] T053 [P] Review list endpoints (`GET /members`, `GET /roles`) for N+1 patterns — confirm both use JOINs and hit declared indexes (`memberships_user_org_unique`, `roles_org_idx`)
 
 ---
 

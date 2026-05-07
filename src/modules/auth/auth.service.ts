@@ -18,8 +18,8 @@ import { emailVerifications, refreshTokens, users } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';
 import { signAccessToken } from '@/shared/auth/jwt';
 import { env } from '@/shared/config/env';
-import type { DatabaseClient } from '@/shared/database/client';
 import type { Tx } from '@/shared/database/transaction';
+import type { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
 import { logger } from '@/shared/logger';
 import { notificationService } from '@/shared/notifications/service';
@@ -69,7 +69,7 @@ export function createAuthService(db: DatabaseClient) {
       const code = generateOtp();
       const otpHash = hashOtp(code);
 
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: Tx) => {
         const existing = await tx.query.users.findFirst({
           where: eq(users.email, input.email),
         });
@@ -97,7 +97,7 @@ export function createAuthService(db: DatabaseClient) {
           lastSentAt: new Date(),
         });
 
-        await emitAudit(tx as unknown as Tx, {
+        await emitAudit(tx, {
           entityType: 'user',
           event: 'user.registered',
           actorId: createdUser!.id,
@@ -111,7 +111,7 @@ export function createAuthService(db: DatabaseClient) {
     },
 
     async verifyEmail(input: VerifyRequestType): Promise<SessionResult> {
-      return db.transaction(async (tx) => {
+      return db.transaction(async (tx: Tx) => {
         const user = await tx.query.users.findFirst({
           where: eq(users.email, input.email),
         });
@@ -134,7 +134,7 @@ export function createAuthService(db: DatabaseClient) {
 
         const session = await issueSessionWithinTx(tx as unknown as Tx, user);
 
-        await emitAudit(tx as unknown as Tx, {
+        await emitAudit(tx, {
           entityType: 'user',
           event: 'user.verified',
           actorId: user.id,
@@ -148,7 +148,7 @@ export function createAuthService(db: DatabaseClient) {
     },
 
     async login(input: LoginRequestType): Promise<SessionResult> {
-      return db.transaction(async (tx) => {
+      return db.transaction(async (tx: Tx) => {
         const user = await tx.query.users.findFirst({
           where: eq(users.email, input.email),
         });
@@ -165,7 +165,7 @@ export function createAuthService(db: DatabaseClient) {
 
         const session = await issueSessionWithinTx(tx as unknown as Tx, user);
 
-        await emitAudit(tx as unknown as Tx, {
+        await emitAudit(tx, {
           entityType: 'user',
           event: 'user.login',
           actorId: user.id,
@@ -205,16 +205,16 @@ export function createAuthService(db: DatabaseClient) {
         throw AppError.unauthorized();
       }
 
-      return db.transaction(async (tx) => {
+      return db.transaction(async (tx: Tx) => {
         await tx.delete(refreshTokens).where(eq(refreshTokens.id, row.id));
-        return issueSessionWithinTx(tx as unknown as Tx, user);
+        return issueSessionWithinTx(tx, user);
       });
     },
 
     async logout(cleartext: string | undefined): Promise<{ deleted: boolean }> {
       if (!cleartext) return { deleted: false };
 
-      return db.transaction(async (tx) => {
+      return db.transaction(async (tx: Tx) => {
         const tokenHash = hashRefreshToken(cleartext);
         const row = await tx.query.refreshTokens.findFirst({
           where: eq(refreshTokens.tokenHash, tokenHash),
@@ -229,7 +229,7 @@ export function createAuthService(db: DatabaseClient) {
           .from(refreshTokens)
           .where(eq(refreshTokens.userId, row.userId));
 
-        await emitAudit(tx as unknown as Tx, {
+        await emitAudit(tx, {
           entityType: 'user',
           event: 'user.logout',
           actorId: row.userId,
@@ -245,7 +245,7 @@ export function createAuthService(db: DatabaseClient) {
     async resendOtp(input: ResendOtpRequestType): Promise<void> {
       let pendingCode: string | null = null;
 
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: Tx) => {
         const user = await tx.query.users.findFirst({
           where: eq(users.email, input.email),
         });
