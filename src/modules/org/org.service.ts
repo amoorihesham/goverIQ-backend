@@ -175,6 +175,139 @@ export class OrgService {
   }
 
   /**
+   * Update organization name and/or description.
+   */
+  static async updateOrg(
+    userId: string,
+    orgId: string,
+    body: { name?: string; description?: string; logoUrl?: string },
+  ) {
+    return await withTx(async (tx) => {
+      // Verify caller is a member
+      const membership = await tx.query.memberships.findFirst({
+        where: (m, { and, eq }) =>
+          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+      });
+
+      if (!membership) {
+        throw AppError.forbidden('Not a member of this organization');
+      }
+
+      // Get current org
+      const org = await tx.query.organizations.findFirst({
+        where: (o, { eq }) => eq(o.id, orgId),
+      });
+
+      if (!org) {
+        throw AppError.notFound('Organization not found');
+      }
+
+      if (org.archivedAt) {
+        throw AppError.orgArchived();
+      }
+
+      // Check for name conflict if changing name
+      if (body.name && body.name !== org.name) {
+        const nameLower = body.name.toLowerCase();
+        const existing = await OrgRepository.findByNameLower(db, nameLower);
+        if (existing && existing.id !== orgId) {
+          throw AppError.duplicateOrgName();
+        }
+      }
+
+      // Update org
+      const updateData: {
+        name?: string;
+        nameLower?: string;
+        description?: string;
+        logoUrl?: string;
+      } = {};
+      if (body.name) {
+        updateData.name = body.name;
+        updateData.nameLower = body.name.toLowerCase();
+      }
+      if (body.description !== undefined) {
+        updateData.description = body.description;
+      }
+      if (body.logoUrl !== undefined) {
+        updateData.logoUrl = body.logoUrl;
+      }
+
+      const updated = await OrgRepository.updateOrg(tx, orgId, updateData);
+
+      // Emit audit event
+      await emitAudit(tx, {
+        orgId,
+        actorId: userId,
+        event: 'org.updated',
+        entityType: 'org',
+        entityId: orgId,
+        payload: {
+          name: body.name,
+          description: body.description,
+        },
+      });
+
+      return {
+        id: updated.id,
+        name: updated.name,
+        slug: updated.slug,
+        description: updated.description,
+        logoUrl: updated.logoUrl,
+        onboardingStep: updated.onboardingStep,
+        quorumThreshold: updated.quorumThreshold,
+        archivedAt: updated.archivedAt,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      };
+    });
+  }
+
+  /**
+   * Archive organization (soft delete). Owner-only.
+   */
+  static async archiveOrg(userId: string, orgId: string) {
+    return await withTx(async (tx) => {
+      // Verify caller is owner
+      const membership = await tx.query.memberships.findFirst({
+        where: (m, { and, eq }) =>
+          and(eq(m.userId, userId), eq(m.orgId, orgId)),
+        with: { role: true },
+      });
+
+      if (!membership) {
+        throw AppError.forbidden('Not a member of this organization');
+      }
+
+      if (!membership.role?.isOwner) {
+        throw AppError.forbidden('Only owners can archive organizations');
+      }
+
+      // Get current org
+      const org = await tx.query.organizations.findFirst({
+        where: (o, { eq }) => eq(o.id, orgId),
+      });
+
+      if (!org) {
+        throw AppError.notFound('Organization not found');
+      }
+
+      // Archive
+      await OrgRepository.archiveOrg(tx, orgId);
+
+      // Emit audit event
+      await emitAudit(tx, {
+        orgId,
+        actorId: userId,
+        event: 'org.archived',
+        entityType: 'org',
+        entityId: orgId,
+        payload: {},
+      });
+    });
+  }
+
+  /**
    * Skip from PENDING_INVITES to COMPLETE (Owner-only).
    * Throws CONFLICT if current step is not PENDING_INVITES.
    */

@@ -7,6 +7,12 @@ interface CreateOrgBody {
   logoUrl?: string;
 }
 
+interface UpdateOrgBody {
+  name?: string;
+  description?: string;
+  logoUrl?: string;
+}
+
 export class OrgController {
   /**
    * POST /api/v1/orgs - Create organization
@@ -53,5 +59,27 @@ export class OrgController {
       success: true,
       data: result,
     });
+  }
+
+  /**
+   * PATCH /api/v1/orgs/:orgId - Update organization
+   */
+  static async updateOrg(request: FastifyRequest, reply: FastifyReply) {
+    const orgId = (request.params as { orgId: string }).orgId;
+    const body = request.body as UpdateOrgBody;
+    const org = await OrgService.updateOrg(request.user!.userId, orgId, body);
+    return reply.send({
+      success: true,
+      data: org,
+    });
+  }
+
+  /**
+   * DELETE /api/v1/orgs/:orgId - Archive organization
+   */
+  static async archiveOrg(request: FastifyRequest, reply: FastifyReply) {
+    const orgId = (request.params as { orgId: string }).orgId;
+    await OrgService.archiveOrg(request.user!.userId, orgId);
+    return reply.code(204).send();
   }
 }

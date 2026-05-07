@@ -65,4 +65,33 @@ export async function orgRoutes(fastify: FastifyInstance) {
     },
     OrgController.skipOnboarding,
   );
+
+  // PATCH /api/v1/orgs/:orgId - Update organization
+  fastify.patch<{
+    Params: { orgId: string };
+    Body: { name?: string; description?: string; logoUrl?: string };
+  }>(
+    '/orgs/:orgId',
+    {
+      preHandler: [
+        identityRequired,
+        requireOnboardingStep('complete'),
+        requirePermission('org:update'),
+      ],
+    },
+    OrgController.updateOrg,
+  );
+
+  // DELETE /api/v1/orgs/:orgId - Archive organization
+  fastify.delete<{ Params: { orgId: string } }>(
+    '/orgs/:orgId',
+    {
+      preHandler: [
+        identityRequired,
+        requireOnboardingStep('complete'),
+        requireOwner(),
+      ],
+    },
+    OrgController.archiveOrg,
+  );
 }

@@ -113,4 +113,43 @@ export class OrgRepository {
 
     return { org, membership };
   }
+
+  /**
+   * Update organization name and/or description in a transaction.
+   */
+  static async updateOrg(
+    tx: Tx,
+    orgId: string,
+    data: {
+      name?: string;
+      nameLower?: string;
+      description?: string;
+      logoUrl?: string;
+    },
+  ) {
+    const updates: Record<string, unknown> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.nameLower !== undefined) updates.nameLower = data.nameLower;
+    if (data.description !== undefined) updates.description = data.description;
+    if (data.logoUrl !== undefined) updates.logoUrl = data.logoUrl;
+
+    const [org] = await tx
+      .update(organizations)
+      .set(updates)
+      .where(eq(organizations.id, orgId))
+      .returning();
+    return org!;
+  }
+
+  /**
+   * Archive organization (soft delete) in a transaction.
+   */
+  static async archiveOrg(tx: Tx, orgId: string) {
+    const [org] = await tx
+      .update(organizations)
+      .set({ archivedAt: new Date() })
+      .where(eq(organizations.id, orgId))
+      .returning();
+    return org!;
+  }
 }
