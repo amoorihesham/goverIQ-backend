@@ -1,10 +1,10 @@
 import { randomInt, createHash } from 'crypto';
 
-import { OTP_LENGTH } from './constants';
+import { CONFIGURATIONS } from '../constants';
 
 export function generateOtp(): string {
-  const code = randomInt(0, 10 ** OTP_LENGTH);
-  return code.toString().padStart(OTP_LENGTH, '0');
+  const code = randomInt(0, 10 ** CONFIGURATIONS.OTP_LENGTH);
+  return code.toString().padStart(CONFIGURATIONS.OTP_LENGTH, '0');
 }
 
 export function hashOtp(code: string): string {

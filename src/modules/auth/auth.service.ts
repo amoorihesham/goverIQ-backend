@@ -1,12 +1,12 @@
 import { and, count, eq } from 'drizzle-orm';
 
-import { generateOtp, hashOtp } from './otp';
-import { dummyVerifyPassword, hashPassword, verifyPassword } from './password';
+import { generateOtp, hashOtp } from './utils/otp';
+import { dummyVerifyPassword, hashPassword, verifyPassword } from './utils/password';
 import {
   generateRefreshTokenCleartext,
   hashRefreshToken,
   parseUserIdFromCleartext,
-} from './tokens';
+} from './utils/tokens';
 import {
   LoginRequestType,
   RegisterRequestType,

@@ -7,8 +7,8 @@ import { RoleRepository } from './role.repository';
 
 import { users, refreshTokens } from '@/db/schema/auth';
 import { organizations, memberships } from '@/db/schema/org';
-import { hashPassword } from '@/modules/auth/password';
-import { generateRefreshTokenCleartext, hashRefreshToken } from '@/modules/auth/tokens';
+import { hashPassword } from '@/modules/auth/utils/password';
+import { generateRefreshTokenCleartext, hashRefreshToken } from '@/modules/auth/utils/tokens';
 import { emitAudit } from '@/shared/audit/emitter';
 import { signAccessToken } from '@/shared/auth/jwt';
 import { db } from '@/shared/database/client';
