@@ -30,4 +30,28 @@ export class OrgController {
       data: org,
     });
   }
+
+  /**
+   * GET /api/v1/orgs/:orgId/onboarding - Get onboarding step
+   */
+  static async getOnboardingStep(request: FastifyRequest, reply: FastifyReply) {
+    const orgId = (request.params as { orgId: string }).orgId;
+    const step = await OrgService.getOnboardingStep(request.user!.userId, orgId);
+    return reply.send({
+      success: true,
+      data: step,
+    });
+  }
+
+  /**
+   * POST /api/v1/orgs/:orgId/onboarding/skip - Skip to COMPLETE
+   */
+  static async skipOnboarding(request: FastifyRequest, reply: FastifyReply) {
+    const orgId = (request.params as { orgId: string }).orgId;
+    const result = await OrgService.skipOnboarding(request.user!.userId, orgId);
+    return reply.send({
+      success: true,
+      data: result,
+    });
+  }
 }

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { OrgController } from './org.controller';
 import { identityRequired } from '@/shared/auth/identity';
 import { requireOnboardingStep } from './onboarding.prehandler';
+import { requireOwner } from '@/shared/permissions/guard';
 
 const CreateOrgRequestSchema = z.object({
   name: z.string().min(1).max(100),
@@ -41,5 +42,27 @@ export async function orgRoutes(fastify: FastifyInstance) {
       preHandler: [identityRequired, requireOnboardingStep('always')],
     },
     OrgController.getOrg,
+  );
+
+  // GET /api/v1/orgs/:orgId/onboarding - Get onboarding step
+  fastify.get<{ Params: { orgId: string } }>(
+    '/orgs/:orgId/onboarding',
+    {
+      preHandler: [identityRequired, requireOnboardingStep('always')],
+    },
+    OrgController.getOnboardingStep,
+  );
+
+  // POST /api/v1/orgs/:orgId/onboarding/skip - Skip to COMPLETE
+  fastify.post<{ Params: { orgId: string } }>(
+    '/orgs/:orgId/onboarding/skip',
+    {
+      preHandler: [
+        identityRequired,
+        requireOnboardingStep('invitation'),
+        requireOwner(),
+      ],
+    },
+    OrgController.skipOnboarding,
   );
 }
