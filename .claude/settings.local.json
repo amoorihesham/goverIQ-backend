@@ -33,8 +33,12 @@
       "PowerShell(.specify/scripts/powershell/setup-plan.ps1 -Json)",
       "Bash(Get-ChildItem -Path D:\\\\groven-iq -Force)",
       "Bash(Select-Object Name, Mode)",
-      "Bash(pnpm tsc *)"
+      "Bash(pnpm tsc *)",
+      "Bash(Get-ChildItem -Path 'd:\\\\groven-iq' -Force)",
+      "Bash(Select-Object Name, FullName)"
     ],
-    "additionalDirectories": ["d:\\groven-iq\\specs\\003-org-roles-members"]
+    "additionalDirectories": [
+      "d:\\groven-iq\\specs\\003-org-roles-members"
+    ]
   }
 }
