@@ -4,7 +4,6 @@ import { AppError } from './http-error';
 
 import { getConstraintName, isUniqueViolation } from '@/shared/database/errors';
 
-
 export interface SuccessEnvelope<T> {
   success: true;
   data: T;

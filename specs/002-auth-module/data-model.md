@@ -14,41 +14,41 @@ with their indexes; the auth module is purely composition.
 
 ### `users`
 
-| Column          | Type        | Used in                                                                                            |
-| --------------- | ----------- | -------------------------------------------------------------------------------------------------- |
+| Column          | Type        | Used in                                                                                              |
+| --------------- | ----------- | ---------------------------------------------------------------------------------------------------- |
 | `id`            | uuid PK     | every flow — referenced by `email_verifications.user_id`, `refresh_tokens.user_id`, audit `actor_id` |
-| `email`         | text UNIQUE | FR-101 (lookup + uniqueness), FR-106 (lookup parity for unknown-email)                             |
-| `password_hash` | text        | FR-101 (write), FR-105 / FR-106 (verify)                                                           |
-| `is_verified`   | boolean     | FR-101 (init `false`), FR-104 (set `true`), FR-105 (gate login)                                    |
-| `created_at`    | timestamptz | informational only                                                                                 |
-| `updated_at`    | timestamptz | bumped on `is_verified` flip                                                                       |
+| `email`         | text UNIQUE | FR-101 (lookup + uniqueness), FR-106 (lookup parity for unknown-email)                               |
+| `password_hash` | text        | FR-101 (write), FR-105 / FR-106 (verify)                                                             |
+| `is_verified`   | boolean     | FR-101 (init `false`), FR-104 (set `true`), FR-105 (gate login)                                      |
+| `created_at`    | timestamptz | informational only                                                                                   |
+| `updated_at`    | timestamptz | bumped on `is_verified` flip                                                                         |
 
 Indexes used: `users_email_idx` (UNIQUE on `email`) — drives every email-keyed
 lookup and is the indexed-query basis for SC-102 (login p95 < 200 ms at 10k users).
 
 ### `email_verifications`
 
-| Column         | Type        | Used in                                                  |
-| -------------- | ----------- | -------------------------------------------------------- |
-| `id`           | uuid PK     | internal                                                 |
+| Column         | Type        | Used in                                                             |
+| -------------- | ----------- | ------------------------------------------------------------------- |
+| `id`           | uuid PK     | internal                                                            |
 | `user_id`      | uuid FK     | FR-102 (UNIQUE — one active verification per user), FR-103 / FR-104 |
-| `otp_hash`     | text        | FR-102 (write SHA-256(code)), FR-104 (verify)            |
-| `expires_at`   | timestamptz | FR-104 (`OTP_EXPIRED` check)                              |
-| `last_sent_at` | timestamptz | FR-103 (cooldown anchor)                                 |
-| `created_at`   | timestamptz | informational only                                       |
+| `otp_hash`     | text        | FR-102 (write SHA-256(code)), FR-104 (verify)                       |
+| `expires_at`   | timestamptz | FR-104 (`OTP_EXPIRED` check)                                        |
+| `last_sent_at` | timestamptz | FR-103 (cooldown anchor)                                            |
+| `created_at`   | timestamptz | informational only                                                  |
 
 Indexes used: `email_verifications_user_idx` (UNIQUE on `user_id`) — both the
 single-active-record invariant and the resend-replacement query depend on it.
 
 ### `refresh_tokens`
 
-| Column       | Type        | Used in                                                                  |
-| ------------ | ----------- | ------------------------------------------------------------------------ |
-| `id`         | uuid PK     | internal                                                                 |
-| `user_id`    | uuid FK     | FR-107 (write), FR-109 (theft-wide DELETE), FR-110 (logout DELETE)       |
+| Column       | Type        | Used in                                                                        |
+| ------------ | ----------- | ------------------------------------------------------------------------------ |
+| `id`         | uuid PK     | internal                                                                       |
+| `user_id`    | uuid FK     | FR-107 (write), FR-109 (theft-wide DELETE), FR-110 (logout DELETE)             |
 | `token_hash` | text UNIQUE | FR-107 (write SHA-256(`<userId>.<random>`)), FR-108 / FR-109 / FR-110 (lookup) |
-| `expires_at` | timestamptz | FR-109 (expiry check)                                                    |
-| `created_at` | timestamptz | informational only                                                       |
+| `expires_at` | timestamptz | FR-109 (expiry check)                                                          |
+| `created_at` | timestamptz | informational only                                                             |
 
 Indexes used: `refresh_tokens_hash_idx` (UNIQUE on `token_hash`) for refresh and
 logout lookup; `refresh_tokens_user_idx` for theft-wide cleanup.
@@ -98,12 +98,12 @@ All four auth events write through the shared `emitAudit(tx, event)` and join th
 parent transaction (FR-112). `org_id` is null on all four (Phase 0 spec
 clarification).
 
-| Audit event       | `actor_id` | `entity_type` | `entity_id` | `payload`                                          | Trigger              |
-| ----------------- | ---------- | ------------- | ----------- | -------------------------------------------------- | -------------------- |
-| `user.registered` | `user.id`  | `'user'`      | `user.id`   | `{ data: { email } }` (no password material)       | FR-101               |
-| `user.verified`   | `user.id`  | `'user'`      | `user.id`   | `{ data: { email } }`                              | FR-104               |
-| `user.login`      | `user.id`  | `'user'`      | `user.id`   | `{ data: { email } }`                              | FR-105 success path  |
-| `user.logout`     | `user.id`  | `'user'`      | `user.id`   | `{ data: { sessionsRemaining: number } }`          | FR-110               |
+| Audit event       | `actor_id` | `entity_type` | `entity_id` | `payload`                                    | Trigger             |
+| ----------------- | ---------- | ------------- | ----------- | -------------------------------------------- | ------------------- |
+| `user.registered` | `user.id`  | `'user'`      | `user.id`   | `{ data: { email } }` (no password material) | FR-101              |
+| `user.verified`   | `user.id`  | `'user'`      | `user.id`   | `{ data: { email } }`                        | FR-104              |
+| `user.login`      | `user.id`  | `'user'`      | `user.id`   | `{ data: { email } }`                        | FR-105 success path |
+| `user.logout`     | `user.id`  | `'user'`      | `user.id`   | `{ data: { sessionsRemaining: number } }`    | FR-110              |
 
 The `audit_logs` table has `org_id` nullable per Phase 0 spec clarification — these
 events use null for that column.

@@ -1,25 +1,10 @@
-import type { ExtractTablesWithRelations } from 'drizzle-orm';
-import type { NeonQueryResultHKT } from 'drizzle-orm/neon-serverless';
-import type { PgTransaction } from 'drizzle-orm/pg-core';
+import { db } from './client';
+import { Tx } from './types';
 
-import { getDatabaseClient } from './client';
+export type { Tx };
 
-import * as schema from '@/db/schema';
-
-
-export type Tx = PgTransaction<
-  NeonQueryResultHKT,
-  typeof schema,
-  ExtractTablesWithRelations<typeof schema>
->;
-
-export async function withTx<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
-  const db = getDatabaseClient();
+export const withTx = async <T>(fn: (tx: Tx) => Promise<T>): Promise<T> => {
   return db.transaction(async (tx) => {
-    return fn(tx as unknown as Tx);
+    return fn(tx);
   });
-}
-
-export function isTx(value: unknown): value is Tx {
-  return typeof value === 'object' && value !== null && 'insert' in value;
-}
+};

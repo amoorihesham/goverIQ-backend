@@ -10,7 +10,7 @@ import { buildAuthTestServer } from '../../helpers/server';
 import { emailVerifications, users } from '@/db/schema/auth';
 import { hashOtp } from '@/modules/auth/otp';
 import { hashPassword } from '@/modules/auth/password';
-import { getDatabaseClient } from '@/shared/database/client';
+import { db } from '@/shared/database/client';
 
 let app: FastifyInstance;
 
@@ -29,7 +29,6 @@ function uniqueEmail() {
 }
 
 async function createUnverifiedUserWithVerification(email: string, lastSentSecondsAgo = 0) {
-  const db = getDatabaseClient();
   const passwordHash = await hashPassword('correct-horse-battery');
   const [user] = await db
     .insert(users)
@@ -65,7 +64,6 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
     const email = uniqueEmail();
     await createUnverifiedUserWithVerification(email, 65); // sent 65s ago
 
-    const db = getDatabaseClient();
     const [user] = await db.select().from(users).where(eq(users.email, email));
     const [oldVer] = await db
       .select()
@@ -147,7 +145,7 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
 
   it('422 OTP_COOLDOWN for verified user — byte-equal parity (no purpose post-verification)', async () => {
     const email = uniqueEmail();
-    const db = getDatabaseClient();
+
     const passwordHash = await hashPassword('correct-horse-battery');
     await db.insert(users).values({ email, passwordHash, isVerified: true });
 

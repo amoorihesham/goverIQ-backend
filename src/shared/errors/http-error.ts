@@ -94,4 +94,16 @@ export class AppError extends Error {
   static otpCooldown(message?: string): AppError {
     return AppError.create('OTP_COOLDOWN', message);
   }
+
+  static privilegeEscalation(message?: string): AppError {
+    return AppError.create('PRIVILEGE_ESCALATION', message);
+  }
+
+  static roleInUse(message?: string): AppError {
+    return AppError.create('ROLE_IN_USE', message);
+  }
+
+  static soleOwner(message?: string): AppError {
+    return AppError.create('SOLE_OWNER', message);
+  }
 }

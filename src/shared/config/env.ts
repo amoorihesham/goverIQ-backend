@@ -17,6 +17,7 @@ const envSchema = z.object({
   ),
 
   DATABASE_URL: z.string('DATABASE_URL must be a valid URL'),
+  DATABASE_POOL_MAX_SIZE: z.coerce.number(),
 
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET must be at least 32 characters'),
@@ -44,5 +45,3 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
-
-// export const fastifySchema = z.toJSONSchema(envSchema, { target: 'draft-07' });

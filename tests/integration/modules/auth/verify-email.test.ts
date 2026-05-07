@@ -11,7 +11,7 @@ import { auditLogs } from '@/db/schema/audit';
 import { emailVerifications, users } from '@/db/schema/auth';
 import { hashOtp } from '@/modules/auth/otp';
 import { hashPassword } from '@/modules/auth/password';
-import { getDatabaseClient } from '@/shared/database/client';
+import { db } from '@/shared/database/client';
 
 let app: FastifyInstance;
 
@@ -31,7 +31,7 @@ function uniqueEmail() {
 
 async function registerAndGetOtp(email: string): Promise<string> {
   // Insert user + verification row directly for deterministic OTP
-  const db = getDatabaseClient();
+
   const otp = '123456';
   const otpHash = hashOtp(otp);
   const passwordHash = await hashPassword('correct-horse-battery');
@@ -74,8 +74,6 @@ describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
     expect(cookieHeader).toContain('refresh_token');
     expect(cookieHeader).toContain('HttpOnly');
 
-    const db = getDatabaseClient();
-
     // User is verified
     const [user] = await db.select().from(users).where(eq(users.email, email));
     expect(user?.isVerified).toBe(true);
@@ -88,10 +86,7 @@ describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
     expect(verRows).toHaveLength(0);
 
     // Audit row present
-    const auditRows = await db
-      .select()
-      .from(auditLogs)
-      .where(eq(auditLogs.event, 'user.verified'));
+    const auditRows = await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.verified'));
     const audit = auditRows.find(
       (r) => (r.payload as { data: { email: string } }).data?.email === email,
     );
@@ -100,7 +95,7 @@ describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
 
   it('422 OTP_EXPIRED when OTP is past expiry', async () => {
     const email = uniqueEmail();
-    const db = getDatabaseClient();
+
     const otp = '654321';
     const otpHash = hashOtp(otp);
     const passwordHash = await hashPassword('correct-horse-battery');
@@ -143,7 +138,6 @@ describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('INVALID_CREDENTIALS');
 
-    const db = getDatabaseClient();
     const [user] = await db.select().from(users).where(eq(users.email, email));
     expect(user?.isVerified).toBe(false);
   });

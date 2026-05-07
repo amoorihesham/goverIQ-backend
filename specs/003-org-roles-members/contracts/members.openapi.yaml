@@ -1,0 +1,283 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Members Module (Protected Routes)
+  version: 0.1.0
+  description: |
+    5 member-management endpoints. All require Bearer JWT.
+    Invitation send has onboarding tier=invitation. All management routes tier=complete.
+    Sole-Owner invariant enforced on remove and revoke.
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /api/v1/orgs/{orgId}/members/invitations:
+    post:
+      summary: Send invitation
+      operationId: sendInvitation
+      description: |
+        Requires member:invite. Onboarding tier=invitation.
+        Checks: no pending invite for this email+org (PENDING_INVITE_EXISTS),
+        target role belongs to this org and is not Owner.
+        Generates opaque token → stores hash → fires invitation notification.
+        Emits member.invited.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SendInvitationRequest' }
+      responses:
+        '201':
+          description: Invitation created and email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [id, email, status, expiresAt]
+                    properties:
+                      id: { type: string, format: uuid }
+                      email: { type: string }
+                      roleId: { type: string, format: uuid }
+                      status: { type: string, enum: [PENDING] }
+                      expiresAt: { type: string, format: date-time }
+        '403':
+          description: Missing member:invite permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Target role not found in this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: Pending invite already exists for this email+org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  {
+                    code: 'PENDING_INVITE_EXISTS',
+                    message: 'Pending invitation already exists',
+                    statusCode: 409,
+                  }
+
+  /api/v1/orgs/{orgId}/members:
+    get:
+      summary: List members
+      operationId: listMembers
+      description: |
+        Identity required. Any org member can view (FR-212a). Onboarding tier=complete.
+        Cursor-paginated (default 20, max 100). Each entry includes user identity,
+        role name, and join date.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+      responses:
+        '200':
+          description: Paginated member list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/MemberObject' }
+                      nextCursor: { type: string, nullable: true }
+
+  /api/v1/orgs/{orgId}/members/{memberId}:
+    delete:
+      summary: Remove member
+      operationId: removeMember
+      description: |
+        Requires member:remove. Onboarding tier=complete.
+        Blocked if target member's role is Owner with is_owner=true (SOLE_OWNER check).
+        Deletes membership row. Emits member.removed. Response 204.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+        - { $ref: '#/components/parameters/memberId' }
+      responses:
+        '204':
+          description: Member removed
+        '403':
+          description: Missing member:remove
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Membership not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: Target is the sole Owner
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  {
+                    code: 'SOLE_OWNER',
+                    message: 'Cannot remove the sole owner of an organization',
+                    statusCode: 409,
+                  }
+
+  /api/v1/orgs/{orgId}/members/{memberId}/role:
+    put:
+      summary: Assign role to member
+      operationId: assignMemberRole
+      description: |
+        Requires role:assign. Onboarding tier=complete.
+        Privilege escalation check on new role's permissions.
+        Verifies role belongs to this org. Updates membership. Emits member.role_assigned.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+        - { $ref: '#/components/parameters/memberId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roleId]
+              properties:
+                roleId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Role assigned
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data: { $ref: '#/components/schemas/MemberObject' }
+        '403':
+          description: Missing role:assign or privilege escalation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Membership or role not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+    delete:
+      summary: Revoke role from member
+      operationId: revokeMemberRole
+      description: |
+        Requires role:revoke. Onboarding tier=complete.
+        Blocked if target role is_owner=true (SOLE_OWNER check).
+        Sets membership.role_id to null. Emits member.role_revoked. Response 204.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+        - { $ref: '#/components/parameters/memberId' }
+      responses:
+        '204':
+          description: Role revoked
+        '403':
+          description: Missing role:revoke
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Membership not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: Target is the sole Owner (role is is_owner=true)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    orgId:
+      name: orgId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    memberId:
+      name: memberId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string }
+    limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  schemas:
+    SendInvitationRequest:
+      type: object
+      required: [email, roleId]
+      properties:
+        email: { type: string, format: email }
+        roleId: { type: string, format: uuid }
+
+    MemberObject:
+      type: object
+      required: [id, userId, orgId, joinedAt]
+      properties:
+        id: { type: string, format: uuid, description: membership id }
+        userId: { type: string, format: uuid }
+        email: { type: string }
+        orgId: { type: string, format: uuid }
+        roleId: { type: string, format: uuid, nullable: true }
+        roleName: { type: string, nullable: true }
+        joinedAt: { type: string, format: date-time }
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

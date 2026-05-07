@@ -7,13 +7,13 @@
 
 **Organization**: Tasks are grouped by user story so each story can be implemented and verified independently. The five user stories from spec.md map to the six routes plus the identity pre-handler:
 
-| Story | Priority | Routes / artifacts                                          |
-| ----- | -------- | ----------------------------------------------------------- |
-| US1   | P1       | `POST /auth/register`, `POST /auth/verify-email`            |
-| US2   | P1       | `POST /auth/login`                                          |
-| US3   | P1       | `POST /auth/refresh`                                        |
-| US4   | P2       | `POST /auth/resend-otp`                                     |
-| US5   | P2       | `POST /auth/logout`                                         |
+| Story | Priority | Routes / artifacts                               |
+| ----- | -------- | ------------------------------------------------ |
+| US1   | P1       | `POST /auth/register`, `POST /auth/verify-email` |
+| US2   | P1       | `POST /auth/login`                               |
+| US3   | P1       | `POST /auth/refresh`                             |
+| US4   | P2       | `POST /auth/resend-otp`                          |
+| US5   | P2       | `POST /auth/logout`                              |
 
 The `identityRequired` pre-handler (FR-111) is foundational shared infrastructure (used by every later phase), not story-scoped, so it lives in Phase 2.
 
@@ -29,11 +29,11 @@ The `identityRequired` pre-handler (FR-111) is foundational shared infrastructur
 
 **Purpose**: Pull in the new runtime dependency, register cookie support, declare the new env var, fix the broken test fixture so every later integration test works.
 
-- [X] T001 Add `@fastify/cookie` to runtime dependencies via `pnpm add @fastify/cookie` and verify the entry appears in [package.json](../../package.json) under `dependencies`
-- [X] T002 [P] Add `COOKIE_SECRET: z.string().min(32)` to the env schema in [src/shared/config/env.ts](../../src/shared/config/env.ts) and add `COOKIE_SECRET=<≥32-char value>` to [.env.example](../../.env.example) and the project `.env` documentation block
-- [X] T003 [P] Register `@fastify/cookie` in [src/server.ts](../../src/server.ts) with `{ secret: env.COOKIE_SECRET, hook: 'onRequest' }` ordered BEFORE any module plugins are mounted
-- [X] T004 [P] Repair the broken transactional fixture in [tests/integration/helpers/db.ts](../../tests/integration/helpers/db.ts) per research.md §5 (open tx in `beforeEach`, force-reject in `afterEach` to roll back) and add a self-test that verifies a row inserted in `beforeEach` is gone after `afterEach`
-- [X] T005 [P] Create [src/modules/auth/constants.ts](../../src/modules/auth/constants.ts) exporting all numeric tunables (`PASSWORD_MIN_LENGTH=12`, `PASSWORD_COST_FACTOR=11`, `OTP_LENGTH=6`, `OTP_TTL_MINUTES=10`, `OTP_RESEND_COOLDOWN_SEC=60`, `ACCESS_TTL_SECONDS=900`, `REFRESH_TTL_SECONDS=604_800`, `REFRESH_COOKIE_NAME='refresh_token'`, `REFRESH_RANDOM_BYTES=32`) per research.md §"Numeric constants summary"
+- [x] T001 Add `@fastify/cookie` to runtime dependencies via `pnpm add @fastify/cookie` and verify the entry appears in [package.json](../../package.json) under `dependencies`
+- [x] T002 [P] Add `COOKIE_SECRET: z.string().min(32)` to the env schema in [src/shared/config/env.ts](../../src/shared/config/env.ts) and add `COOKIE_SECRET=<≥32-char value>` to [.env.example](../../.env.example) and the project `.env` documentation block
+- [x] T003 [P] Register `@fastify/cookie` in [src/server.ts](../../src/server.ts) with `{ secret: env.COOKIE_SECRET, hook: 'onRequest' }` ordered BEFORE any module plugins are mounted
+- [x] T004 [P] Repair the broken transactional fixture in [tests/integration/helpers/db.ts](../../tests/integration/helpers/db.ts) per research.md §5 (open tx in `beforeEach`, force-reject in `afterEach` to roll back) and add a self-test that verifies a row inserted in `beforeEach` is gone after `afterEach`
+- [x] T005 [P] Create [src/modules/auth/constants.ts](../../src/modules/auth/constants.ts) exporting all numeric tunables (`PASSWORD_MIN_LENGTH=12`, `PASSWORD_COST_FACTOR=11`, `OTP_LENGTH=6`, `OTP_TTL_MINUTES=10`, `OTP_RESEND_COOLDOWN_SEC=60`, `ACCESS_TTL_SECONDS=900`, `REFRESH_TTL_SECONDS=604_800`, `REFRESH_COOKIE_NAME='refresh_token'`, `REFRESH_RANDOM_BYTES=32`) per research.md §"Numeric constants summary"
 
 ---
 
@@ -45,16 +45,16 @@ The `identityRequired` pre-handler (FR-111) is foundational shared infrastructur
 
 ### Pure helpers (parallelizable — different files)
 
-- [X] T006 [P] Implement bcryptjs wrapper in [src/modules/auth/password.ts](../../src/modules/auth/password.ts) exposing `hashPassword(plain: string): Promise<string>` (uses `PASSWORD_COST_FACTOR`) and `verifyPassword(plain: string, hash: string): Promise<boolean>`
-- [X] T007 [P] Implement [src/modules/auth/tokens.ts](../../src/modules/auth/tokens.ts) — `generateRefreshTokenCleartext(userId): string` (= `<userId>.<32-byte hex>`), `parseUserIdFromCleartext(cleartext): string | null`, `hashRefreshToken(cleartext): string` (SHA-256 hex) per research.md §1
-- [X] T008 [P] Implement [src/modules/auth/otp.ts](../../src/modules/auth/otp.ts) — `generateOtp(): string` (`crypto.randomInt(0, 1_000_000)` zero-padded to 6 chars) and `hashOtp(code: string): string` (SHA-256 hex) per research.md §4
-- [X] T009 [P] Implement [src/modules/auth/cookies.ts](../../src/modules/auth/cookies.ts) — `buildRefreshCookieAttrs(): CookieSerializeOptions` returning `{ httpOnly:true, secure: env.NODE_ENV==='production', sameSite:'lax', path:'/', signed:true, maxAge: REFRESH_TTL_SECONDS }` per research.md §2
+- [x] T006 [P] Implement bcryptjs wrapper in [src/modules/auth/password.ts](../../src/modules/auth/password.ts) exposing `hashPassword(plain: string): Promise<string>` (uses `PASSWORD_COST_FACTOR`) and `verifyPassword(plain: string, hash: string): Promise<boolean>`
+- [x] T007 [P] Implement [src/modules/auth/tokens.ts](../../src/modules/auth/tokens.ts) — `generateRefreshTokenCleartext(userId): string` (= `<userId>.<32-byte hex>`), `parseUserIdFromCleartext(cleartext): string | null`, `hashRefreshToken(cleartext): string` (SHA-256 hex) per research.md §1
+- [x] T008 [P] Implement [src/modules/auth/otp.ts](../../src/modules/auth/otp.ts) — `generateOtp(): string` (`crypto.randomInt(0, 1_000_000)` zero-padded to 6 chars) and `hashOtp(code: string): string` (SHA-256 hex) per research.md §4
+- [x] T009 [P] Implement [src/modules/auth/cookies.ts](../../src/modules/auth/cookies.ts) — `buildRefreshCookieAttrs(): CookieSerializeOptions` returning `{ httpOnly:true, secure: env.NODE_ENV==='production', sameSite:'lax', path:'/', signed:true, maxAge: REFRESH_TTL_SECONDS }` per research.md §2
 
 ### Pure-helper unit tests (parallelizable — different files)
 
-- [X] T010 [P] Unit tests in [tests/unit/modules/auth/password.test.ts](../../tests/unit/modules/auth/password.test.ts) covering hash uniqueness (two hashes of same password differ — salt presence), `verifyPassword` true on match, false on mismatch, cost factor encoded in hash header
-- [X] T011 [P] Unit tests in [tests/unit/modules/auth/tokens.test.ts](../../tests/unit/modules/auth/tokens.test.ts) covering `generateRefreshTokenCleartext` shape (`<uuid>.<64-hex>`), `parseUserIdFromCleartext` happy + malformed → `null`, `hashRefreshToken` deterministic + SHA-256 length
-- [X] T012 [P] Unit tests in [tests/unit/modules/auth/otp.test.ts](../../tests/unit/modules/auth/otp.test.ts) covering `generateOtp` length=6, all-digits, distribution sanity (no obvious bias across 1k draws), `hashOtp` deterministic + SHA-256 length
+- [x] T010 [P] Unit tests in [tests/unit/modules/auth/password.test.ts](../../tests/unit/modules/auth/password.test.ts) covering hash uniqueness (two hashes of same password differ — salt presence), `verifyPassword` true on match, false on mismatch, cost factor encoded in hash header
+- [x] T011 [P] Unit tests in [tests/unit/modules/auth/tokens.test.ts](../../tests/unit/modules/auth/tokens.test.ts) covering `generateRefreshTokenCleartext` shape (`<uuid>.<64-hex>`), `parseUserIdFromCleartext` happy + malformed → `null`, `hashRefreshToken` deterministic + SHA-256 length
+- [x] T012 [P] Unit tests in [tests/unit/modules/auth/otp.test.ts](../../tests/unit/modules/auth/otp.test.ts) covering `generateOtp` length=6, all-digits, distribution sanity (no obvious bias across 1k draws), `hashOtp` deterministic + SHA-256 length
 
 ### Shared error / type / signing additions (parallelizable — different files)
 

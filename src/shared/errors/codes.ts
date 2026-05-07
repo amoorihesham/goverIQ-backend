@@ -94,6 +94,21 @@ export const ERROR_CODES = {
     httpStatus: 422,
     message: 'Please wait before requesting another code',
   },
+  PRIVILEGE_ESCALATION: {
+    code: 'PRIVILEGE_ESCALATION',
+    httpStatus: 403,
+    message: 'Privilege escalation not permitted',
+  },
+  ROLE_IN_USE: {
+    code: 'ROLE_IN_USE',
+    httpStatus: 409,
+    message: 'Role is assigned to one or more members',
+  },
+  SOLE_OWNER: {
+    code: 'SOLE_OWNER',
+    httpStatus: 409,
+    message: 'Cannot remove the sole owner of an organization',
+  },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

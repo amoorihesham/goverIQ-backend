@@ -26,7 +26,15 @@
       "PowerShell(pnpm test:integration 2>&1)",
       "Bash(pnpm test *)",
       "Bash(node -e \"console.log\\(typeof WebSocket\\)\")",
-      "Bash(npx tsc *)"
-    ]
+      "Bash(npx tsc *)",
+      "PowerShell(.specify/extensions/git/scripts/powershell/create-new-feature.ps1 -Json -ShortName \"org-roles-members\" \"organizations roles and members module\")",
+      "Bash(mkdir -p d:/groven-iq/specs/003-org-roles-members/checklists)",
+      "PowerShell(.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
+      "PowerShell(.specify/scripts/powershell/setup-plan.ps1 -Json)",
+      "Bash(Get-ChildItem -Path D:\\\\groven-iq -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(pnpm tsc *)"
+    ],
+    "additionalDirectories": ["d:\\groven-iq\\specs\\003-org-roles-members"]
   }
 }

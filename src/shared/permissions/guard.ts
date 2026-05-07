@@ -41,6 +41,13 @@ export function requirePermission(permission: PermissionKey) {
 
       const [memberData] = membership;
 
+      // Set request.orgMembership for use by other handlers/middleware
+      request.orgMembership = {
+        roleId: memberData.roleId,
+        isOwner: memberData.isOwner ?? false,
+        permissions: memberData.permissions || [],
+      };
+
       if (memberData.isOwner) {
         return;
       }
@@ -53,6 +60,18 @@ export function requirePermission(permission: PermissionKey) {
         throw err;
       }
       throw AppError.unauthorized('Token verification failed');
+    }
+  };
+}
+
+export function requireOwner() {
+  return async (request: FastifyRequest) => {
+    if (!request.orgMembership) {
+      throw AppError.forbidden('Organization membership required');
+    }
+
+    if (!request.orgMembership.isOwner) {
+      throw AppError.forbidden('Owner privileges required');
     }
   };
 }

@@ -36,10 +36,10 @@ authenticated session that can be used to call any subsequent protected endpoint
 1. **Given** an unused email and a password meeting the minimum length policy, **When**
    the user registers, **Then** an account is created in an unverified state and a
    verification code is delivered to the email
-1a. **Given** an email that already belongs to an unverified account, **When** the
+   1a. **Given** an email that already belongs to an unverified account, **When** the
    user registers again, **Then** the prior unverified record is replaced atomically
    with a fresh pair and a new verification code is delivered
-1b. **Given** an email that already belongs to a verified account, **When** anyone
+   1b. **Given** an email that already belongs to a verified account, **When** anyone
    attempts to register with it, **Then** the request is rejected with `DUPLICATE_EMAIL`
 2. **Given** an unverified user with an active verification code, **When** they submit
    the correct code before it expires, **Then** the account becomes verified and an
@@ -93,7 +93,7 @@ legitimate user's. The combination is the minimum bar for a credible session mod
 must ship with login itself, not as a follow-up.
 
 **Independent Test**: Log in, capture the long-lived credential value, exchange it for
-a refreshed pair (observing both values change), then attempt to exchange the *original*
+a refreshed pair (observing both values change), then attempt to exchange the _original_
 captured value again — verify the second exchange is rejected and that any other
 in-flight session for the same user is also invalidated.
 

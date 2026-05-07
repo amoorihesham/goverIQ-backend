@@ -5,7 +5,6 @@ import { buildAuthTestServer } from '../../helpers/server';
 
 import { signAccessToken } from '@/shared/auth/jwt';
 
-
 let app: FastifyInstance;
 
 beforeAll(async () => {
