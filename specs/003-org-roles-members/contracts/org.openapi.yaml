@@ -1,0 +1,256 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Org Module
+  version: 0.1.0
+  description: |
+    6 organization endpoints. All except POST /api/v1/orgs require an org-scoped
+    JWT (Bearer). Archive (DELETE) is Owner-only. Update (PATCH) requires org:update.
+    Onboarding step advances are transactional (FR-204).
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /api/v1/orgs:
+    post:
+      summary: Create organization
+      operationId: createOrg
+      description: |
+        Identity required. Creates org, Owner role (all 22 permissions, is_owner=true),
+        and caller's membership — all in one transaction. Sets onboardingStep=PENDING_ROLES.
+        Slug auto-derived from name; globally unique. Emits org.created audit event.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrgRequest' }
+      responses:
+        '201':
+          description: Organization created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrgResponse' }
+              example:
+                success: true
+                data:
+                  id: 'c1d2e3f4-...'
+                  name: 'Acme Corp'
+                  slug: 'acme-corp'
+                  description: null
+                  onboardingStep: 'PENDING_ROLES'
+                  quorumThreshold: '0.50'
+                  archivedAt: null
+                  createdAt: '2026-05-07T10:00:00Z'
+        '409':
+          description: Org name already taken
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'DUPLICATE_ORG_NAME', message: 'Organization name already exists', statusCode: 409 }
+
+  /api/v1/orgs/{orgId}:
+    get:
+      summary: Get organization
+      operationId: getOrg
+      description: Identity required. Accessible at any onboarding step (tier=always).
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: Organization profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrgResponse' }
+        '403':
+          description: Not a member / invalid token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Org not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+    patch:
+      summary: Update organization
+      operationId: updateOrg
+      description: |
+        Requires org:update permission. Onboarding tier=complete.
+        Name uniqueness re-checked if name is changing. Emits org.updated.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateOrgRequest' }
+      responses:
+        '200':
+          description: Organization updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrgResponse' }
+        '403':
+          description: Insufficient permissions or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: New name conflicts with existing org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+    delete:
+      summary: Archive organization
+      operationId: archiveOrg
+      description: |
+        Owner only. Soft-delete: sets archived_at. Emits org.archived. Response 204.
+        Onboarding tier=complete.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '204':
+          description: Organization archived
+        '403':
+          description: Caller is not Owner
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: Organization already archived
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/orgs/{orgId}/onboarding:
+    get:
+      summary: Get onboarding step
+      operationId: getOnboardingStep
+      description: Identity required. Returns current onboardingStep. Accessible at any step (tier=always).
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: Current onboarding step
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [onboardingStep]
+                    properties:
+                      onboardingStep:
+                        type: string
+                        enum: [PENDING_ROLES, PENDING_INVITES, COMPLETE]
+
+  /api/v1/orgs/{orgId}/onboarding/skip:
+    post:
+      summary: Skip pending-invites step
+      operationId: skipOnboarding
+      description: |
+        Owner only. Advances onboardingStep from PENDING_INVITES to COMPLETE.
+        Throws CONFLICT if step is not PENDING_INVITES. Onboarding tier=invitation
+        (accessible during PENDING_INVITES). Response 204.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '204':
+          description: Onboarding advanced to COMPLETE
+        '403':
+          description: Caller is not Owner
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: Onboarding step is not PENDING_INVITES
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    orgId:
+      name: orgId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    CreateOrgRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, maxLength: 500 }
+        logoUrl: { type: string, format: uri }
+
+    UpdateOrgRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, maxLength: 500 }
+        logoUrl: { type: string, format: uri }
+
+    OrgObject:
+      type: object
+      required: [id, name, slug, onboardingStep, quorumThreshold, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string, nullable: true }
+        logoUrl: { type: string, nullable: true }
+        onboardingStep:
+          type: string
+          enum: [PENDING_ROLES, PENDING_INVITES, COMPLETE]
+        quorumThreshold: { type: string, description: 'Decimal string e.g. "0.50"' }
+        archivedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    OrgResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/OrgObject' }
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

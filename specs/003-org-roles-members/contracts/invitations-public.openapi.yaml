@@ -1,0 +1,178 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Public Invitation Routes
+  version: 0.1.0
+  description: |
+    2 public endpoints. No authentication required. Registered at /invitations
+    (root path, NOT under /api/v1). Token in path is the raw 64-char hex string;
+    the server hashes it before DB lookup.
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /invitations/{token}/accept:
+    post:
+      summary: Accept invitation
+      operationId: acceptInvitation
+      description: |
+        Public. Hashes token → lookup in invitations table.
+        Validates: status=PENDING and expires_at > now().
+
+        Two branches based on whether the invitee email has an account:
+        - Existing user: upsert membership, set status=ACCEPTED, advance onboarding if needed.
+        - No account: `password` is required (min 12 chars). Create user as is_verified=true,
+          upsert membership, set status=ACCEPTED, advance onboarding if needed.
+          Issues access token + refresh cookie so the new user starts a session immediately.
+
+        All writes in one transaction. Emits member.joined.
+      parameters:
+        - { $ref: '#/components/parameters/token' }
+      requestBody:
+        required: false
+        description: Required only when the invitee email has no existing account.
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AcceptInvitationRequest' }
+      responses:
+        '200':
+          description: |
+            Invitation accepted. For new users: includes accessToken + Set-Cookie.
+            For existing users: returns membership detail only.
+          headers:
+            Set-Cookie:
+              description: refresh_token cookie (new users only; signed; httpOnly; SameSite=Lax)
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AcceptResponse' }
+              examples:
+                existingUser:
+                  summary: Existing user accepted
+                  value:
+                    success: true
+                    data:
+                      membership:
+                        id: 'abc123'
+                        orgId: 'def456'
+                        roleId: 'ghi789'
+                        joinedAt: '2026-05-07T10:00:00Z'
+                      accessToken: null
+                newUser:
+                  summary: New user accepted (session started)
+                  value:
+                    success: true
+                    data:
+                      membership:
+                        id: 'abc123'
+                        orgId: 'def456'
+                        roleId: 'ghi789'
+                        joinedAt: '2026-05-07T10:00:00Z'
+                      accessToken: 'eyJhbGciOiJIUzI1NiIs...'
+        '400':
+          description: Password required but not provided (new user path)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Token not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: Invitation already accepted/declined
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: Invitation token has expired
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'INVALID_STATE_TRANSITION', message: 'Invitation has expired', statusCode: 422 }
+
+  /invitations/{token}/decline:
+    post:
+      summary: Decline invitation
+      operationId: declineInvitation
+      description: |
+        Public. Hashes token → lookup in invitations table.
+        Sets status=DECLINED. No membership created. Emits member.declined.
+        Returns 200 regardless of whether the token maps to a PENDING invite
+        (idempotent-style: already-declined tokens do not error).
+      parameters:
+        - { $ref: '#/components/parameters/token' }
+      responses:
+        '200':
+          description: Invitation declined
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [message]
+                    properties:
+                      message: { type: string, example: 'Invitation declined.' }
+        '404':
+          description: Token not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+components:
+  parameters:
+    token:
+      name: token
+      in: path
+      required: true
+      description: Raw 64-char hex invite token (cleartext; server hashes before lookup)
+      schema: { type: string, minLength: 64, maxLength: 64 }
+
+  schemas:
+    AcceptInvitationRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 12
+          description: Required when the invitee email has no existing account.
+
+    AcceptResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [membership]
+          properties:
+            membership:
+              type: object
+              required: [id, orgId, roleId, joinedAt]
+              properties:
+                id: { type: string, format: uuid }
+                orgId: { type: string, format: uuid }
+                roleId: { type: string, format: uuid }
+                joinedAt: { type: string, format: date-time }
+            accessToken:
+              type: string
+              nullable: true
+              description: Set only when a new user account was created during acceptance.
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

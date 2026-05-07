@@ -1,0 +1,305 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Roles Module
+  version: 0.1.0
+  description: |
+    6 role endpoints. All require Bearer JWT.
+    Onboarding tiers: permissions list and role create = 'role_creation';
+    role list and role read = 'invitation'; role update and delete = 'complete'.
+    Owner role (is_owner=true) is immutable — update/delete always rejected.
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /api/v1/orgs/{orgId}/roles/permissions:
+    get:
+      summary: List all system permission keys
+      operationId: listPermissions
+      description: |
+        Identity required. Returns all 22 fixed system permission keys.
+        Onboarding tier=role_creation (accessible from PENDING_ROLES).
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: All 22 system permission keys
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [permissions]
+                    properties:
+                      permissions:
+                        type: array
+                        items: { type: string }
+                        example:
+                          - 'org:update'
+                          - 'org:archive'
+                          - 'role:create'
+                          - 'role:update'
+                          - 'role:delete'
+                          - 'role:assign'
+                          - 'role:revoke'
+                          - 'member:invite'
+                          - 'member:remove'
+                          - 'meeting:create'
+                          - 'meeting:update'
+                          - 'meeting:manage_attendees'
+                          - 'meeting:change_status'
+                          - 'meeting:view'
+                          - 'vote:create'
+                          - 'vote:submit'
+                          - 'vote:close'
+                          - 'vote:view_results'
+                          - 'minutes:create'
+                          - 'minutes:edit'
+                          - 'minutes:finalize'
+                          - 'minutes:export'
+                          - 'audit:view'
+                          - 'audit:export'
+
+  /api/v1/orgs/{orgId}/roles:
+    get:
+      summary: List roles
+      operationId: listRoles
+      description: |
+        Identity required. Returns all roles including Owner.
+        Onboarding tier=invitation.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: All roles for the org
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/RoleObject' }
+
+    post:
+      summary: Create custom role
+      operationId: createRole
+      description: |
+        Requires role:create permission. Onboarding tier=role_creation.
+        Privilege escalation check: all requested permissions must be held by the caller.
+        If this is the first non-Owner role, advances onboardingStep to PENDING_INVITES.
+        Emits role.created.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRoleRequest' }
+      responses:
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleResponse' }
+        '403':
+          description: Missing role:create permission OR privilege escalation detected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                forbidden:
+                  value:
+                    success: false
+                    error: { code: 'FORBIDDEN', message: 'Insufficient permissions', statusCode: 403 }
+                escalation:
+                  value:
+                    success: false
+                    error: { code: 'PRIVILEGE_ESCALATION', message: 'Privilege escalation not permitted', statusCode: 403 }
+        '409':
+          description: Role name already exists in this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/orgs/{orgId}/roles/{roleId}:
+    get:
+      summary: Get single role
+      operationId: getRole
+      description: Identity required. Onboarding tier=invitation.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+        - { $ref: '#/components/parameters/roleId' }
+      responses:
+        '200':
+          description: Role detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleResponse' }
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+    patch:
+      summary: Update role name or permissions
+      operationId: updateRole
+      description: |
+        Requires role:update permission. Onboarding tier=complete.
+        Blocked if role.is_owner=true (returns 403).
+        Privilege escalation check on new permissions.
+        Changes take effect immediately for all members holding this role.
+        Emits role.updated.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+        - { $ref: '#/components/parameters/roleId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRoleRequest' }
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleResponse' }
+        '403':
+          description: Missing role:update / is_owner / privilege escalation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: New name conflicts with existing role in this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+    delete:
+      summary: Delete role
+      operationId: deleteRole
+      description: |
+        Requires role:delete. Onboarding tier=complete.
+        Blocked if role.is_owner=true.
+        Blocked if any active membership holds this role (ROLE_IN_USE).
+        Emits role.deleted. Response 204.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+        - { $ref: '#/components/parameters/roleId' }
+      responses:
+        '204':
+          description: Role deleted
+        '403':
+          description: Missing role:delete or is_owner=true
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: Role has active members
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'ROLE_IN_USE', message: 'Role is assigned to one or more members', statusCode: 409 }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    orgId:
+      name: orgId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    roleId:
+      name: roleId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    CreateRoleRequest:
+      type: object
+      required: [name, permissions]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        permissions:
+          type: array
+          items: { type: string }
+          description: Subset of the 22 system permission keys
+
+    UpdateRoleRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        permissions:
+          type: array
+          items: { type: string }
+
+    RoleObject:
+      type: object
+      required: [id, orgId, name, isOwner, permissions, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string, format: uuid }
+        name: { type: string }
+        isOwner: { type: boolean }
+        permissions:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RoleResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/RoleObject' }
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

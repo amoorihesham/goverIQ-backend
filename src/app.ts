@@ -2,6 +2,7 @@ import fastifyCookie from '@fastify/cookie';
 import Fastify from 'fastify';
 
 import { authPlugin } from './modules/auth';
+import { orgPlugin, invitationsPublicPlugin } from './modules/org';
 import { env } from './shared/config/env';
 
 import { createErrorHandler } from '@/shared/errors/envelope';
@@ -25,9 +26,12 @@ export async function buildApp() {
     async (instance) => {
       await instance.register(registerHealthPlugin);
       await instance.register(authPlugin, { prefix: '/auth' });
+      await instance.register(orgPlugin);
     },
     { prefix: '/api/v1' },
   );
+
+  await fastify.register(invitationsPublicPlugin);
 
   return fastify;
 }

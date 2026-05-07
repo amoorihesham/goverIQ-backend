@@ -7,11 +7,9 @@ import {
   resendOtpRequestJsonSchema,
   verifyRequestJsonSchema,
 } from './schemas/json-schema';
-
-import { getDatabaseClient } from '@/shared/database/client';
+import { db } from '@/shared/database/client';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  const db = getDatabaseClient();
   const controller = createAuthController(db);
 
   fastify.post('/register', { schema: registerRequestJsonSchema }, controller.register);
