@@ -16,6 +16,8 @@ const envSchema = z.object({
     'LOG_LEVEL must be one of debug, info, warn, error, or fatal',
   ),
 
+  MAX_BODY_LIMIT: z.coerce.number(),
+
   DATABASE_URL: z.string('DATABASE_URL must be a valid URL'),
   DATABASE_POOL_MAX_SIZE: z.coerce.number(),
 

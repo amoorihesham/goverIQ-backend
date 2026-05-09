@@ -1,5 +1,11 @@
 import { and, count, eq } from 'drizzle-orm';
 
+import {
+  LoginRequestType,
+  RegisterRequestType,
+  ResendOtpRequestType,
+  VerifyRequestType,
+} from './types/request';
 import { generateOtp, hashOtp } from './utils/otp';
 import { dummyVerifyPassword, hashPassword, verifyPassword } from './utils/password';
 import {
@@ -7,12 +13,6 @@ import {
   hashRefreshToken,
   parseUserIdFromCleartext,
 } from './utils/tokens';
-import {
-  LoginRequestType,
-  RegisterRequestType,
-  ResendOtpRequestType,
-  VerifyRequestType,
-} from './types/request';
 
 import { emailVerifications, refreshTokens, users } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';

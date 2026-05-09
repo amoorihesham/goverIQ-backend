@@ -12,6 +12,7 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write .",
+    "format:check": "prettier -c .",
     "test": "cross-env NODE_ENV=test vitest run",
     "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
@@ -23,6 +24,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
     "@fastify/env": "^6.0.0",
+    "@fastify/helmet": "^13.0.2",
     "@fastify/type-provider-zod": "^1.0.0",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",

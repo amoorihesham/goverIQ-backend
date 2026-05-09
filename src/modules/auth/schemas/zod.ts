@@ -1,4 +1,5 @@
 import { object, email, string } from 'zod';
+
 import { CONFIGURATIONS } from '../constants';
 
 export const registerRequestSchema = {

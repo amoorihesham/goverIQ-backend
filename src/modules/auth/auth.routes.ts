@@ -1,15 +1,15 @@
 import type { FastifyInstance } from 'fastify';
+import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 import { createAuthController } from './auth.controller';
-
-import { db } from '@/shared/database/client';
-import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
   loginRequestSchema,
   registerRequestSchema,
   resendOtpRequestSchema,
   verifyRequestSchema,
 } from './schemas/zod';
+
+import { db } from '@/shared/database/client';
 
 export async function authRoutes(fastify: FastifyInstance) {
   const controller = createAuthController(db);
