@@ -35,7 +35,9 @@
       "Bash(Select-Object Name, Mode)",
       "Bash(pnpm tsc *)",
       "Bash(Get-ChildItem -Path 'd:\\\\groven-iq' -Force)",
-      "Bash(Select-Object Name, FullName)"
+      "Bash(Select-Object Name, FullName)",
+      "Bash(Get-ChildItem -Path \"d:\\\\amr-projects\\\\goverIQ-backend\" -Directory)",
+      "Bash(Select-Object Name)"
     ],
     "additionalDirectories": [
       "d:\\groven-iq\\specs\\003-org-roles-members"

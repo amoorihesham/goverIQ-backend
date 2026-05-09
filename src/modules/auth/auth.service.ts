@@ -21,16 +21,14 @@ import { env } from '@/shared/config/env';
 import type { Tx } from '@/shared/database/transaction';
 import type { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
-import { logger } from '@/shared/logger';
-import { notificationService } from '@/shared/notifications/service';
-import { buildEmailVerificationEmail } from '@/shared/notifications/templates/email-verification';
+import type { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 
 export interface SessionResult {
   accessToken: string;
   refreshTokenCleartext: string;
 }
 
-export function createAuthService(db: DatabaseClient) {
+export function createAuthService(db: DatabaseClient, dispatcher: NotificationDispatcher) {
   async function issueSessionWithinTx(
     tx: Tx,
     user: { id: string; email: string },
@@ -54,16 +52,6 @@ export function createAuthService(db: DatabaseClient) {
     return { accessToken, refreshTokenCleartext };
   }
 
-  function sendOtpEmail(email: string, code: string): void {
-    const { subject, text } = buildEmailVerificationEmail({
-      otp: code,
-      expiresInMinutes: Math.round(env.OTP_TTL_MS / 1000 / 60),
-    });
-    notificationService
-      .send(email, subject, text)
-      .catch((err) => logger.error({ err }, 'Failed to send OTP email'));
-  }
-
   return {
     async register(input: RegisterRequestType): Promise<void> {
       const code = generateOtp();
@@ -79,10 +67,7 @@ export function createAuthService(db: DatabaseClient) {
         }
 
         const passwordHash = await hashPassword(input.password);
-        // onConflictDoNothing makes the INSERT atomic: if two concurrent
-        // transactions both pass the findFirst check above (both see no row)
-        // and race to INSERT, the loser gets an empty result instead of a
-        // 23505 constraint error. No try/catch needed in the service.
+
         const [createdUser] = await tx
           .insert(users)
           .values({ email: input.email, passwordHash })
@@ -107,7 +92,10 @@ export function createAuthService(db: DatabaseClient) {
         });
       });
 
-      sendOtpEmail(input.email, code);
+      dispatcher.enqueue('email-verification', input.email, {
+        otp: code,
+        expiresInMinutes: Math.round(env.OTP_TTL_MS / 1000 / 60),
+      });
     },
 
     async verifyEmail(input: VerifyRequestType): Promise<SessionResult> {
@@ -276,7 +264,10 @@ export function createAuthService(db: DatabaseClient) {
       });
 
       if (pendingCode) {
-        sendOtpEmail(input.email, pendingCode);
+        dispatcher.enqueue('email-verification', input.email, {
+          otp: pendingCode,
+          expiresInMinutes: env.OTP_TTL_MS / 1000 / 60,
+        });
       }
     },
   };

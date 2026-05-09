@@ -12,7 +12,7 @@ import {
 import { db } from '@/shared/database/client';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  const controller = createAuthController(db);
+  const controller = createAuthController(db, fastify.dispatcher);
 
   fastify
     .withTypeProvider<ZodTypeProvider>()

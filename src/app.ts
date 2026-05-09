@@ -8,6 +8,7 @@ import { env } from './shared/config/env';
 
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
+import { notificationPlugin } from '@/shared/notifications/plugin';
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -33,6 +34,7 @@ export async function buildApp() {
 
   fastify.setErrorHandler(createErrorHandler(fastify));
 
+  await fastify.register(notificationPlugin);
   await fastify.register(
     async (instance) => {
       await instance.register(registerHealthPlugin);

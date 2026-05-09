@@ -11,9 +11,10 @@ import {
 import type { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { clearRefreshToken, readRefreshCookie, setRefreshToken } from '@/shared/auth/cookies';
+import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 
-export const createAuthController = (db: DatabaseClient) => {
-  const service = createAuthService(db);
+export const createAuthController = (db: DatabaseClient, dispatcher: NotificationDispatcher) => {
+  const service = createAuthService(db, dispatcher);
 
   return {
     register: async (

@@ -34,6 +34,11 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string('SMTP_FROM must be a valid email'),
+  REDIS_URL: z.url(),
+  QUEUE_BACKEND: z
+    .enum(['memory', 'redis'])
+    .default(process.env.NODE_ENV === 'production' ? 'redis' : 'memory'),
+  APP_BASE_URL: z.url(),
 });
 
 export type Env = z.infer<typeof envSchema>;
