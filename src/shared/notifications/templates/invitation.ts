@@ -2,7 +2,7 @@ export interface InvitationPayload {
   orgName: string;
   acceptUrl: string;
   declineUrl: string;
-  expiresAt: string;
+  expiresAt: number;
 }
 
 export function buildInvitationEmail(payload: InvitationPayload): {
