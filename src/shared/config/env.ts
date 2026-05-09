@@ -16,6 +16,8 @@ const envSchema = z.object({
     'LOG_LEVEL must be one of debug, info, warn, error, or fatal',
   ),
 
+  MAX_BODY_LIMIT: z.coerce.number(),
+
   DATABASE_URL: z.string('DATABASE_URL must be a valid URL'),
   DATABASE_POOL_MAX_SIZE: z.coerce.number(),
 
@@ -32,6 +34,11 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string('SMTP_FROM must be a valid email'),
+  REDIS_URL: z.url(),
+  QUEUE_BACKEND: z
+    .enum(['memory', 'redis'])
+    .default(process.env.NODE_ENV === 'production' ? 'redis' : 'memory'),
+  APP_BASE_URL: z.url(),
 });
 
 export type Env = z.infer<typeof envSchema>;

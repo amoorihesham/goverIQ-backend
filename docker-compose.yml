@@ -23,6 +23,27 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 5
 
+  worker:
+    build: .
+    command: node dist/worker.js
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://groven:groven@postgres:5432/groven_test
+      REDIS_URL: redis://redis:6379
+      QUEUE_BACKEND: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 volumes:
   postgres_test_data:

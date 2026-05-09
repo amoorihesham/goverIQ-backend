@@ -14,6 +14,8 @@ import { signAccessToken } from '@/shared/auth/jwt';
 import { db } from '@/shared/database/client';
 import { withTx } from '@/shared/database/transaction';
 import { AppError } from '@/shared/errors/http-error';
+import type { NotificationDispatcher } from '@/shared/notifications/dispatcher';
+import { env } from '@/shared/config/env';
 
 export class MemberService {
   /**
@@ -23,6 +25,7 @@ export class MemberService {
     userId: string,
     orgId: string,
     body: { email: string; roleId: string },
+    dispatcher: NotificationDispatcher,
   ) {
     return await withTx(async (tx) => {
       // Verify caller is a member with invite permission
@@ -82,7 +85,9 @@ export class MemberService {
         },
       });
 
-      // TODO: Send email notification with token link
+      await dispatcher.enqueue('invitation', body.email, {
+       acceptUrl:
+      });
 
       return {
         id: invitation.id,

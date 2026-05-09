@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
 import { MemberService } from './member.service';
+import { setRefreshToken } from '@/shared/auth/cookies';
 
 interface SendInvitationBody {
   email: string;
@@ -43,11 +44,7 @@ export class MemberController {
 
     // Set refresh token cookie for new users
     if (result.refreshTokenCleartext) {
-      reply.setCookie('refresh_token', result.refreshTokenCleartext, {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-      });
+      setRefreshToken(reply, result.refreshTokenCleartext);
     }
 
     return response;
