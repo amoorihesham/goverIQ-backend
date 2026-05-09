@@ -4,13 +4,14 @@ import { ulid } from 'ulid';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 
 import { authPlugin } from './modules/auth';
-import { orgPlugin, invitationsPublicPlugin } from './modules/org';
+import { orgPlugin } from './modules/org';
 import { env } from './shared/config/env';
 
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
 import { logger } from './shared/logger';
 import { notificationPlugin } from '@/shared/notifications/plugin';
+import { membersPlugin } from './modules/members/public';
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -42,12 +43,11 @@ export async function buildApp() {
     async (instance) => {
       await instance.register(registerHealthPlugin);
       await instance.register(authPlugin, { prefix: '/auth' });
-      await instance.register(orgPlugin);
+      await instance.register(orgPlugin, { prefix: '/orgs' });
+      await instance.register(membersPlugin, { prefix: '/members' });
     },
     { prefix: '/api/v1' },
   );
-
-  await fastify.register(invitationsPublicPlugin);
 
   return fastify;
 }

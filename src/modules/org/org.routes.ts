@@ -3,11 +3,7 @@ import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 import { requireOnboardingStep } from './onboarding.prehandler';
 import { organizationController } from './org.controller';
-import {
-  createOrganizationSchema,
-  getOrganizationSchema,
-  updateOrganizationSchema,
-} from './schemas/zod';
+import { createOrganizationSchema, getOrganizationSchema, updateOrganizationSchema } from './schemas/zod';
 
 import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
@@ -17,7 +13,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
   const controller = organizationController(db);
 
   fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/orgs',
+    '/',
     {
       preHandler: identityRequired,
       schema: createOrganizationSchema,
@@ -26,7 +22,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/orgs/:orgId',
+    '/:orgId',
     {
       preHandler: [identityRequired, requireOnboardingStep('always')],
       schema: getOrganizationSchema,
@@ -35,7 +31,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/orgs/:orgId/onboarding',
+    '/:orgId/onboarding',
     {
       preHandler: [identityRequired, requireOnboardingStep('always')],
       schema: getOrganizationSchema,
@@ -44,7 +40,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/orgs/:orgId/onboarding/skip',
+    '/:orgId/onboarding/skip',
     {
       schema: getOrganizationSchema,
       preHandler: [identityRequired, requireOnboardingStep('invitation'), requireOwner()],
@@ -53,20 +49,16 @@ export async function orgRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().patch(
-    '/orgs/:orgId',
+    '/:orgId',
     {
       schema: updateOrganizationSchema,
-      preHandler: [
-        identityRequired,
-        requireOnboardingStep('complete'),
-        requirePermission('org:update'),
-      ],
+      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('org:update')],
     },
     controller.updateOrg,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().delete(
-    '/orgs/:orgId',
+    '/:orgId',
     {
       schema: getOrganizationSchema,
       preHandler: [identityRequired, requireOnboardingStep('complete'), requireOwner()],

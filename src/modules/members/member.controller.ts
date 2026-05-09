@@ -13,6 +13,7 @@ import {
 import { DatabaseClient } from '@/shared/database/types';
 import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 import { membersService } from './member.service';
+import { contextFromRequest } from '@/shared/http/context';
 
 interface AcceptInvitationBody {
   password?: string;
@@ -25,12 +26,8 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
       request: FastifyRequest<{ Body: InviteMemberRequestBody; Params: MemberRequestWithOrgIdParam }>,
       reply: FastifyReply,
     ) {
-      const invitation = await service.sendInvitation(
-        request.user!.userId,
-        request.params.orgId,
-        request.body,
-        dispatcher,
-      );
+      const { orgId, userId, reqId } = contextFromRequest(request);
+      const invitation = await service.sendInvitation(userId!, orgId!, reqId!, request.body, dispatcher);
       return reply.code(201).send({
         success: true,
         data: invitation,
@@ -39,8 +36,9 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
 
     async acceptInvitation(request: FastifyRequest, reply: FastifyReply) {
       const token = (request.params as { token: string }).token;
+      const { reqId } = contextFromRequest(request);
       const body = request.body as AcceptInvitationBody | undefined;
-      const result = await service.acceptInvitation(token, body);
+      const result = await service.acceptInvitation(token, reqId, body);
 
       const response = reply.send({
         success: true,
@@ -60,7 +58,8 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
 
     async declineInvitation(request: FastifyRequest, reply: FastifyReply) {
       const token = (request.params as { token: string }).token;
-      const result = await service.declineInvitation(token);
+      const { reqId } = contextFromRequest(request);
+      const result = await service.declineInvitation(token, reqId);
       return reply.send({
         success: true,
         data: result,
@@ -68,7 +67,8 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
     },
 
     async listMembers(request: FastifyRequest<{ Params: ListMembersRequest }>, reply: FastifyReply) {
-      const members = await service.listMembers(request.user!.userId, request.params.orgId);
+      const { orgId, userId } = contextFromRequest(request);
+      const members = await service.listMembers(userId!, orgId!);
       return reply.send({
         success: true,
         data: members,
@@ -76,7 +76,8 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
     },
 
     async removeMember(request: FastifyRequest<{ Params: RemoveMembersRequest }>, reply: FastifyReply) {
-      await service.removeMember(request.user!.userId, request.params.orgId, request.params.memberId);
+      const { orgId, userId, reqId } = contextFromRequest(request);
+      await service.removeMember(userId!, orgId!, request.params.memberId, reqId);
       return reply.code(204).send();
     },
 
@@ -84,10 +85,12 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
       request: FastifyRequest<{ Body: AsignMemberRoleRequestBody; Params: AsignMemberRoleRequestParams }>,
       reply: FastifyReply,
     ) {
+      const { orgId, userId, reqId } = contextFromRequest(request);
       const membership = await service.assignMemberRole(
-        request.user!.userId,
-        request.params.orgId,
+        userId!,
+        orgId!,
         request.params.memberId,
+        reqId,
         request.body.roleId,
       );
       return reply.send({
@@ -97,7 +100,8 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
     },
 
     async revokeMemberRole(request: FastifyRequest<{ Params: RevokeMemberRoleRequest }>, reply: FastifyReply) {
-      await service.revokeMemberRole(request.user!.userId, request.params.orgId, request.params.memberId);
+      const { orgId, userId, reqId } = contextFromRequest(request);
+      await service.revokeMemberRole(userId!, orgId!, reqId, request.params.memberId);
       return reply.code(204).send();
     },
   };

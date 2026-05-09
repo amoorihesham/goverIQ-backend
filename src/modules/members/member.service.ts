@@ -24,6 +24,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
     async sendInvitation(
       userId: string,
       orgId: MemberRequestWithOrgIdParam['orgId'],
+      reqId: string,
       body: InviteMemberRequestBody,
       dispatcher: NotificationDispatcher,
     ) {
@@ -78,6 +79,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
           payload: {
             email: body.email,
             roleId: body.roleId,
+            reqId,
           },
         });
 
@@ -98,7 +100,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
       });
     },
 
-    async acceptInvitation(token: string, body?: { password?: string }) {
+    async acceptInvitation(token: string, reqId: string, body?: { password?: string }) {
       const tokenHash = hashInviteToken(token);
 
       return await withTx(async (tx) => {
@@ -197,6 +199,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
           payload: {
             email: invitation.email,
             roleId: invitation.roleId,
+            reqId,
           },
         });
 
@@ -213,7 +216,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
       });
     },
 
-    async declineInvitation(token: string) {
+    async declineInvitation(token: string, reqId: string) {
       const tokenHash = hashInviteToken(token);
 
       return await withTx(async (tx) => {
@@ -234,6 +237,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
           entityId: invitation.id,
           payload: {
             email: invitation.email,
+            reqId,
           },
         });
 
@@ -268,7 +272,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
       };
     },
 
-    async removeMember(userId: string, orgId: string, memberId: string) {
+    async removeMember(userId: string, orgId: string, memberId: string, reqId: string) {
       return await withTx(async (tx) => {
         // Verify caller is a member
         const callerMembership = await tx.query.memberships.findFirst({
@@ -309,12 +313,13 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
           entityId: memberId,
           payload: {
             userId: targetMembership.userId,
+            reqId,
           },
         });
       });
     },
 
-    async assignMemberRole(userId: string, orgId: string, memberId: string, roleId: string) {
+    async assignMemberRole(userId: string, orgId: string, memberId: string, reqId: string, roleId: string) {
       return await withTx(async (tx) => {
         // Verify caller is a member
         const callerMembership = await tx.query.memberships.findFirst({
@@ -353,6 +358,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
           payload: {
             userId: targetMembership.userId,
             roleId,
+            reqId,
           },
         });
 
@@ -365,7 +371,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
       });
     },
 
-    async revokeMemberRole(userId: string, orgId: string, memberId: string) {
+    async revokeMemberRole(userId: string, orgId: string, reqId: string, memberId: string) {
       return await withTx(async (tx) => {
         // Verify caller is a member
         const callerMembership = await tx.query.memberships.findFirst({
@@ -406,6 +412,7 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
           entityId: memberId,
           payload: {
             userId: targetMembership.userId,
+            reqId,
           },
         });
       });

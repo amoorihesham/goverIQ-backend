@@ -109,7 +109,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** Orphan transactions on every deploy. Long-tail bugs where a deploy interrupts a `withTx` block in [src/shared/database/transaction.ts](../src/shared/database/transaction.ts) and leaves audit-log gaps.
 
-### 1.3 Request IDs / correlation IDs — 1 d
+### 1.3 Request IDs / correlation IDs — 1 d  [✅]
 
 **Problem.** Today there's no way to correlate a user-reported failure to its audit row, the log line that printed an error, and the SMTP delivery attempt. Pino logs have an autogen `reqId` but it never reaches [emitAudit](../src/shared/audit/emitter.ts) or the notification service.
 
@@ -168,7 +168,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** Restart storms during DB hiccups; traffic served before migrations complete on cold start.
 
-### 1.6 Security headers + cookie flag audit — 0.5 d
+### 1.6 Security headers + cookie flag audit — 0.5 d  [✅]
 
 **Problem.** No `helmet` is registered. No HSTS. No `frame-ancestors`. The refresh cookie flags are scattered across [src/modules/auth/auth.controller.ts](../src/modules/auth/auth.controller.ts) and [src/modules/org/member.controller.ts](../src/modules/org/member.controller.ts) (invite-accept also issues a session) — nothing enforces consistency.
 
@@ -184,7 +184,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** XSS exfil of refresh token. Clickjacking. Inconsistent cookie behavior between login and invite-accept flows.
 
-### 1.7 Body size limits — 0.25 d
+### 1.7 Body size limits — 0.25 d   [✅]
 
 **Problem.** Fastify's default `bodyLimit` is 1 MiB. Acceptable globally, but a future minutes-edit endpoint (Phase 4 of master plan) could legitimately need more, and an attacker can submit a 1 MiB JSON body to register or login and force-cycle the JSON parser.
 
@@ -198,7 +198,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** Trivial DoS vector.
 
-### 1.8 CI test job + frozen lockfile — 1 d
+### 1.8 CI test job + frozen lockfile — 1 d  [✅]
 
 **Problem.** Tests exist in [tests/integration/](../tests/integration/) but [.github/workflows/CI.yml](../.github/workflows/CI.yml) doesn't run them. CI today: typecheck, lint, format, build. No test execution. Also: `pnpm install` (not `--frozen-lockfile`), so transitive deps can drift silently in CI.
 
@@ -215,7 +215,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** Tests rot within a quarter. Production migrations break on a schema-without-migration.
 
-### 1.9 Drizzle drift check — 0.5 d
+### 1.9 Drizzle drift check — 0.5 d    [✅]
 
 **Problem.** A developer can update a schema file in [src/db/schema/](../src/db/schema/) without running `pnpm db:generate`. The code thinks the column exists; production migration never created it; first request hits the broken column and 500s.
 

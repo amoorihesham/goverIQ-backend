@@ -19,7 +19,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
   const controller = createMemberController(db, fastify.dispatcher);
 
   fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/orgs/:orgId/members/invitations',
+    '/invitations',
 
     {
       schema: invitionsRequestSchema,
@@ -29,7 +29,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/orgs/:orgId/members',
+    '/members',
     {
       schema: listMembersRequestSchema,
       preHandler: [identityRequired, requireOnboardingStep('complete')],
@@ -38,7 +38,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().delete(
-    '/orgs/:orgId/members/:memberId',
+    '/:memberId',
     {
       schema: removeMemberRequestSchema,
       preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('member:remove')],
@@ -47,7 +47,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().put(
-    '/orgs/:orgId/members/:memberId/role',
+    '/:memberId/role',
     {
       schema: asignMemberRoleRequestSchema,
       preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('member:update_role')],
@@ -56,7 +56,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().delete(
-    '/orgs/:orgId/members/:memberId/role',
+    '/:memberId/role',
     {
       schema: revokeMemberRoleRequestSchema,
       preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('member:update_role')],

@@ -5,6 +5,6 @@ import { createDispatcher, type NotificationDispatcher } from './dispatcher';
 import { sendNotification } from './service';
 
 export const notificationPlugin = fp(async (app: FastifyInstance) => {
-  const dispatcher = createDispatcher(sendNotification);
+  const dispatcher = await createDispatcher(sendNotification);
   app.decorate('dispatcher', dispatcher);
 });

@@ -1,18 +1,9 @@
 import { and, count, eq } from 'drizzle-orm';
 
-import {
-  LoginRequestType,
-  RegisterRequestType,
-  ResendOtpRequestType,
-  VerifyRequestType,
-} from './types/request';
+import { LoginRequestType, RegisterRequestType, ResendOtpRequestType, VerifyRequestType } from './types/request';
 import { generateOtp, hashOtp } from './utils/otp';
 import { dummyVerifyPassword, hashPassword, verifyPassword } from './utils/password';
-import {
-  generateRefreshTokenCleartext,
-  hashRefreshToken,
-  parseUserIdFromCleartext,
-} from './utils/tokens';
+import { generateRefreshTokenCleartext, hashRefreshToken, parseUserIdFromCleartext } from './utils/tokens';
 
 import { emailVerifications, refreshTokens, users } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';
@@ -29,10 +20,7 @@ export interface SessionResult {
 }
 
 export function createAuthService(db: DatabaseClient, dispatcher: NotificationDispatcher) {
-  async function issueSessionWithinTx(
-    tx: Tx,
-    user: { id: string; email: string },
-  ): Promise<SessionResult> {
+  async function issueSessionWithinTx(tx: Tx, user: { id: string; email: string }): Promise<SessionResult> {
     const refreshTokenCleartext = generateRefreshTokenCleartext(user.id);
     const tokenHash = hashRefreshToken(refreshTokenCleartext);
 
@@ -53,7 +41,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
   }
 
   return {
-    async register(input: RegisterRequestType): Promise<void> {
+    async register(input: RegisterRequestType, reqId: string): Promise<void> {
       const code = generateOtp();
       const otpHash = hashOtp(code);
 
@@ -87,7 +75,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
           event: 'user.registered',
           actorId: createdUser!.id,
           entityId: createdUser!.id,
-          payload: { data: { email: input.email } },
+          payload: { data: { email: input.email }, reqId },
           orgId: null,
         });
       });
@@ -98,7 +86,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
       });
     },
 
-    async verifyEmail(input: VerifyRequestType): Promise<SessionResult> {
+    async verifyEmail(input: VerifyRequestType, reqId: string): Promise<SessionResult> {
       return db.transaction(async (tx: Tx) => {
         const user = await tx.query.users.findFirst({
           where: eq(users.email, input.email),
@@ -127,7 +115,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
           event: 'user.verified',
           actorId: user.id,
           entityId: user.id,
-          payload: { data: { email: user.email } },
+          payload: { data: { email: user.email }, reqId },
           orgId: null,
         });
 
@@ -135,7 +123,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
       });
     },
 
-    async login(input: LoginRequestType): Promise<SessionResult> {
+    async login(input: LoginRequestType, reqId: string): Promise<SessionResult> {
       return db.transaction(async (tx: Tx) => {
         const user = await tx.query.users.findFirst({
           where: eq(users.email, input.email),
@@ -158,7 +146,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
           event: 'user.login',
           actorId: user.id,
           entityId: user.id,
-          payload: { data: { email: user.email } },
+          payload: { data: { email: user.email }, reqId },
           orgId: null,
         });
 
@@ -199,7 +187,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
       });
     },
 
-    async logout(cleartext: string | undefined): Promise<{ deleted: boolean }> {
+    async logout(cleartext: string | undefined, reqId: string): Promise<{ deleted: boolean }> {
       if (!cleartext) return { deleted: false };
 
       return db.transaction(async (tx: Tx) => {
@@ -222,7 +210,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
           event: 'user.logout',
           actorId: row.userId,
           entityId: row.userId,
-          payload: { data: { sessionsRemaining: remaining } },
+          payload: { data: { sessionsRemaining: remaining }, reqId },
           orgId: null,
         });
 
@@ -272,5 +260,3 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
     },
   };
 }
-
-export type AuthService = ReturnType<typeof createAuthService>;

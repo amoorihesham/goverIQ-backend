@@ -12,7 +12,7 @@ import { ALL_PERMISSIONS } from '@/shared/permissions/set';
 
 export function organizationService(db: DatabaseClient) {
   return {
-    async createOrg(userId: string, body: CreateOrganizationRequestType) {
+    async createOrg(userId: string, reqId: string, body: CreateOrganizationRequestType) {
       const existing = await db.query.organizations.findFirst({
         where: eq(organizations.name, body.name),
       });
@@ -59,6 +59,7 @@ export function organizationService(db: DatabaseClient) {
           payload: {
             name: org.name,
             slug: org.slug,
+            reqId,
           },
         });
 
@@ -79,9 +80,7 @@ export function organizationService(db: DatabaseClient) {
       ]);
 
       if (!membership || !org)
-        throw AppError.notFound(
-          !membership ? 'Not a member of this organization' : 'Organization not found',
-        );
+        throw AppError.notFound(!membership ? 'Not a member of this organization' : 'Organization not found');
 
       if (org.archivedAt) throw AppError.orgArchived();
 
@@ -101,9 +100,7 @@ export function organizationService(db: DatabaseClient) {
       ]);
 
       if (!membership || !org)
-        throw AppError.notFound(
-          !membership ? 'Not a member of this organization' : 'Organization not found',
-        );
+        throw AppError.notFound(!membership ? 'Not a member of this organization' : 'Organization not found');
 
       if (org.archivedAt) throw AppError.orgArchived();
 
@@ -112,7 +109,7 @@ export function organizationService(db: DatabaseClient) {
       };
     },
 
-    async updateOrg(userId: string, orgId: string, body: UpdateOrganizationRequestType) {
+    async updateOrg(userId: string, orgId: string, reqId: string, body: UpdateOrganizationRequestType) {
       return await withTx(async (tx) => {
         const membership = await tx.query.memberships.findFirst({
           where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
@@ -154,6 +151,7 @@ export function organizationService(db: DatabaseClient) {
           payload: {
             name: body.name,
             description: body.description,
+            reqId,
           },
         });
 
@@ -161,7 +159,7 @@ export function organizationService(db: DatabaseClient) {
       });
     },
 
-    async archiveOrg(userId: string, orgId: string) {
+    async archiveOrg(userId: string, orgId: string, reqId: string) {
       return await withTx(async (tx) => {
         const membership = await tx.query.memberships.findFirst({
           where: and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)),
@@ -170,8 +168,7 @@ export function organizationService(db: DatabaseClient) {
 
         if (!membership) throw AppError.forbidden('Not a member of this organization');
 
-        if (!(membership.role as any)?.isOwner)
-          throw AppError.forbidden('Only owners can archive organizations');
+        if (!(membership.role as any)?.isOwner) throw AppError.forbidden('Only owners can archive organizations');
 
         const org = await tx.query.organizations.findFirst({
           where: eq(organizations.id, orgId),
@@ -179,11 +176,7 @@ export function organizationService(db: DatabaseClient) {
 
         if (!org) throw AppError.notFound('Organization not found');
 
-        await tx
-          .update(organizations)
-          .set({ archivedAt: new Date() })
-          .where(eq(organizations.id, orgId))
-          .returning();
+        await tx.update(organizations).set({ archivedAt: new Date() }).where(eq(organizations.id, orgId)).returning();
 
         await emitAudit(tx, {
           orgId,
@@ -191,12 +184,12 @@ export function organizationService(db: DatabaseClient) {
           event: 'org.archived',
           entityType: 'org',
           entityId: orgId,
-          payload: {},
+          payload: { reqId },
         });
       });
     },
 
-    async skipOnboarding(userId: string, orgId: string) {
+    async skipOnboarding(userId: string, orgId: string, reqId: string) {
       return await withTx(async (tx) => {
         const org = await tx.query.organizations.findFirst({
           where: eq(organizations.id, orgId),
@@ -216,8 +209,7 @@ export function organizationService(db: DatabaseClient) {
 
         if (!membership) throw AppError.forbidden('Not a member of this organization');
 
-        if (!(membership.role as any)?.isOwner)
-          throw AppError.forbidden('Only owners can skip onboarding');
+        if (!(membership.role as any)?.isOwner) throw AppError.forbidden('Only owners can skip onboarding');
 
         const [updated] = await tx
           .update(organizations)
@@ -234,6 +226,7 @@ export function organizationService(db: DatabaseClient) {
           payload: {
             fromStep: 'PENDING_INVITES',
             toStep: 'COMPLETE',
+            reqId,
           },
         });
 

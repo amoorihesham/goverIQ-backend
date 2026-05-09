@@ -11,7 +11,7 @@ export interface AuditEvent {
   event: string;
   entityType: string;
   entityId?: string | null;
-  reqId?: string;
+
   payload: Record<string, unknown>;
 }
 
@@ -22,10 +22,7 @@ export async function emitAudit(tx: Tx, event: AuditEvent): Promise<void> {
 
   const payloadString = JSON.stringify(event.payload);
   if (payloadString.length > MAX_PAYLOAD_SIZE) {
-    logger.warn(
-      { payloadSize: payloadString.length, maxSize: MAX_PAYLOAD_SIZE },
-      'Audit payload exceeds maximum size',
-    );
+    logger.warn({ payloadSize: payloadString.length, maxSize: MAX_PAYLOAD_SIZE }, 'Audit payload exceeds maximum size');
     throw AppError.internalError('Audit payload too large');
   }
 
@@ -35,6 +32,6 @@ export async function emitAudit(tx: Tx, event: AuditEvent): Promise<void> {
     event: event.event,
     entityType: event.entityType,
     entityId: event.entityId || null,
-    payload: { ...event.payload, requestId: event.reqId },
+    payload: event.payload,
   });
 }

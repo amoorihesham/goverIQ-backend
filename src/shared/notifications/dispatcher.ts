@@ -67,17 +67,17 @@ export class BullMQDispatcher implements NotificationDispatcher {
   }
 }
 
-export function createDispatcher(
+export async function createDispatcher(
   notifHandler: (
     template: NotificationTemplate,
     to: string,
     data: EmailVerificationPayload | InvitationPayload,
   ) => Promise<void>,
-): NotificationDispatcher {
-  const { env } = require('@/shared/config/env');
+): Promise<NotificationDispatcher> {
+  const { env } = await import('@/shared/config/env');
   if (env.QUEUE_BACKEND === 'redis' && env.REDIS_URL) {
-    const { Queue } = require('bullmq');
-    const IORedis = require('ioredis').default ?? require('ioredis');
+    const { Queue } = await import('bullmq');
+    const IORedis = (await import('ioredis')).Redis ?? import('ioredis');
     const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
     const queue = new Queue('notifications', { connection });
     return new BullMQDispatcher(queue);
