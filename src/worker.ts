@@ -1,5 +1,5 @@
 import { logger } from '@/shared/logger';
-import { db } from '@/shared/database/client';
+import { db, pool } from '@/shared/database/client';
 import type { NotificationTemplate } from '@/shared/notifications/dispatcher';
 import { closeConnection, createWorker, getRedisConnection } from './shared/queue/bullmq';
 import { sendNotification } from './shared/notifications/service';

@@ -78,7 +78,7 @@ export async function createDispatcher(
   if (env.QUEUE_BACKEND === 'redis' && env.REDIS_URL) {
     const { Queue } = await import('bullmq');
     const IORedis = (await import('ioredis')).Redis ?? import('ioredis');
-    const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
+    const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null, family: 4 });
     const queue = new Queue('notifications', { connection });
     return new BullMQDispatcher(queue);
   }

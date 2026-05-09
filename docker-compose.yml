@@ -34,16 +34,12 @@ services:
 
   worker:
     build: .
-    command: node dist/worker.js
+    env_file:
+      - .env.production
     environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://groven:groven@postgres:5432/groven_test
-      REDIS_URL: redis://redis:6379
-      QUEUE_BACKEND: redis
+      - REDIS_URL=redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - redis
+
 volumes:
   postgres_test_data:

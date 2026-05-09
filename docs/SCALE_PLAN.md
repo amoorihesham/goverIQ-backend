@@ -228,7 +228,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** Schema-vs-migration drift is the single most common Drizzle production bug.
 
-### Phase 1 Verification
+### Phase 1 Verification   [ STILL_NOT_VERIFIED ]
 
 - `curl -i POST /auth/login` 11× in 1 minute returns at least one `429`.
 - `kill -15 <pid>` shows graceful drain logs and `pool.end()` before exit.
@@ -246,7 +246,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 Lifts SMTP latency off the request path. Establishes the worker-process model that all later async work (exports, scheduled cleanup, partition maintenance) will reuse.
 
-### 2.1 Notification dispatcher abstraction — 1.5 d
+### 2.1 Notification dispatcher abstraction — 1.5 d   [✅]
 
 **Problem.** [src/modules/auth/auth.service.ts](../src/modules/auth/auth.service.ts) calls `notificationService.send(...).catch(...)` — non-blocking, but failures are silently logged with no retry. [src/shared/notifications/service.ts](../src/shared/notifications/service.ts) creates the SMTP transport at module load (top-level singleton) — a slow SMTP TCP connect at boot blocks the first request. [src/modules/org/member.service.ts](../src/modules/org/member.service.ts) has a literal `// TODO: Send email notification with token link` because the developer wasn't sure whether to follow the same pattern.
 
@@ -275,7 +275,7 @@ Lifts SMTP latency off the request path. Establishes the worker-process model th
 
 **Risk if skipped.** Slow SMTP = slow login/register. Lost OTPs on transient SMTP failure. The TODO in `member.service.ts` becomes load-bearing as Phase 2 of master plan ships.
 
-### 2.2 BullMQ adoption (Redis-backed) — 2 d
+### 2.2 BullMQ adoption (Redis-backed) — 2 d [✅]
 
 **Problem.** In-process queue cannot survive process restarts; cannot horizontally scale HTTP because each instance has its own queue. We need a persistent, distributed queue.
 
@@ -297,7 +297,7 @@ Lifts SMTP latency off the request path. Establishes the worker-process model th
 
 **Risk if skipped.** Cannot horizontally scale HTTP. Single deploy = lost queued OTPs.
 
-### 2.3 Worker process — separate entrypoint — 1 d
+### 2.3 Worker process — separate entrypoint — 1 d [✅]
 
 **Problem.** All cleanup, queue consumption, and future export jobs need to run somewhere. Running them inside the HTTP process means scaling HTTP also scales workers (or vice versa) — coupling we don't want.
 
@@ -321,7 +321,7 @@ Lifts SMTP latency off the request path. Establishes the worker-process model th
 
 **Risk if skipped.** No path to scale background work. No path to add cleanup jobs without coupling them to HTTP traffic.
 
-### 2.4 Background cleanup jobs — 1 d
+### 2.4 Background cleanup jobs — 1 d  [✅]
 
 **Problem.** [src/db/schema/auth.ts](../src/db/schema/auth.ts) defines `email_verifications`, `refresh_tokens`. [src/db/schema/org.ts](../src/db/schema/org.ts) defines `invitations`. None of these are ever cleaned up. Every failed register adds an `email_verifications` row. Every refresh adds a `refresh_tokens` row (the old one is deleted on rotation, but used-and-expired ones accumulate). Every expired-but-not-cleaned-up invitation pollutes the partial-unique index lookup.
 
