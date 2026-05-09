@@ -5,7 +5,7 @@ import { env } from '../config/env';
 
 import * as schema from '@/db/schema';
 
-const pool = new Pool({
+export const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: env.DATABASE_POOL_MAX_SIZE,
 });

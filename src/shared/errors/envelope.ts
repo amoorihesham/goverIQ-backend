@@ -3,6 +3,11 @@ import { FastifyError, FastifyInstance, FastifyRequest, FastifyReply } from 'fas
 import { AppError } from './http-error';
 
 import { getConstraintName, isUniqueViolation } from '@/shared/database/errors';
+import type { Logger } from 'pino';
+
+type LoggerHolder = {
+  log: Logger;
+};
 
 export interface SuccessEnvelope<T> {
   success: true;
@@ -51,7 +56,7 @@ const UNIQUE_CONSTRAINT_MAP: Record<string, () => AppError> = {
   users_email_idx: () => AppError.duplicateEmail(),
 };
 
-export function createErrorHandler(fastify: FastifyInstance) {
+export function createErrorHandler(fastify: LoggerHolder) {
   return async (err: FastifyError | Error, _req: FastifyRequest, reply: FastifyReply) => {
     if (err instanceof AppError) {
       return reply.status(err.statusCode).send(failure(err));

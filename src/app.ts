@@ -1,5 +1,6 @@
 import fastifyCookie from '@fastify/cookie';
 import Fastify from 'fastify';
+import { ulid } from 'ulid';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 
 import { authPlugin } from './modules/auth';
@@ -8,12 +9,14 @@ import { env } from './shared/config/env';
 
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
+import { logger } from './shared/logger';
 
 export async function buildApp() {
   const fastify = Fastify({
-    logger: {
-      transport: { target: 'pino-pretty', options: { colorize: true } },
-    },
+    loggerInstance: logger,
+    genReqId: (req) => req.headers['x-request-id']?.toString() ?? ulid(),
+    requestIdLogLabel: 'reqId',
+    requestIdHeader: 'x-request-id',
   });
 
   await fastify.setValidatorCompiler(validatorCompiler);

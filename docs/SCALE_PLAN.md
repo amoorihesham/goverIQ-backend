@@ -79,7 +79,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** Trivial credential-stuffing on `/login`. SMTP-cost amplification on `/resend-otp` (especially with paid SMTP providers — every spam OTP costs money).
 
-### 1.2 Graceful shutdown — 0.5 d
+### 1.2 Graceful shutdown — 0.5 d  [✅]
 
 **Problem.** [src/main.ts](../src/main.ts) does not handle `SIGTERM` or `SIGINT`. Every deploy `kill -15`'s the process mid-request. In-flight transactions are torn down without `COMMIT`/`ROLLBACK`. The migration advisory lock at [src/shared/database/migrate.ts](../src/shared/database/migrate.ts) (`pg_advisory_lock(5432001)`) can outlive the process inconsistently across pg versions.
 
@@ -134,7 +134,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** Each later phase (observability, error reporting, audit-list endpoint) costs more because they all need this primitive.
 
-### 1.4 Structured logging upgrade — 0.25 d
+### 1.4 Structured logging upgrade — 0.25 d  [✅]
 
 **Problem.** [src/shared/logger/index.ts](../src/shared/logger/index.ts) hard-wires `pino-pretty` regardless of environment, which is colorized stdout — slow and unparseable in production log aggregators. [src/shared/http/health.ts](../src/shared/http/health.ts) creates a *second* Pino instance, fragmenting log shape. Nothing redacts secrets — a stack trace through the password hashing path can leak a token.
 
@@ -150,7 +150,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 **Risk if skipped.** Token leakage in production. Log ingest cost on colorized output. Ongoing fragmentation as more modules ship.
 
-### 1.5 Health check expansion (Kubernetes-style) — 0.5 d
+### 1.5 Health check expansion (Kubernetes-style) — 0.5 d   [✅]
 
 **Problem.** [src/shared/http/health.ts](../src/shared/http/health.ts) has a single `/health` endpoint that does `SELECT 1`. If Postgres has a 2-second hiccup, every health check fails, every K8s pod restarts, and we spiral into a restart storm.
 

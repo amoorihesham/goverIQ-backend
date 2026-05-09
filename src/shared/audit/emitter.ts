@@ -11,6 +11,7 @@ export interface AuditEvent {
   event: string;
   entityType: string;
   entityId?: string | null;
+  reqId?: string;
   payload: Record<string, unknown>;
 }
 
@@ -34,6 +35,6 @@ export async function emitAudit(tx: Tx, event: AuditEvent): Promise<void> {
     event: event.event,
     entityType: event.entityType,
     entityId: event.entityId || null,
-    payload: event.payload,
+    payload: { ...event.payload, requestId: event.reqId },
   });
 }

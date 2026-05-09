@@ -11,36 +11,21 @@ export async function registerHealthPlugin(fastify: FastifyInstance) {
           200: {
             type: 'object',
             properties: {
-              success: { type: 'boolean' },
-              data: {
-                type: 'object',
-                properties: {
-                  status: { type: 'string' },
-                  timestamp: { type: 'string' },
-                },
-              },
-            },
-          },
-          503: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              error: {
-                type: 'object',
-                properties: {
-                  code: { type: 'string' },
-                  message: { type: 'string' },
-                  statusCode: { type: 'number' },
-                },
-              },
+              ok: { type: 'string' },
             },
           },
         },
       },
     },
-    async (request, reply) => {
-      const result = await checkHealth();
-      reply.status(result.status as 200 | 503).send(result.data);
+    (request, reply) => {
+      reply.status(200).send({ ok: 'OK' });
     },
   );
+  fastify.get('/health/live', (request, reply) => {
+    reply.status(200).send({ ok: 'OK' });
+  });
+  fastify.get('/health/ready', async (request, reply) => {
+    const result = await checkHealth();
+    reply.status(result.status).send({ ready: result.status === 200 ? true : false });
+  });
 }

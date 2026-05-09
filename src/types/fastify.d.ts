@@ -7,6 +7,7 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     user?: { userId: string; email: string };
+    orgId: string;
     orgMembership?: { roleId: string | null; isOwner: boolean; permissions: string[] };
   }
 }

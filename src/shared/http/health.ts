@@ -1,11 +1,8 @@
-import pino from 'pino';
-
 import { db } from '../database/client';
 
 import { success, failure } from '@/shared/errors/envelope';
 import { AppError } from '@/shared/errors/http-error';
-
-const logger = pino();
+import { logger } from '../logger';
 
 export async function checkHealth(): Promise<{ status: number; data: any }> {
   try {
