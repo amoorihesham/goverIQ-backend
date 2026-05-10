@@ -4,40 +4,25 @@ import { FastifyRequest, preHandlerHookHandler } from 'fastify';
 import { organizations } from '@/db/schema/org';
 import { db } from '@/shared/database/client';
 import { AppError } from '@/shared/errors/http-error';
+import { contextFromRequest } from '@/shared/http/context';
 
 export type OnboardingTier = 'always' | 'role_creation' | 'invitation' | 'complete';
 
 export function requireOnboardingStep(tier: OnboardingTier): preHandlerHookHandler {
   return async (request: FastifyRequest) => {
-    // Read orgId from request.params
-    const orgId = (request.params as Record<string, unknown>).orgId as string | undefined;
+    const { orgId } = contextFromRequest(request);
 
-    if (!orgId) {
-      throw AppError.validationError('Organization ID required');
-    }
+    if (!orgId) throw AppError.validationError('Organization ID required');
 
-    // Query organizations table for onboardingStep and archivedAt
-    const orgResults = await db
-      .select({
-        onboardingStep: organizations.onboardingStep,
-        archivedAt: organizations.archivedAt,
-      })
-      .from(organizations)
-      .where(eq(organizations.id, orgId))
-      .limit(1);
+    const org = await db.query.organizations.findFirst({
+      where: eq(organizations.id, orgId),
+      columns: { onboardingStep: true, archivedAt: true },
+    });
 
-    if (!orgResults.length || !orgResults[0]) {
-      throw AppError.notFound('Organization not found');
-    }
+    if (!org) throw AppError.notFound('Organization not found');
 
-    const { onboardingStep, archivedAt } = orgResults[0];
+    if (org.archivedAt) throw AppError.orgArchived();
 
-    // Check if org is archived
-    if (archivedAt) {
-      throw AppError.orgArchived();
-    }
-
-    // Evaluate tier gate logic
     const tierGate: Record<OnboardingTier, Record<string, boolean>> = {
       always: {
         PENDING_ROLES: true,
@@ -61,8 +46,6 @@ export function requireOnboardingStep(tier: OnboardingTier): preHandlerHookHandl
       },
     };
 
-    if (!tierGate[tier][onboardingStep]) {
-      throw AppError.forbidden('Action not permitted at this onboarding stage');
-    }
+    if (!tierGate[tier][org.onboardingStep]) throw AppError.forbidden('Action not permitted at this onboarding stage');
   };
 }

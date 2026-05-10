@@ -1,10 +1,10 @@
 import { lt } from 'drizzle-orm';
+
 import { refreshTokens } from '@/db/schema/auth';
 import { emitAudit } from '@/shared/audit/emitter';
-import type { DatabaseClient } from '@/shared/database/types';
 import { withTx } from '@/shared/database/transaction';
 
-export async function cleanupRefreshJob(db: DatabaseClient): Promise<void> {
+export async function cleanupRefreshJob(): Promise<void> {
   await withTx(async (tx) => {
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const result = await tx

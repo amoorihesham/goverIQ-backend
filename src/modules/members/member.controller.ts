@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import { setRefreshToken } from '@/shared/auth/cookies';
+import { membersService } from './member.service';
 import {
   AsignMemberRoleRequestBody,
   AsignMemberRoleRequestParams,
@@ -10,10 +10,11 @@ import {
   RemoveMembersRequest,
   RevokeMemberRoleRequest,
 } from './types/request';
+
+import { setRefreshToken } from '@/shared/auth/cookies';
 import { DatabaseClient } from '@/shared/database/types';
-import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
-import { membersService } from './member.service';
 import { contextFromRequest } from '@/shared/http/context';
+import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 
 interface AcceptInvitationBody {
   password?: string;
@@ -27,7 +28,7 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
       reply: FastifyReply,
     ) {
       const { orgId, userId, reqId } = contextFromRequest(request);
-      const invitation = await service.sendInvitation(userId!, orgId!, reqId!, request.body, dispatcher);
+      const invitation = await service.sendInvitation(userId!, orgId!, reqId!, request.body);
       return reply.code(201).send({
         success: true,
         data: invitation,

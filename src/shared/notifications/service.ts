@@ -1,9 +1,10 @@
 import nodemailer from 'nodemailer';
 
-import { logger } from '@/shared/logger';
 import type { NotificationTemplate } from './dispatcher';
 import { buildEmailVerificationEmail, EmailVerificationPayload } from './templates/email-verification';
 import { buildInvitationEmail, InvitationPayload } from './templates/invitation';
+
+import { logger } from '@/shared/logger';
 
 let _transport: nodemailer.Transporter | null = null;
 
@@ -17,7 +18,7 @@ function getTransport(): nodemailer.Transporter {
     return _transport;
   }
 
-  if (nodeEnv === 'development' || nodeEnv === 'production') {
+  if (nodeEnv === 'development') {
     _transport = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'localhost',
       port: parseInt(process.env.SMTP_PORT || '1025', 10),
@@ -25,7 +26,6 @@ function getTransport(): nodemailer.Transporter {
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD } : undefined,
     });
     return _transport;
-    ``;
   }
 
   _transport = nodemailer.createTransport({

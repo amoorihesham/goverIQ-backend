@@ -1,10 +1,10 @@
 import { and, eq, lt } from 'drizzle-orm';
+
 import { invitations } from '@/db/schema/org';
 import { emitAudit } from '@/shared/audit/emitter';
-import type { DatabaseClient } from '@/shared/database/types';
 import { withTx } from '@/shared/database/transaction';
 
-export async function expireInvitesJob(db: DatabaseClient): Promise<void> {
+export async function expireInvitesJob(): Promise<void> {
   await withTx(async (tx) => {
     const result = await tx
       .update(invitations)

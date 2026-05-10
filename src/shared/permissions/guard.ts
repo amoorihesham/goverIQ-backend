@@ -16,7 +16,7 @@ export function requirePermission(permission: PermissionKey) {
         throw AppError.unauthorized('Missing or invalid Authorization header');
       }
 
-      const token = authHeader.slice(7);
+      const token = authHeader.split(' ')[1];
       const payload = await verifyAccessToken(token);
 
       const orgId = (request.params as Record<string, unknown>).orgId as string | undefined;

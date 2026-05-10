@@ -1,7 +1,7 @@
-import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
+import fp from 'fastify-plugin';
 
-import { createDispatcher, type NotificationDispatcher } from './dispatcher';
+import { createDispatcher } from './dispatcher';
 import { sendNotification } from './service';
 
 export const notificationPlugin = fp(async (app: FastifyInstance) => {

@@ -1,17 +1,17 @@
 import fastifyCookie from '@fastify/cookie';
 import Fastify from 'fastify';
-import { ulid } from 'ulid';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import { ulid } from 'ulid';
 
-import { authPlugin } from './modules/auth';
-import { orgPlugin } from './modules/org';
 import { env } from './shared/config/env';
+import { logger } from './shared/logger';
 
+import { authRoutes } from '@/modules/auth/public';
+import { memberRoutes } from '@/modules/members/public';
+import { orgRoutes } from '@/modules/org/public';
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
-import { logger } from './shared/logger';
 import { notificationPlugin } from '@/shared/notifications/plugin';
-import { membersPlugin } from './modules/members/public';
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -42,9 +42,9 @@ export async function buildApp() {
   await fastify.register(
     async (instance) => {
       await instance.register(registerHealthPlugin);
-      await instance.register(authPlugin, { prefix: '/auth' });
-      await instance.register(orgPlugin, { prefix: '/orgs' });
-      await instance.register(membersPlugin, { prefix: '/members' });
+      await instance.register(authRoutes, { prefix: '/auth' });
+      await instance.register(orgRoutes, { prefix: '/orgs' });
+      await instance.register(memberRoutes, { prefix: '/members' });
     },
     { prefix: '/api/v1' },
   );

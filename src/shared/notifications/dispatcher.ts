@@ -1,6 +1,7 @@
-import { logger } from '@/shared/logger';
 import { EmailVerificationPayload } from './templates/email-verification';
 import { InvitationPayload } from './templates/invitation';
+
+import { logger } from '@/shared/logger';
 
 export type NotificationTemplate = 'email-verification' | 'invitation';
 

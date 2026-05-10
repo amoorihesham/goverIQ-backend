@@ -2,22 +2,20 @@ import { and, eq } from 'drizzle-orm';
 
 import { CONFIGURATIONS } from '../org/constants';
 import { generateInviteToken, hashInviteToken } from '../org/invite-token';
-import { MemberRepository } from './member.repository';
 import { RoleRepository } from '../org/role.repository';
+
+import { MemberRepository } from './member.repository';
+import { InviteMemberRequestBody, MemberRequestWithOrgIdParam } from './types/request';
 
 import { users, refreshTokens } from '@/db/schema/auth';
 import { organizations, memberships, invitations, roles } from '@/db/schema/org';
-import { hashPassword } from '@/modules/auth/utils/password';
-import { generateRefreshTokenCleartext, hashRefreshToken } from '@/modules/auth/utils/tokens';
+import { hashPassword, generateRefreshTokenCleartext, hashRefreshToken } from '@/modules/auth/public';
 import { emitAudit } from '@/shared/audit/emitter';
 import { signAccessToken } from '@/shared/auth/jwt';
-
 import { withTx } from '@/shared/database/transaction';
+import { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
 import type { NotificationDispatcher } from '@/shared/notifications/dispatcher';
-
-import { DatabaseClient } from '@/shared/database/types';
-import { InviteMemberRequestBody, MemberRequestWithOrgIdParam } from './types/request';
 
 export const membersService = (db: DatabaseClient, dispatcher: NotificationDispatcher) => {
   return {
@@ -26,7 +24,6 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
       orgId: MemberRequestWithOrgIdParam['orgId'],
       reqId: string,
       body: InviteMemberRequestBody,
-      dispatcher: NotificationDispatcher,
     ) {
       return await withTx(async (tx) => {
         const membership = await tx.query.memberships.findFirst({

@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
-import { requireOnboardingStep } from './onboarding.prehandler';
 import { organizationController } from './org.controller';
 import { createOrganizationSchema, getOrganizationSchema, updateOrganizationSchema } from './schemas/zod';
 
 import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
 import { requireOwner, requirePermission } from '@/shared/permissions/guard';
+import { requireOnboardingStep } from '@/shared/http/pre-handlers/on-boarding';
 
 export async function orgRoutes(fastify: FastifyInstance) {
   const controller = organizationController(db);

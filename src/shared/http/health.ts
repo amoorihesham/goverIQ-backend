@@ -1,8 +1,8 @@
 import { db } from '../database/client';
+import { logger } from '../logger';
 
 import { success, failure } from '@/shared/errors/envelope';
 import { AppError } from '@/shared/errors/http-error';
-import { logger } from '../logger';
 
 export async function checkHealth(): Promise<{ status: number; data: any }> {
   try {

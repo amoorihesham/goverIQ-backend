@@ -1,9 +1,9 @@
-import { FastifyError, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
+import type { Logger } from 'pino';
 
 import { AppError } from './http-error';
 
 import { getConstraintName, isUniqueViolation } from '@/shared/database/errors';
-import type { Logger } from 'pino';
 
 type LoggerHolder = {
   log: Logger;
@@ -44,10 +44,7 @@ export function failure(err: AppError): FailureEnvelope {
 }
 
 function isValidationError(err: FastifyError | Error): err is FastifyError {
-  return (
-    typeof (err as FastifyError).validation !== 'undefined' &&
-    Array.isArray((err as FastifyError).validation)
-  );
+  return typeof (err as FastifyError).validation !== 'undefined' && Array.isArray((err as FastifyError).validation);
 }
 
 // Maps PostgreSQL unique-constraint names to domain errors.

@@ -1,14 +1,16 @@
-import { logger } from '@/shared/logger';
-import { db, pool } from '@/shared/database/client';
-import type { NotificationTemplate } from '@/shared/notifications/dispatcher';
-import { closeConnection, createWorker, getRedisConnection } from './shared/queue/bullmq';
-import { sendNotification } from './shared/notifications/service';
 import { Queue } from 'bullmq';
-import { cleanupOtpsJob } from './shared/queue/jobs/cleanup-otps';
-import { expireInvitesJob } from './shared/queue/jobs/expire-invites';
-import { cleanupRefreshJob } from './shared/queue/jobs/cleanup-refresh';
+
+import { sendNotification } from './shared/notifications/service';
 import { EmailVerificationPayload } from './shared/notifications/templates/email-verification';
 import { InvitationPayload } from './shared/notifications/templates/invitation';
+import { closeConnection, createWorker, getRedisConnection } from './shared/queue/bullmq';
+import { cleanupOtpsJob } from './shared/queue/jobs/cleanup-otps';
+import { cleanupRefreshJob } from './shared/queue/jobs/cleanup-refresh';
+import { expireInvitesJob } from './shared/queue/jobs/expire-invites';
+
+import { db, pool } from '@/shared/database/client';
+import { logger } from '@/shared/logger';
+import type { NotificationTemplate } from '@/shared/notifications/dispatcher';
 
 async function main() {
   logger.info('Worker starting');

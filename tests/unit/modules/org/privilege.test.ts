@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { assertNoPrivilegeEscalation } from '@/modules/org/privilege';
+import { assertNoPrivilegeEscalation } from '@/modules/roles/utils/privilege';
 import { AppError } from '@/shared/errors/http-error';
 
 describe('privilege utilities', () => {

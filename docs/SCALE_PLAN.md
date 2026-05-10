@@ -240,7 +240,7 @@ The lowest-cost, highest-value phase. None of these violate any principle. Witho
 
 ---
 
-## Phase 2 — Async Work & Queues
+## Phase 2 — Async Work & Queues [✅]
 
 **Effort: ~5.5 dev-days · Week 2**
 
@@ -345,7 +345,7 @@ Schedule via BullMQ's `repeat` option in `worker.ts` startup.
 
 **Risk if skipped.** Tables grow unbounded. The partial-pending-invitation unique index in [src/db/schema/org.ts](../src/db/schema/org.ts) gets slower over time. Operational debt that compounds.
 
-### Phase 2 Verification
+### Phase 2 Verification [ STILL_NOT_VERIFIED ]
 
 - `POST /auth/register` returns ≤ 50ms even with `docker-compose stop mailpit`.
 - Bringing SMTP back up: pending notification job is delivered within retry window.

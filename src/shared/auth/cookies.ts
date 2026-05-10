@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
+
 import { env } from '../config/env';
 
 export const setRefreshToken = (reply: FastifyReply, token: string) => {

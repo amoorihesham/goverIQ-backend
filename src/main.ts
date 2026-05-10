@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+
 import { buildApp } from './app';
 import { env } from './shared/config/env';
 import { db, pool } from './shared/database/client';
