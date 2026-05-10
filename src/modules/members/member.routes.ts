@@ -1,8 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
-import { requireOnboardingStep } from '../org/onboarding.prehandler';
-
 import { createMemberController } from './member.controller';
 import {
   asignMemberRoleRequestSchema,
@@ -15,6 +13,7 @@ import {
 import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
 import { requirePermission } from '@/shared/permissions/guard';
+import { requireOnboardingStep } from '@/shared/http/pre-handlers/on-boarding';
 
 export async function memberRoutes(fastify: FastifyInstance) {
   const controller = createMemberController(db, fastify.dispatcher);

@@ -7,71 +7,34 @@ import { roles, memberships } from '@/db/schema/org';
 import { verifyAccessToken } from '@/shared/auth/jwt';
 import { db } from '@/shared/database/client';
 import { AppError } from '@/shared/errors/http-error';
+import { contextFromRequest } from '../http/context';
 
 export function requirePermission(permission: PermissionKey) {
   return async (request: FastifyRequest) => {
-    try {
-      const authHeader = request.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw AppError.unauthorized('Missing or invalid Authorization header');
-      }
+    const { userId, orgId } = contextFromRequest(request);
+    if (!userId || !orgId) throw AppError.unauthorized();
 
-      const token = authHeader.split(' ')[1];
-      const payload = await verifyAccessToken(token);
+    const [membership] = await db
+      .select({
+        roleId: memberships.roleId,
+        isOwner: roles.isOwner,
+        permissions: roles.permissions,
+      })
+      .from(memberships)
+      .leftJoin(roles, eq(memberships.roleId, roles.id))
+      .where(and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)))
+      .limit(1);
+    if (!membership) throw AppError.forbidden('Not a member of this organization');
 
-      const orgId = (request.params as Record<string, unknown>).orgId as string | undefined;
-      if (!orgId) {
-        throw AppError.forbidden('Organization ID required');
-      }
+    request.orgMembership = {
+      roleId: membership.roleId,
+      isOwner: membership.isOwner ?? false,
+      permissions: membership.permissions || [],
+    };
 
-      const membership = await db
-        .select({
-          roleId: memberships.roleId,
-          isOwner: roles.isOwner,
-          permissions: roles.permissions,
-        })
-        .from(memberships)
-        .leftJoin(roles, eq(memberships.roleId, roles.id))
-        .where(and(eq(memberships.userId, payload.sub), eq(memberships.orgId, orgId)))
-        .limit(1);
+    if (membership.isOwner) return;
 
-      if (!membership.length || !membership[0]) {
-        throw AppError.forbidden('Not a member of this organization');
-      }
-
-      const [memberData] = membership;
-
-      // Set request.orgMembership for use by other handlers/middleware
-      request.orgMembership = {
-        roleId: memberData.roleId,
-        isOwner: memberData.isOwner ?? false,
-        permissions: memberData.permissions || [],
-      };
-
-      if (memberData.isOwner) {
-        return;
-      }
-
-      if (!memberData.permissions || !memberData.permissions.includes(permission)) {
-        throw AppError.forbidden('Insufficient permissions');
-      }
-    } catch (err) {
-      if (err instanceof AppError) {
-        throw err;
-      }
-      throw AppError.unauthorized('Token verification failed');
-    }
-  };
-}
-
-export function requireOwner() {
-  return async (request: FastifyRequest) => {
-    if (!request.orgMembership) {
-      throw AppError.forbidden('Organization membership required');
-    }
-
-    if (!request.orgMembership.isOwner) {
-      throw AppError.forbidden('Owner privileges required');
-    }
+    if (!membership.permissions || !membership.permissions.includes(permission))
+      throw AppError.forbidden('Insufficient permissions');
   };
 }

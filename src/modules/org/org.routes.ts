@@ -6,7 +6,7 @@ import { createOrganizationSchema, getOrganizationSchema, updateOrganizationSche
 
 import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
-import { requireOwner, requirePermission } from '@/shared/permissions/guard';
+import { requirePermission } from '@/shared/permissions/guard';
 import { requireOnboardingStep } from '@/shared/http/pre-handlers/on-boarding';
 
 export async function orgRoutes(fastify: FastifyInstance) {
@@ -43,7 +43,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
     '/:orgId/onboarding/skip',
     {
       schema: getOrganizationSchema,
-      preHandler: [identityRequired, requireOnboardingStep('invitation'), requireOwner()],
+      preHandler: [identityRequired, requireOnboardingStep('invitation'), requirePermission('org:update')],
     },
     controller.skipOnboarding,
   );
@@ -61,7 +61,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
     '/:orgId',
     {
       schema: getOrganizationSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete'), requireOwner()],
+      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('org:archive')],
     },
     controller.archiveOrg,
   );

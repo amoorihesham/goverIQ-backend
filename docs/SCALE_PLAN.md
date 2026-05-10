@@ -475,7 +475,7 @@ Plus an example skeleton for the next module.
 
 **Why this solves the problem.** Friction to add a new module drops; consistency across modules stays.
 
-### 3.5 Shared keyset cursor utility — 1 d
+### 3.5 Shared keyset cursor utility — 1 d   [✅]
 
 **Problem.** [src/modules/org/member.repository.ts](../src/modules/org/member.repository.ts) accepts a `cursor` parameter and ignores it. The function returns all members of an org regardless of cursor. As soon as orgs grow past ~1k members, this is a full-table scan into memory.
 
@@ -552,11 +552,11 @@ The master plan defines cursor pagination as the standard. Future audit-list, me
 
 ## Phase 4 — Observability
 
-**Effort: ~3.5 dev-days · Week 4 (first half)**
+**Effort: ~3.5 dev-days · Week 4 (first half)** 
 
 Required to validate every later phase. Without metrics, decisions about caching (Phase 6) and partition triggers (Phase 5) are guesses.
 
-### 4.1 OpenTelemetry traces — 1.5 d
+### 4.1 OpenTelemetry traces — 1.5 d   [✅]
 
 **Problem.** Today, when a request is slow, you have no way to know whether time was spent in the guard query, the service, the transaction, the audit emit, or the SMTP enqueue. Pino's per-line timestamps are not enough for a multi-step flow.
 

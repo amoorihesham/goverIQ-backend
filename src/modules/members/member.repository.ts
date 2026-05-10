@@ -1,7 +1,9 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 import { memberships, invitations, roles } from '@/db/schema/org';
 import type { DatabaseClient, Tx } from '@/shared/database/types';
+import { applyKeysetWhere, decodeCursor } from '@/shared/pagination/cursor';
+import { cursorSchema } from '@/shared/pagination/cursor-schema';
 
 export class MemberRepository {
   /**
@@ -9,11 +11,7 @@ export class MemberRepository {
    */
   static async findPendingInviteByOrgEmail(db: DatabaseClient, orgId: string, email: string) {
     return db.query.invitations.findFirst({
-      where: and(
-        eq(invitations.orgId, orgId),
-        eq(invitations.email, email),
-        eq(invitations.status, 'PENDING'),
-      ),
+      where: and(eq(invitations.orgId, orgId), eq(invitations.email, email), eq(invitations.status, 'PENDING')),
     });
   }
 
@@ -60,16 +58,8 @@ export class MemberRepository {
   /**
    * Update invitation status in a transaction.
    */
-  static async updateInvitationStatus(
-    tx: Tx,
-    invitationId: string,
-    status: 'ACCEPTED' | 'DECLINED',
-  ) {
-    const [updated] = await tx
-      .update(invitations)
-      .set({ status })
-      .where(eq(invitations.id, invitationId))
-      .returning();
+  static async updateInvitationStatus(tx: Tx, invitationId: string, status: 'ACCEPTED' | 'DECLINED') {
+    const [updated] = await tx.update(invitations).set({ status }).where(eq(invitations.id, invitationId)).returning();
     return updated!;
   }
 
@@ -101,15 +91,21 @@ export class MemberRepository {
    * List members in an org with cursor pagination.
    */
   static async listMembers(db: DatabaseClient, orgId: string, cursor?: string, limit: number = 20) {
-    // Implement cursor pagination
-    // For now, return all members for the org
+    const decodedCursor = decodeCursor(cursor!);
+    const t = applyKeysetWhere(
+      memberships.createdAt,
+      memberships.id,
+      { id: decodedCursor.id, createdAt: decodedCursor.createdAt },
+      'desc',
+    );
     return db.query.memberships.findMany({
-      where: eq(memberships.orgId, orgId),
+      where: (fields, { and, eq }) => and(eq(fields.orgId, orgId), t),
       with: {
         user: true,
         role: true,
       },
-      limit: limit + 1, // Get one extra to know if there's a next page
+      orderBy: (field, { desc }) => [desc(field.createdAt), desc(field.id)],
+      limit: limit + 1,
     });
   }
 
@@ -124,11 +120,7 @@ export class MemberRepository {
    * Update member's role in a transaction.
    */
   static async updateMemberRole(tx: Tx, membershipId: string, roleId: string) {
-    const [updated] = await tx
-      .update(memberships)
-      .set({ roleId })
-      .where(eq(memberships.id, membershipId))
-      .returning();
+    const [updated] = await tx.update(memberships).set({ roleId }).where(eq(memberships.id, membershipId)).returning();
     return updated!;
   }
 

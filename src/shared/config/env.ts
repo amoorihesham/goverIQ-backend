@@ -5,10 +5,7 @@ const envFilePath = `.env.${process.env.NODE_ENV}`;
 dotenv.config({ path: envFilePath });
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(
-    ['development', 'production', 'test'],
-    'NODE_ENV must be one of development, production, or test',
-  ),
+  NODE_ENV: z.enum(['development', 'production', 'test'], 'NODE_ENV must be one of development, production, or test'),
   PORT: z.coerce.number('PORT must be a number').int().positive(),
   HOST: z.string('HOST must be a valid string'),
   LOG_LEVEL: z.enum(
@@ -35,10 +32,11 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string('SMTP_FROM must be a valid email'),
   REDIS_URL: z.url(),
-  QUEUE_BACKEND: z
-    .enum(['memory', 'redis'])
-    .default(process.env.NODE_ENV === 'production' ? 'redis' : 'memory'),
+  QUEUE_BACKEND: z.enum(['memory', 'redis']).default(process.env.NODE_ENV === 'production' ? 'redis' : 'memory'),
   APP_BASE_URL: z.url(),
+
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  SERVICE_NAME: z.string().default('grove-iq-api'),
 });
 
 export type Env = z.infer<typeof envSchema>;

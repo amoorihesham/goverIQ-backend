@@ -1,29 +1,10 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  numeric,
-  boolean,
-  timestamp,
-  pgEnum,
-  uniqueIndex,
-  index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, boolean, timestamp, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 import { users } from './auth';
 
-export const onboardingStepEnum = pgEnum('onboarding_step', [
-  'PENDING_ROLES',
-  'PENDING_INVITES',
-  'COMPLETE',
-]);
+export const onboardingStepEnum = pgEnum('onboarding_step', ['PENDING_ROLES', 'PENDING_INVITES', 'COMPLETE']);
 
-export const invitationStatusEnum = pgEnum('invitation_status', [
-  'PENDING',
-  'ACCEPTED',
-  'DECLINED',
-  'EXPIRED',
-]);
+export const invitationStatusEnum = pgEnum('invitation_status', ['PENDING', 'ACCEPTED', 'DECLINED', 'EXPIRED']);
 
 export const organizations = pgTable(
   'organizations',
@@ -34,9 +15,7 @@ export const organizations = pgTable(
     slug: text('slug').notNull().unique(),
     description: text('description'),
     logoUrl: text('logo_url'),
-    quorumThreshold: numeric('quorum_threshold', { precision: 3, scale: 2 })
-      .notNull()
-      .default('0.50'),
+    quorumThreshold: numeric('quorum_threshold', { precision: 3, scale: 2 }).notNull().default('0.50'),
     onboardingStep: onboardingStepEnum('onboarding_step').notNull().default('PENDING_ROLES'),
     archivedAt: timestamp('archived_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -79,6 +58,7 @@ export const memberships = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' }),
     roleId: uuid('role_id').references(() => roles.id, { onDelete: 'set null' }),
     joinedAt: timestamp('joined_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
     userOrgUnique: uniqueIndex('memberships_user_org_unique').on(table.userId, table.orgId),

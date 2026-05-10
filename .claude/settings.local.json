@@ -37,7 +37,11 @@
       "Bash(Get-ChildItem -Path 'd:\\\\groven-iq' -Force)",
       "Bash(Select-Object Name, FullName)",
       "Bash(Get-ChildItem -Path \"d:\\\\amr-projects\\\\goverIQ-backend\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"d:\\\\groven-iq\\\\src\\\\modules\" -Filter \"routes.ts\" -Recurse)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(xargs grep -l \"response\\\\|envelope\")",
+      "Bash(find specs/003* -name \"*.md\" -type f)"
     ],
     "additionalDirectories": [
       "d:\\groven-iq\\specs\\003-org-roles-members"

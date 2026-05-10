@@ -1,13 +1,4 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  integer,
-  timestamp,
-  pgEnum,
-  uniqueIndex,
-  index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, timestamp, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 import { organizations } from './org';
 import { memberships } from './org';
@@ -51,12 +42,11 @@ export const meetingAgendaItems = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     orderIndex: integer('order_index').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => ({
-    meetingOrderUnique: uniqueIndex('meeting_agenda_items_meeting_order_unique').on(
-      table.meetingId,
-      table.orderIndex,
-    ),
+    meetingOrderUnique: uniqueIndex('meeting_agenda_items_meeting_order_unique').on(table.meetingId, table.orderIndex),
   }),
 );
 
@@ -69,6 +59,8 @@ export const meetingAttendees = pgTable(
     memberId: uuid('member_id')
       .notNull()
       .references(() => memberships.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => ({
     primaryKey: uniqueIndex('meeting_attendees_pkey').on(table.meetingId, table.memberId),

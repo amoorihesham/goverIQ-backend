@@ -2,7 +2,6 @@ import { and, eq } from 'drizzle-orm';
 
 import { CONFIGURATIONS } from '../org/constants';
 import { generateInviteToken, hashInviteToken } from '../org/invite-token';
-import { RoleRepository } from '../org/role.repository';
 
 import { MemberRepository } from './member.repository';
 import { InviteMemberRequestBody, MemberRequestWithOrgIdParam } from './types/request';
@@ -337,10 +336,10 @@ export const membersService = (db: DatabaseClient, dispatcher: NotificationDispa
         }
 
         // Verify role exists and belongs to org
-        const role = await RoleRepository.findRoleById(db, orgId, roleId);
-        if (!role) {
-          throw AppError.notFound('Role not found');
-        }
+        // const role = await RoleRepository.findRoleById(db, orgId, roleId);
+        // if (!role) {
+        //   throw AppError.notFound('Role not found');
+        // }
 
         // Update membership
         const updated = await MemberRepository.updateMemberRole(tx, memberId, roleId);
