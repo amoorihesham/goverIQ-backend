@@ -17,6 +17,7 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string('DATABASE_URL must be a valid URL'),
   DATABASE_POOL_MAX_SIZE: z.coerce.number(),
+  DB_SLOW_QUERY_THRESHOLD_MS: z.coerce.number().int().positive().default(200),
 
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET must be at least 32 characters'),
@@ -37,6 +38,11 @@ const envSchema = z.object({
 
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
   SERVICE_NAME: z.string().default('grove-iq-api'),
+
+  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_ENVIRONMENT: z.string().optional(),
+  SENTRY_RELEASE: z.string().optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0),
 });
 
 export type Env = z.infer<typeof envSchema>;

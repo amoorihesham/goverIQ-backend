@@ -2,8 +2,10 @@ import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import type { Logger } from 'pino';
 
 import { AppError } from './http-error';
+import { reportError } from './reporter';
 
 import { getConstraintName, isUniqueViolation } from '@/shared/database/errors';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 
 type LoggerHolder = {
   log: Logger;
@@ -54,7 +56,7 @@ const UNIQUE_CONSTRAINT_MAP: Record<string, () => AppError> = {
 };
 
 export function createErrorHandler(fastify: LoggerHolder) {
-  return async (err: FastifyError | Error, _req: FastifyRequest, reply: FastifyReply) => {
+  return async (err: FastifyError | Error, request: FastifyRequest, reply: FastifyReply) => {
     if (err instanceof AppError) {
       return reply.status(err.statusCode).send(failure(err));
     }
@@ -70,8 +72,14 @@ export function createErrorHandler(fastify: LoggerHolder) {
       const appErr = factory?.() ?? AppError.conflict();
       return reply.status(appErr.statusCode).send(failure(appErr));
     }
+    const span = trace.getActiveSpan();
+    reportError(err, {
+      reqId: request.id,
+      userId: request.user?.userId,
+      orgId: request.orgId,
+    });
 
-    fastify.log.error({ err }, 'Unhandled error');
+    fastify.log.error({ err, traceId: span?.spanContext().traceId }, 'Unhandled error');
     return reply.status(500).send(failure(AppError.internalError()));
   };
 }

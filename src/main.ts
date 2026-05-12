@@ -2,6 +2,7 @@ import { buildApp } from './app';
 import { env } from './shared/config/env';
 import { db, pool } from './shared/database/client';
 import { runMigrations } from './shared/database/migrate';
+import { shutdownErrorReporter } from './shared/errors/reporter';
 import { logger } from './shared/logger';
 
 let isShuttingDown = false;
@@ -41,6 +42,7 @@ async function shutdown(signal: string, app: AppInstance) {
   try {
     await app.close();
     await pool.end();
+    await shutdownErrorReporter();
     clearTimeout(timeoutId);
     process.exit(0);
   } catch (error) {

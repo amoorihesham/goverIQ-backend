@@ -34,6 +34,8 @@
     "@opentelemetry/resources": "^2.7.1",
     "@opentelemetry/sdk-node": "^0.217.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@sentry/node": "^10.53.1",
+    "@sentry/opentelemetry": "10.53.1",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.76.6",
     "drizzle-orm": "^0.45.2",

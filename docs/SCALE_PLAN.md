@@ -38,7 +38,7 @@ The seven Non-Negotiable Principles in the master plan are constraints on every 
 
 | # | Phase | Effort | Calendar | Why this position |
 |---|-------|--------|----------|-------------------|
-| **1** | **Operational Floor** | ~5 d | Week 1 | Cheap, decouples deploys from outages. Required before any traffic growth. Without rate limiting and graceful shutdown, every other phase is built on sand. |
+| **1** | **Operational Floor** | ~5 d | Week 1 | Cheap, decouples deploys from outages. Required before any traffic growth. Without rate limiting and graceful shutdown, every other phase is built on sand. (Note: Phase 1.1 rate limiting is now a deploy-time Cloudflare concern, not a codebase task — see [docs/DEPLOY.md](DEPLOY.md).) |
 | **2** | **Async Work & Queues** | ~5.5 d | Week 2 | Lifts SMTP latency off the request path. Unlocks worker process model that later phases (exports, cleanup, scheduled jobs) build on. |
 | **3** | **Module Discipline** | ~5.5 d | Week 3 | Cheap structural fix while modules are still few (auth + org). Cost compounds the longer it waits — every new module ossifies the cross-module leaks. |
 | **4** | **Observability** | ~3.5 d | Week 4 (first half) | Required to validate every later phase. Useless before async work because the latency profile is wrong until Phase 2 ships. |
@@ -58,26 +58,35 @@ The seven Non-Negotiable Principles in the master plan are constraints on every 
 
 The lowest-cost, highest-value phase. None of these violate any principle. Without them, a single misbehaving client or a single deploy can take production down.
 
-### 1.1 Rate limiting on auth routes — 0.5 d
+### 1.1 Rate limiting on auth routes — deploy-time (Cloudflare)
+
+**Effort: ~0 codebase days · deploy configuration tracked in [docs/DEPLOY.md](DEPLOY.md)**
 
 **Problem.** [src/modules/auth/auth.routes.ts](../src/modules/auth/auth.routes.ts) exposes `/auth/login`, `/auth/register`, `/auth/resend-otp` with no protection. A single bot can fan out a credential-stuffing attack or trigger thousands of OTP emails (which fan out as SMTP cost). Master-plan Phase 5 mandates rate limiting; we don't want to wait that long.
 
-**Solution.** Register `@fastify/rate-limit` globally with route-specific overrides for auth endpoints. Storage starts in-memory (single instance is fine at this scale); switch to a Redis store in Phase 6 when Redis lands and we need multi-instance.
+**Solution.** Rate limiting is enforced at the edge by **Cloudflare**, not in the codebase. The app ships no `@fastify/rate-limit` registration. Configuration lives in [docs/DEPLOY.md](DEPLOY.md) (Rate Limiting (Cloudflare) section) alongside the rest of the production prerequisites.
 
-**Implementation steps.**
-1. `pnpm add @fastify/rate-limit`.
-2. Register in [src/app.ts](../src/app.ts) **before** any route plugin (rate-limit must be earliest in the chain to short-circuit before any handler logic).
-3. Set defaults: `max: 600`, `timeWindow: '1 minute'` per IP for the global limit.
-4. Per-route overrides in [src/modules/auth/auth.routes.ts](../src/modules/auth/auth.routes.ts):
-   - login: `{ max: 10, timeWindow: '1 minute' }`
-   - register: `{ max: 5, timeWindow: '1 minute' }`
-   - resend-otp: `{ max: 3, timeWindow: '15 minutes', keyGenerator: (req) => sha256(req.body.email) }` — keyed on email so a single email cannot flood SMTP regardless of IP.
-   - refresh: `{ max: 30, timeWindow: '1 minute' }`
-5. Custom error response that fits our envelope shape — wrap rate-limit's response via the `errorResponseBuilder` option so it returns `{ success: false, error: { code: 'RATE_LIMITED', message, statusCode: 429 } }`.
+**Deploy prerequisites** (full details and the exact rule table in [docs/DEPLOY.md](DEPLOY.md)):
 
-**Why this solves the problem.** A 429 returned at the framework layer never executes service code, so the bcrypt hash on `/login` never runs, and SMTP enqueue on `/resend-otp` never happens. Attack cost on the server stays bounded.
+1. **Cloudflare-only ingress at the origin.** Origin must reject any request that did not transit Cloudflare — via Authenticated Origin Pulls (mTLS) or a firewall allowlist of Cloudflare's published IP ranges. Without this, an attacker bypasses Cloudflare by hitting the origin IP directly and the entire phase is moot.
+2. **Cloudflare Rate Limiting Rules** configured for the four IP-keyed buckets before traffic is allowed:
+   - global `/api/v1/*`: 600 / 1 min per client IP
+   - `/auth/login`: 10 / 1 min per client IP
+   - `/auth/register`: 5 / 1 min per client IP
+   - `/auth/refresh`: 30 / 1 min per client IP
+3. **Cloudflare Custom Response** (Pro+) for 429 set to JSON matching the app envelope — `{ "success": false, "error": { "code": "RATE_LIMITED", "message": "Too many requests", "statusCode": 429 } }` — so the frontend handles one error shape.
 
-**Risk if skipped.** Trivial credential-stuffing on `/login`. SMTP-cost amplification on `/resend-otp` (especially with paid SMTP providers — every spam OTP costs money).
+**Resend-OTP body-keyed limit — deferred decision.** The original plan keyed `/auth/resend-otp` on `sha256(body.email)` (3 / 15 min) to bound SMTP cost regardless of the attacker's IP rotation. Cloudflare's standard Rate Limiting Rules cannot key on a request-body field. Three options, decision parked until deploy planning:
+
+- **Cloudflare Enterprise Advanced Rate Limiting** — body-field keys are native. Solves it cleanly; expensive.
+- **Cloudflare Worker** — parses the body, hashes the email, rate-limits via KV or Durable Objects. Cheap on any plan, but is rate-limit logic in Workers JS at the edge (still code, just not in this repo).
+- **Accept per-IP-only protection** — drop the email-keyed bucket. A botnet rotating residential IPs can still target a single victim email for SMTP flooding. Acceptable for early-stage; revisit when SMTP bill or abuse reports demand it.
+
+Tracked as a `TODO` in [docs/DEPLOY.md](DEPLOY.md) so it isn't silently dropped.
+
+**Why this solves the problem.** A 429 returned by Cloudflare never reaches origin compute, so the bcrypt hash on `/login` never runs and the SMTP enqueue on `/resend-otp` never happens. Attack cost on the server is bounded by Cloudflare's edge. For the four IP-keyed buckets the protection is global; for `/resend-otp` the protection is per-IP only until the deferred decision lands.
+
+**Risk if skipped.** Trivial credential-stuffing on `/login`. SMTP-cost amplification on `/resend-otp`. Additionally — and this is new to the gateway-only model — **if Cloudflare-only ingress is not enforced at the origin, the entire phase is bypassed by direct origin traffic**, and the app has no defense-in-depth fallback because the in-app limiter was deliberately not built.
 
 ### 1.2 Graceful shutdown — 0.5 d  [✅]
 
@@ -550,7 +559,7 @@ The master plan defines cursor pagination as the standard. Future audit-list, me
 
 ---
 
-## Phase 4 — Observability
+## Phase 4 — Observability [✅]
 
 **Effort: ~3.5 dev-days · Week 4 (first half)** 
 
@@ -573,7 +582,7 @@ Required to validate every later phase. Without metrics, decisions about caching
 
 **Risk if skipped.** Slow-request triage by guesswork. Phase 6 caching decisions made on faith.
 
-### 4.2 Prometheus `/metrics` endpoint — 1.5 d
+### 4.2 Prometheus `/metrics` endpoint — 1.5 d  [✅]
 
 **Problem.** Connection pool saturation, queue depth, audit insert rate, request latency distribution — all invisible today.
 
@@ -596,7 +605,7 @@ Required to validate every later phase. Without metrics, decisions about caching
 
 **Risk if skipped.** Cannot evaluate Layer K triggers. Cannot validate Phase 6 cache hit rates. Capacity surprises.
 
-### 4.3 Error reporting integration point — 0.5 d
+### 4.3 Error reporting integration point — 0.5 d  [✅]
 
 **Problem.** [src/shared/errors/envelope.ts](../src/shared/errors/envelope.ts) sends non-`AppError` errors to `fastify.log.error` and nothing else. In production, an unexpected error vanishes into log aggregator volume.
 
@@ -801,11 +810,9 @@ When master plan Phase 4 or 5 ships export endpoints, follow this pattern:
 
 **Why this solves the problem.** Streaming inside the request path violates the body-limit safety from Phase 1.7 and risks request timeouts on large datasets.
 
-### 6.6 Wire Redis store into rate-limit (from Phase 1.1) — 0.5 d
+### 6.6 Wire Redis store into rate-limit — [REMOVED — see 1.1]
 
-Once Redis is available, switch `@fastify/rate-limit` to its Redis store. Multi-instance HTTP becomes safe.
-
-**Why this solves the problem.** In-memory rate-limit state is per-instance — three HTTP instances allow 3× the configured rate. Redis-backed rate-limit is global.
+This item is no longer applicable. Rate limiting moved to Cloudflare at the edge (see Phase 1.1 and [docs/DEPLOY.md](DEPLOY.md)), so there is no in-app rate-limit store to migrate. Multi-instance correctness for rate limits is handled by Cloudflare globally. The section number is kept stable to avoid renumbering downstream references.
 
 ### 6.7 Wire Redis to readiness probe — 0.25 d
 
@@ -817,7 +824,6 @@ In `/health/ready` from Phase 1.5, add a Redis `PING`. Returns 503 if Redis is d
 - Updating an org name and refetching reflects within one request (cache invalidated).
 - `STORAGE_BACKEND=local` write/read round-trip works in dev.
 - `STORAGE_BACKEND=s3` returns a signed URL that fetches the uploaded file.
-- Three HTTP instances behind a load balancer share rate-limit state (one client gets 429 even when bouncing between instances).
 
 ---
 
@@ -959,12 +965,12 @@ If none fire: the monolith is the right answer. The architecture this plan descr
 
 A 30-minute checklist per environment promotion:
 
-1. **Phase 1 — Operational Floor**: rate-limit returns 429 · SIGTERM drains gracefully · `/health/live` works without DB · helmet headers present · `reqId` on every log · CI runs tests + drift check.
+1. **Phase 1 — Operational Floor**: Cloudflare rate-limit rules are configured and a smoke test from a non-Cloudflare IP confirms the four IP-keyed buckets reject at the documented thresholds, with the origin unreachable except via Cloudflare · SIGTERM drains gracefully · `/health/live` works without DB · helmet headers present · `reqId` on every log · CI runs tests + drift check.
 2. **Phase 2 — Async Work**: register a user with SMTP paused — response < 50ms · queue depth visible at `/metrics` · cleanup workers logged a `system.cleanup` audit row in last 24h · separate worker process running.
 3. **Phase 3 — Module Discipline**: `pnpm lint` rejects a deliberate cross-module import · `member.service.ts` no longer touches `@/db/schema/auth` · cursor pagination constant-time at page 500.
 4. **Phase 4 — Observability**: register → verify trace shows SMTP enqueue and DB transaction as sibling spans · `/metrics` returns Prometheus exposition with `audit_emit_total` and `db_pool_*` · unexpected error appears in error reporter.
 5. **Phase 5 — DB & Data Shape**: `INSERT INTO audit_logs` works · `UPDATE audit_logs` denied · all master-plan indexes present · slow queries logged.
-6. **Phase 6 — Caching & Storage**: protected request runs exactly one membership query · org-meta cache invalidated on update · export job returns `jobId` in <100ms and resolves to a signed URL within minutes · multi-instance rate-limit shares state via Redis.
+6. **Phase 6 — Caching & Storage**: protected request runs exactly one membership query · org-meta cache invalidated on update · export job returns `jobId` in <100ms and resolves to a signed URL within minutes.
 7. **Phase 7 — Security**: JWT rotation with new `kid` succeeds without forcing logouts · cookie flags verified in prod headers.
 
 If all seven sections pass, the system is at the design point of this plan.

@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/main.ts', 'src/tracing.ts'],
   format: ['esm'],
-  splitting: false,
+  splitting: true,
   platform: 'node',
   external: ['dotenv'],
   minify: true,
