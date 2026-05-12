@@ -1,5 +1,3 @@
-import { FastifyInstance } from 'fastify';
-
 import { buildApp } from './app';
 import { env } from './shared/config/env';
 import { db, pool } from './shared/database/client';
@@ -27,7 +25,9 @@ main().catch((err) => {
   logger.error(err, 'An error occurred while starting the server');
 });
 
-async function shutdown(signal: string, app: FastifyInstance) {
+type AppInstance = Awaited<ReturnType<typeof buildApp>>;
+
+async function shutdown(signal: string, app: AppInstance) {
   if (isShuttingDown) return;
   isShuttingDown = true;
 

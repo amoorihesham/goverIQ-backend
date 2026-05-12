@@ -1,13 +1,4 @@
 services:
-  mailpit:
-    image: axllent/mailpit:v1.29
-    ports:
-      - '1025:1025' # SMTP server
-      - '8025:8025' # Web UI
-    environment:
-      MP_SMTP_AUTH_ACCEPT_ANY: 1
-      MP_SMTP_AUTH_ALLOW_INSECURE: 1
-
   postgres:
     image: postgres:latest
     ports:
@@ -15,31 +6,38 @@ services:
     environment:
       POSTGRES_USER: groven
       POSTGRES_PASSWORD: groven
-      POSTGRES_DB: groven_test
+      POSTGRES_DB: groven_iq
     volumes:
       - postgres_test_data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U groven -d groven_test']
+      test: ['CMD-SHELL', 'pg_isready -U groven -d groven_iq']
       interval: 5s
       timeout: 5s
       retries: 5
-  redis:
-    image: redis:7-alpine
-    ports:
-      - '6379:6379'
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
-      retries: 5
 
-  worker:
-    build: .
-    env_file:
-      - .env.production
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - '16686:16686' # Jaeger UI
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP ← your app sends traces here
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - '3001:3000' # avoid clash with Next.js on 3000
     environment:
-      - REDIS_URL=redis://redis:6379
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
-      - redis
+      - prometheus
+      - jaeger
 
 volumes:
   postgres_test_data:
