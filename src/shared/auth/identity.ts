@@ -1,13 +1,13 @@
 import type { FastifyRequest, preHandlerHookHandler } from 'fastify';
 
-import { verifyAccessToken } from './jwt';
-
 import { AppError } from '@/shared/errors/http-error';
+import { verifyToken } from './jwt';
+import { env } from '../config/env';
 
 export const identityRequired: preHandlerHookHandler = async (request: FastifyRequest) => {
   const accessToken = request.cookies['access_token'];
   if (!accessToken) throw AppError.unauthorized();
 
-  const payload = await verifyAccessToken(accessToken);
-  request.user = { userId: payload.sub, email: payload.email };
+  const payload = await verifyToken(accessToken, env.JWT_ACCESS_SECRET);
+  request.user = { userId: payload.userId, email: payload.email };
 };

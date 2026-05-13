@@ -1,43 +1,24 @@
 import jwt from 'jsonwebtoken';
 
-import { env } from '../config/env';
-
 import { AppError } from '@/shared/errors/http-error';
 
-export interface AccessTokenPayload {
-  sub: string;
+export interface TokenPayload {
+  userId: string;
   email: string;
 }
 
-function getSecret(secret?: string): string {
-  if (secret) return secret;
-  return env.JWT_SECRET;
-}
-
-export async function signAccessToken(
-  payload: AccessTokenPayload,
-  secret?: string,
-  expiresInSeconds?: number,
-): Promise<string> {
-  return jwt.sign(payload, secret ?? env.JWT_SECRET, {
-    expiresIn: expiresInSeconds ?? env.ACCESS_TTL_SECONDS,
+export async function signToken(payload: TokenPayload, secret: string, expiresInSeconds: number): Promise<string> {
+  return jwt.sign(payload, secret, {
+    expiresIn: expiresInSeconds,
   });
 }
 
-export async function verifyAccessToken(
-  token: string,
-  secret?: string,
-): Promise<AccessTokenPayload> {
+export async function verifyToken(token: string, secret: string): Promise<TokenPayload> {
   try {
-    const decoded = jwt.verify(token, getSecret(secret));
-    if (typeof decoded === 'string' || typeof decoded.sub !== 'string') {
-      throw AppError.invalidToken();
-    }
-    const email = (decoded as jwt.JwtPayload).email;
-    if (typeof email !== 'string') {
-      throw AppError.invalidToken();
-    }
-    return { sub: decoded.sub, email };
+    const decoded = jwt.verify(token, secret);
+    if (typeof decoded === 'string' || !('userId' in decoded) || !('email' in decoded)) throw AppError.invalidToken();
+
+    return { userId: decoded.userId!, email: decoded.email! };
   } catch (err) {
     if (err instanceof AppError) throw err;
     if (err instanceof jwt.TokenExpiredError) throw AppError.tokenExpired();
