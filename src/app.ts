@@ -27,19 +27,18 @@ export async function buildApp() {
   await fastify.setSerializerCompiler(serializerCompiler);
 
   await fastify.register(import('@fastify/helmet'), {
-    hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
+    hsts: { maxAge: env.HELMET_HSTS_MAX_AGE, includeSubDomains: true, preload: true },
     frameguard: { action: 'deny' },
     referrerPolicy: { policy: 'no-referrer' },
     noSniff: true,
   });
-  await fastify.register(fastifyCookie, {
-    secret: env.COOKIE_SECRET,
-    hook: 'onRequest',
-  });
+
+  await fastify.register(fastifyCookie);
 
   fastify.setErrorHandler(createErrorHandler(fastify));
 
   await fastify.register(notificationPlugin);
+
   await fastify.register(
     async (instance) => {
       await instance.register(registerHealthPlugin);

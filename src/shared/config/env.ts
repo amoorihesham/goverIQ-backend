@@ -13,6 +13,7 @@ const envSchema = z.object({
 
   // SERVER CONFIG
   APP_BASE_URL: z.url(),
+  HELMET_HSTS_MAX_AGE: z.coerce.number().int().positive(),
   MAX_BODY_LIMIT: z.coerce.number(),
 
   // DATABASE CONFIG

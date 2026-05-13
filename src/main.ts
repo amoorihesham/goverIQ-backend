@@ -5,11 +5,12 @@ import { runMigrations } from './shared/database/migrate';
 import { shutdownErrorReporter } from './shared/errors/reporter';
 import { logger } from './shared/logger';
 
+type AppInstance = Awaited<ReturnType<typeof buildApp>>;
+
 let isShuttingDown = false;
 
 async function main() {
   logger.info('Initializing Database Connection...');
-
   logger.info('Running database migrations...');
   await runMigrations(db);
 
@@ -25,8 +26,6 @@ async function main() {
 main().catch((err) => {
   logger.error(err, 'An error occurred while starting the server');
 });
-
-type AppInstance = Awaited<ReturnType<typeof buildApp>>;
 
 async function shutdown(signal: string, app: AppInstance) {
   if (isShuttingDown) return;
