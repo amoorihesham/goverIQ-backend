@@ -41,16 +41,16 @@ export const createAuthController = (db: DatabaseClient, dispatcher: Notificatio
     login: async (request: FastifyRequest<{ Body: LoginRequestType }>, reply: FastifyReply) => {
       const { reqId } = contextFromRequest(request);
       const session = await service.login(request.body, reqId);
-      setTokenCookie(reply, CONFIGURATIONS.REFRESH_TOKEN_COOKIE_NAME, session.refreshToken);
-      setTokenCookie(reply, CONFIGURATIONS.ACCESS_TOKEN_COOKIE_NAME, session.accessToken);
+      setTokenCookie(reply, CONFIGURATIONS.REFRESH_TOKEN_COOKIE_NAME, session.refreshToken, '/api/v1/auth');
+      setTokenCookie(reply, CONFIGURATIONS.ACCESS_TOKEN_COOKIE_NAME, session.accessToken, '/api/v1');
       return reply.status(200).send(success({ ...session.user, accessToken: session.accessToken }));
     },
 
     refresh: async (request: FastifyRequest, reply: FastifyReply) => {
       const refreshToken = request.cookies?.['refresh_token'];
       const session = await service.refresh(refreshToken!);
-      setTokenCookie(reply, CONFIGURATIONS.REFRESH_TOKEN_COOKIE_NAME, session.refreshToken);
-      setTokenCookie(reply, CONFIGURATIONS.ACCESS_TOKEN_COOKIE_NAME, session.accessToken);
+      setTokenCookie(reply, CONFIGURATIONS.REFRESH_TOKEN_COOKIE_NAME, session.refreshToken, '/api/v1/auth');
+      setTokenCookie(reply, CONFIGURATIONS.ACCESS_TOKEN_COOKIE_NAME, session.accessToken, '/api/v1');
       return reply.status(200).send(success({ ...session.user, accessToken: session.accessToken }));
     },
 

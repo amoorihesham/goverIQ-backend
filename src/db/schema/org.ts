@@ -1,6 +1,7 @@
 import { pgTable, uuid, text, numeric, boolean, timestamp, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 import { users } from './auth';
+import { relations } from 'drizzle-orm';
 
 export const onboardingStepEnum = pgEnum('onboarding_step', ['PENDING_ROLES', 'PENDING_INVITES', 'COMPLETE']);
 
@@ -87,3 +88,26 @@ export const invitations = pgTable(
     orgEmailIdx: index('invitations_org_email_idx').on(table.orgId, table.email),
   }),
 );
+
+export const rolesRelations = relations(roles, ({ one, many }) => ({
+  org: one(organizations, {
+    fields: [roles.orgId],
+    references: [organizations.id],
+  }),
+  memberships: many(memberships),
+}));
+
+export const membershipsRelations = relations(memberships, ({ one }) => ({
+  user: one(users, {
+    fields: [memberships.userId],
+    references: [users.id],
+  }),
+  org: one(organizations, {
+    fields: [memberships.orgId],
+    references: [organizations.id],
+  }),
+  role: one(roles, {
+    fields: [memberships.roleId],
+    references: [roles.id],
+  }),
+}));

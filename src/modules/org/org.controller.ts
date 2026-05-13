@@ -10,12 +10,14 @@ import {
 import { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
+import { logger } from '@/shared/logger';
 
 export const organizationController = (db: DatabaseClient) => {
   const orgService = organizationService(db);
   return {
     async getOrg(request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>, reply: FastifyReply) {
       const { orgId, userId } = contextFromRequest(request);
+
       const org = await orgService.getOrg(userId!, orgId!);
       return reply.status(200).send(
         success({
@@ -70,7 +72,7 @@ export const organizationController = (db: DatabaseClient) => {
     async archiveOrg(request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>, reply: FastifyReply) {
       const { orgId, reqId, userId } = contextFromRequest(request);
       await orgService.archiveOrg(userId!, orgId!, reqId);
-      return reply.status(200).send({ message: 'Organization deleted successfully.' });
+      return reply.status(200).send(success({ message: 'Organization deleted successfully.' }));
     },
   };
 };

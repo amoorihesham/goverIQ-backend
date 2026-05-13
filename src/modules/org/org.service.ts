@@ -15,12 +15,12 @@ export function organizationService(db: DatabaseClient) {
     async getOrg(userId: string, orgId: string) {
       const [membership, org] = await Promise.all([
         db.query.memberships.findFirst({
-          where: and(eq(organizations.id, orgId), eq(memberships.userId, userId)),
+          where: (f, { and, eq }) => and(eq(f.orgId, orgId), eq(f.userId, userId)),
           with: { role: true },
         }),
 
         db.query.organizations.findFirst({
-          where: eq(organizations.id, orgId),
+          where: (f, { eq }) => eq(f.id, orgId),
         }),
       ]);
 
@@ -174,7 +174,7 @@ export function organizationService(db: DatabaseClient) {
         });
 
         if (!org) throw AppError.notFound('Organization not found');
-
+        if (org.archivedAt) throw AppError.orgArchived('Organization already deleted.');
         await tx.update(organizations).set({ archivedAt: new Date() }).where(eq(organizations.id, orgId)).returning();
 
         await emitAudit(tx, {

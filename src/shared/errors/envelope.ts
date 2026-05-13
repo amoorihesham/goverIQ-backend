@@ -46,12 +46,19 @@ export function failure(err: AppError): FailureEnvelope {
   };
 }
 
-function isValidationError(err: FastifyError | Error): err is FastifyError {
-  return typeof (err as FastifyError).validation !== 'undefined' && Array.isArray((err as FastifyError).validation);
+const FASTIFY_CLIENT_ERROR_CODES = new Set([
+  'FST_ERR_CTP_EMPTY_JSON_BODY',
+  'FST_ERR_CTP_INVALID_MEDIA_TYPE',
+  'FST_ERR_CTP_INVALID_CONTENT_LENGTH',
+]);
+
+function isFastifyError(err: FastifyError | Error) {
+  return FASTIFY_CLIENT_ERROR_CODES.has((err as FastifyError).code);
+}
+function isValidationError(err: FastifyError | Error) {
+  return (err as FastifyError).validation && Array.isArray((err as FastifyError).validation);
 }
 
-// Maps PostgreSQL unique-constraint names to domain errors.
-// Add an entry here whenever a new unique index is added to the schema.
 const UNIQUE_CONSTRAINT_MAP: Record<string, () => AppError> = {
   users_email_idx: () => AppError.duplicateEmail(),
 };
@@ -63,6 +70,11 @@ export function createErrorHandler(fastify: LoggerHolder) {
     }
 
     if (isValidationError(err)) {
+      const appErr = AppError.validationError(err.message);
+      return reply.status(appErr.statusCode).send(failure(appErr));
+    }
+
+    if (isFastifyError(err)) {
       const appErr = AppError.validationError(err.message);
       return reply.status(appErr.statusCode).send(failure(appErr));
     }

@@ -2,12 +2,12 @@ import { FastifyReply } from 'fastify';
 
 import { env } from '../config/env';
 
-export const setTokenCookie = (reply: FastifyReply, cookieName: string, token: string) => {
+export const setTokenCookie = (reply: FastifyReply, cookieName: string, token: string, path?: string) => {
   reply.setCookie(cookieName, token, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
     sameSite: 'strict',
-    path: '/api/v1/auth',
+    path: path ? path : '/api/v1',
   });
 };
 
