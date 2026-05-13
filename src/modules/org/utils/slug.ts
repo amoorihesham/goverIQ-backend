@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import { CONFIGURATIONS } from '../constants';
 
@@ -19,14 +19,18 @@ export async function checkSlugExist(tx: Tx, slug: string) {
 }
 
 export async function ensureUniqueSlug(tx: Tx, base: string): Promise<string> {
+  await tx.execute(
+    sql`SELECT pg_advisory_xact_lock(${CONFIGURATIONS.SLUG_LOCK_NAMESPACE}::int, hashtext(${base})::int)`,
+  );
+
   const exists = await checkSlugExist(tx, base);
-  if (exists) return base;
+  if (!exists) return base;
 
   for (let i = 2; i <= CONFIGURATIONS.SLUG_MAX_SUFFIX_ATTEMPTS + 1; i++) {
     const candidate = `${base}-${i}`;
     const existsCandidate = await checkSlugExist(tx, candidate);
 
-    if (existsCandidate) return candidate;
+    if (!existsCandidate) return candidate;
   }
 
   const randomSuffix = randomBytes(CONFIGURATIONS.SLUG_FALLBACK_RANDOM_BYTES).toString('hex');

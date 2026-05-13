@@ -7,52 +7,52 @@ import { createOrganizationSchema, getOrganizationSchema, updateOrganizationSche
 import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
 import { requirePermission } from '@/shared/permissions/guard';
-import { requireOnboardingStep } from '@/shared/http/pre-handlers/on-boarding';
+import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
 
 export async function orgRoutes(fastify: FastifyInstance) {
   const controller = organizationController(db);
 
-  fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/',
-    {
-      preHandler: identityRequired,
-      schema: createOrganizationSchema,
-    },
-    controller.create,
-  );
-
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/:orgId',
     {
-      preHandler: [identityRequired, requireOnboardingStep('always')],
       schema: getOrganizationSchema,
+      preHandler: [identityRequired, attachOrgId, requirePermission('org:read')],
     },
     controller.getOrg,
   );
 
-  fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/:orgId/onboarding',
+  fastify.withTypeProvider<ZodTypeProvider>().post(
+    '/',
     {
-      preHandler: [identityRequired, requireOnboardingStep('always')],
-      schema: getOrganizationSchema,
+      schema: createOrganizationSchema,
+      preHandler: [identityRequired],
     },
-    controller.getOnboardingStep,
+    controller.create,
   );
 
-  fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/:orgId/onboarding/skip',
-    {
-      schema: getOrganizationSchema,
-      preHandler: [identityRequired, requireOnboardingStep('invitation'), requirePermission('org:update')],
-    },
-    controller.skipOnboarding,
-  );
+  // fastify.withTypeProvider<ZodTypeProvider>().get(
+  //   '/:orgId/onboarding',
+  //   {
+  //     preHandler: [identityRequired, requireOnboardingStep('always')],
+  //     schema: getOrganizationSchema,
+  //   },
+  //   controller.getOnboardingStep,
+  // );
+
+  // fastify.withTypeProvider<ZodTypeProvider>().post(
+  //   '/:orgId/onboarding/skip',
+  //   {
+  //     schema: getOrganizationSchema,
+  //     preHandler: [identityRequired, requireOnboardingStep('invitation'), requirePermission('org:update')],
+  //   },
+  //   controller.skipOnboarding,
+  // );
 
   fastify.withTypeProvider<ZodTypeProvider>().patch(
     '/:orgId',
     {
       schema: updateOrganizationSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('org:update')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('org:update')],
     },
     controller.updateOrg,
   );
@@ -61,7 +61,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
     '/:orgId',
     {
       schema: getOrganizationSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('org:archive')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('org:archive')],
     },
     controller.archiveOrg,
   );

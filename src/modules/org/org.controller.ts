@@ -14,21 +14,22 @@ import { contextFromRequest } from '@/shared/http/context';
 export const organizationController = (db: DatabaseClient) => {
   const orgService = organizationService(db);
   return {
-    create: async (request: FastifyRequest<{ Body: CreateOrganizationRequestType }>, reply: FastifyReply) => {
-      const { userId, reqId } = contextFromRequest(request);
-      const org = await orgService.createOrg(userId!, reqId, request.body);
-      return reply.code(201).send(success({ data: org }));
-    },
-
     async getOrg(request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>, reply: FastifyReply) {
       const { orgId, userId } = contextFromRequest(request);
       const org = await orgService.getOrg(userId!, orgId!);
       return reply.status(200).send(
         success({
+          message: 'Organization retrived successfully.',
           data: org,
         }),
       );
     },
+    create: async (request: FastifyRequest<{ Body: CreateOrganizationRequestType }>, reply: FastifyReply) => {
+      const { userId, reqId } = contextFromRequest(request);
+      const org = await orgService.createOrg(userId!, reqId, request.body);
+      return reply.code(201).send(success({ data: org, message: 'Organization created successfully.' }));
+    },
+
     async getOnboardingStep(request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>, reply: FastifyReply) {
       const { orgId, userId } = contextFromRequest(request);
       const step = await orgService.getOnboardingStep(userId!, orgId!);
@@ -60,6 +61,7 @@ export const organizationController = (db: DatabaseClient) => {
       const org = await orgService.updateOrg(userId!, orgId!, reqId!, request.body);
       return reply.status(201).send(
         success({
+          message: 'Organization updated successfully.',
           data: org,
         }),
       );
@@ -68,7 +70,7 @@ export const organizationController = (db: DatabaseClient) => {
     async archiveOrg(request: FastifyRequest<{ Params: OrganizationIdParamRequestType }>, reply: FastifyReply) {
       const { orgId, reqId, userId } = contextFromRequest(request);
       await orgService.archiveOrg(userId!, orgId!, reqId);
-      return reply.status(200).send();
+      return reply.status(200).send({ message: 'Organization deleted successfully.' });
     },
   };
 };

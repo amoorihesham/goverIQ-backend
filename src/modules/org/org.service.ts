@@ -12,6 +12,25 @@ import { ALL_PERMISSIONS } from '@/shared/permissions/set';
 
 export function organizationService(db: DatabaseClient) {
   return {
+    async getOrg(userId: string, orgId: string) {
+      const [membership, org] = await Promise.all([
+        db.query.memberships.findFirst({
+          where: and(eq(organizations.id, orgId), eq(memberships.userId, userId)),
+          with: { role: true },
+        }),
+
+        db.query.organizations.findFirst({
+          where: eq(organizations.id, orgId),
+        }),
+      ]);
+
+      if (!membership || !org)
+        throw AppError.notFound(!membership ? 'Not a member of this organization' : 'Organization not found');
+
+      if (org.archivedAt) throw AppError.orgArchived();
+
+      return org;
+    },
     async createOrg(userId: string, reqId: string, body: CreateOrganizationRequestType) {
       const existing = await db.query.organizations.findFirst({
         where: eq(organizations.name, body.name),
@@ -65,26 +84,6 @@ export function organizationService(db: DatabaseClient) {
 
         return org;
       });
-    },
-
-    async getOrg(userId: string, orgId: string) {
-      const [membership, org] = await Promise.all([
-        db.query.memberships.findFirst({
-          where: and(eq(organizations.id, orgId), eq(memberships.userId, userId)),
-          with: { role: true },
-        }),
-
-        db.query.organizations.findFirst({
-          where: eq(organizations.id, orgId),
-        }),
-      ]);
-
-      if (!membership || !org)
-        throw AppError.notFound(!membership ? 'Not a member of this organization' : 'Organization not found');
-
-      if (org.archivedAt) throw AppError.orgArchived();
-
-      return org;
     },
 
     async getOnboardingStep(userId: string, orgId: string) {
