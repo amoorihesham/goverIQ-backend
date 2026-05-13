@@ -6,6 +6,7 @@ import { reportError } from './reporter';
 
 import { getConstraintName, isUniqueViolation } from '@/shared/database/errors';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { JsonWebTokenError } from 'jsonwebtoken';
 
 type LoggerHolder = {
   log: Logger;
@@ -72,6 +73,17 @@ export function createErrorHandler(fastify: LoggerHolder) {
       const appErr = factory?.() ?? AppError.conflict();
       return reply.status(appErr.statusCode).send(failure(appErr));
     }
+
+    if (err instanceof JsonWebTokenError) {
+      if (err.message === 'jwt expired') {
+        const appErr = AppError.create('INVALID_TOKEN');
+        reply.status(appErr.statusCode).send(failure(appErr));
+      } else if (err.message === 'invalid signature') {
+        const appErr = AppError.create('INVALID_TOKEN');
+        reply.status(appErr.statusCode).send(failure(appErr));
+      }
+    }
+
     const span = trace.getActiveSpan();
     reportError(err, {
       reqId: request.id,

@@ -11,7 +11,5 @@ export const PERMISSIONS = {
 
 export const ALL_PERMISSIONS = Object.values(PERMISSIONS).flat();
 
-export type PermissionKey = (typeof ALL_PERMISSIONS)[number];
-
 Object.freeze(PERMISSIONS);
 Object.freeze(ALL_PERMISSIONS);
