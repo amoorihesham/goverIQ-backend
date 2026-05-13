@@ -1,5 +1,7 @@
-import dotenv from 'dotenv';
 import { z } from 'zod';
+
+import { config } from 'dotenv';
+config({ path: `.env.${process.env.NODE_ENV}` });
 
 const envSchema = z.object({
   // ENVIRONMENT
@@ -26,20 +28,8 @@ const envSchema = z.object({
   QUEUE_BACKEND: z.string().default('redis'),
 
   // JWT CONFIG
-  JWT_ACCESS_SECRET: z
-    .string()
-    .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters long')
-    .max(32, 'JWT_ACCESS_SECRET must be at most 32 characters long'),
-  JWT_REFRESH_SECRET: z
-    .string()
-    .min(64, 'JWT_REFRESH_SECRET must be at least 64 characters long')
-    .max(64, 'JWT_REFRESH_SECRET must be at most 64 characters long'),
-  ACCESS_TOKEN_EXPIRATION_SECONDS: z.coerce.number().int().positive(),
-  REFRESH_TOKEN_EXPIRATION_SECONDS: z.coerce.number().int().positive(),
-  ACCESS_TOKEN_COOKIE_NAME: z.string().default('access_token'),
-  REFRESH_TOKEN_COOKIE_NAME: z.string().default('refresh_token'),
-  OTP_TTL_SECONDS: z.coerce.number().int().positive(),
-  OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive(),
+  JWT_ACCESS_SECRET: z.string(),
+  JWT_REFRESH_SECRET: z.string(),
 
   // SMTP CONFIG
   SMTP_HOST: z.string(),

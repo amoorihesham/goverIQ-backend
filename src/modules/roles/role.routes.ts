@@ -7,67 +7,68 @@ import { requirePermission } from '@/shared/permissions/guard';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
   createRoleRequestSchema,
-  getRoleRequestSchema,
-  listPermissionRequestSchema,
-  listRolesRequestSchema,
+  deleteRoleRequestSchema,
+  getRoleDetailsRequestSchema,
+  listPermissionsInRoleRequestSchema,
+  listRolesInOrganizationRequestSchema,
   updateRoleRequestSchema,
 } from './schemas/zod';
 import { db } from '@/shared/database/client';
-import { requireOnboardingStep } from '@/shared/http/pre-handlers/on-boarding';
+import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
 
 export async function roleRoutes(fastify: FastifyInstance) {
   const controller = createRoleController(db);
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/orgs/:orgId/roles/permissions',
+    '/org/:orgId',
     {
-      schema: listPermissionRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('role_creation')],
-    },
-    controller.listPermissions,
-  );
-
-  fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/orgs/:orgId/roles',
-    {
-      schema: createRoleRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('role_creation'), requirePermission('role:create')],
-    },
-    controller.createRole,
-  );
-
-  fastify.withTypeProvider<ZodTypeProvider>().get<{ Params: { orgId: string } }>(
-    '/orgs/:orgId/roles',
-    {
-      schema: listRolesRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('invitation')],
+      schema: listRolesInOrganizationRequestSchema,
+      preHandler: [identityRequired, attachOrgId, requirePermission('role:read')],
     },
     controller.listRoles,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/orgs/:orgId/roles/:roleId',
+    '/:roleId/org/:orgId',
     {
-      schema: getRoleRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('invitation')],
+      schema: getRoleDetailsRequestSchema,
+      preHandler: [identityRequired, requirePermission('role:read')],
     },
-    controller.getRole,
+    controller.getRoleDetails,
+  );
+
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    '/:roleId/org/:orgId/permissions',
+    {
+      schema: listPermissionsInRoleRequestSchema,
+      preHandler: [identityRequired, requirePermission('role:read')],
+    },
+    controller.listPermissions,
+  );
+
+  fastify.withTypeProvider<ZodTypeProvider>().post(
+    '/org/:orgId',
+    {
+      schema: createRoleRequestSchema,
+      preHandler: [identityRequired, requirePermission('role:create')],
+    },
+    controller.createRole,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().patch(
-    '/orgs/:orgId/roles/:roleId',
+    '/:roleId/org/:orgId',
     {
       schema: updateRoleRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('role:update')],
+      preHandler: [identityRequired, requirePermission('role:update')],
     },
     controller.updateRole,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().delete(
-    '/orgs/:orgId/roles/:roleId',
+    '/:roleId/org/:orgId',
     {
-      schema: getRoleRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('role:delete')],
+      schema: deleteRoleRequestSchema,
+      preHandler: [identityRequired, requirePermission('role:delete')],
     },
     controller.deleteRole,
   );

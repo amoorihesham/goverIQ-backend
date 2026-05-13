@@ -8,15 +8,10 @@ import { emitAudit } from '@/shared/audit/emitter';
 import { withTx } from '@/shared/database/transaction';
 import { AppError } from '@/shared/errors/http-error';
 import { DatabaseClient } from '@/shared/database/types';
-import { ALL_PERMISSIONS } from '@/shared/permissions/set';
 import { CreateRoleRequestBody, UpdateRoleRequestBody } from './types/requests';
 
 export const createRoleService = (db: DatabaseClient) => {
   return {
-    async listPermissions() {
-      return ALL_PERMISSIONS;
-    },
-
     async listRoles(userId: string, orgId: string) {
       const membership = await db.query.memberships.findFirst({
         where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
@@ -27,6 +22,24 @@ export const createRoleService = (db: DatabaseClient) => {
       return await db.query.roles.findMany({
         where: eq(roles.orgId, orgId),
       });
+    },
+    async getRole(userId: string, orgId: string, roleId: string) {
+      const membership = await db.query.memberships.findFirst({
+        where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
+      });
+
+      if (!membership) throw AppError.forbidden('Not a member of this organization');
+
+      const role = await db.query.roles.findFirst({
+        where: and(eq(roles.orgId, orgId), eq(roles.id, roleId)),
+      });
+      if (!role) throw AppError.notFound('Role not found');
+
+      return role;
+    },
+    async listPermissions(userId: string, orgId: string, roleId: string) {
+      const role = await this.getRole(userId, orgId, roleId);
+      return role.permissions;
     },
 
     async createRole(userId: string, orgId: string, reqId: string, body: CreateRoleRequestBody) {
@@ -41,7 +54,7 @@ export const createRoleService = (db: DatabaseClient) => {
         const callerPermissions = (membership.role as any)?.permissions || [];
         const isOwner = (membership.role as any)?.isOwner ?? false;
 
-        if (!isOwner && callerPermissions.length > 0) assertNoPrivilegeEscalation(callerPermissions, body.permissions);
+        if (!isOwner) assertNoPrivilegeEscalation(callerPermissions, body.permissions);
 
         const [role] = await tx
           .insert(roles)
@@ -49,7 +62,7 @@ export const createRoleService = (db: DatabaseClient) => {
             orgId: orgId,
             name: body.name,
             permissions: body.permissions,
-            isOwner: isOwner ?? false,
+            isOwner: false,
           })
           .returning();
 
@@ -80,21 +93,6 @@ export const createRoleService = (db: DatabaseClient) => {
       });
     },
 
-    async getRole(userId: string, orgId: string, roleId: string) {
-      const membership = await db.query.memberships.findFirst({
-        where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
-      });
-
-      if (!membership) throw AppError.forbidden('Not a member of this organization');
-
-      const role = await db.query.roles.findFirst({
-        where: and(eq(roles.orgId, orgId), eq(roles.id, roleId)),
-      });
-      if (!role) throw AppError.notFound('Role not found');
-
-      return role;
-    },
-
     async updateRole(userId: string, orgId: string, roleId: string, reqId: string, body: UpdateRoleRequestBody) {
       return await withTx(async (tx) => {
         const membership = await tx.query.memberships.findFirst({
@@ -114,8 +112,7 @@ export const createRoleService = (db: DatabaseClient) => {
 
         if (role.isOwner) throw AppError.forbidden('Owner role cannot be modified');
 
-        // Check privilege escalation on permission changes
-        if (body.permissions && !isOwner && callerPermissions.length > 0) {
+        if (body.permissions && !isOwner) {
           assertNoPrivilegeEscalation(callerPermissions, body.permissions);
         }
 
@@ -150,14 +147,21 @@ export const createRoleService = (db: DatabaseClient) => {
       return await withTx(async (tx) => {
         const membership = await tx.query.memberships.findFirst({
           where: (m, { and, eq }) => and(eq(m.userId, userId), eq(m.orgId, orgId)),
+          with: { role: true },
         });
 
         if (!membership) throw AppError.forbidden('Not a member of this organization');
+
+        const callerPermissions = (membership.role as any)?.permissions || [];
+        const isOwner = (membership.role as any)?.isOwner ?? false;
 
         const role = await tx.query.roles.findFirst({
           where: and(eq(roles.orgId, orgId), eq(roles.id, roleId)),
         });
         if (!role) throw AppError.notFound('Role not found');
+
+        if (role.isOwner) throw AppError.forbidden('Owner role cannot be deleted');
+        if (!isOwner) assertNoPrivilegeEscalation(callerPermissions, role.permissions);
 
         const hasMembers = await tx.query.memberships.findFirst({ where: eq(memberships.roleId, roleId) });
         if (hasMembers) throw AppError.roleInUse();

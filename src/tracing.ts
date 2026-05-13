@@ -8,9 +8,6 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 import { FastifyOtelInstrumentation } from '@fastify/otel';
 import { logger } from '@sentry/node';
 import { initErrorReporter } from './shared/errors/reporter';
-import { configDotenv } from 'dotenv';
-
-configDotenv({ path: `.env.${process.env.NODE_ENV}` });
 
 initErrorReporter({
   dsn: env.SENTRY_DSN,

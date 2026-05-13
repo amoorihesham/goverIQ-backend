@@ -28,3 +28,11 @@ export const loginRequestSchema = {
     password: string().min(CONFIGURATIONS.PASSWORD_MIN_LENGTH).max(100),
   }),
 };
+
+export const refreshRequestSchema = {
+  headers: object({
+    cookie: object({
+      refresh_token: string(),
+    }),
+  }),
+};

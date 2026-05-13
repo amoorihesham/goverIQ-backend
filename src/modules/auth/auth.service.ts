@@ -7,37 +7,37 @@ import { generateRefreshTokenCleartext, hashRefreshToken, parseUserIdFromClearte
 
 import { emailVerifications, refreshTokens, users } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';
-import { signAccessToken } from '@/shared/auth/jwt';
 import { env } from '@/shared/config/env';
 import type { Tx } from '@/shared/database/transaction';
 import type { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
 import type { NotificationDispatcher } from '@/shared/notifications/dispatcher';
-
-export interface SessionResult {
-  accessToken: string;
-  refreshTokenCleartext: string;
-}
+import { CONFIGURATIONS } from './constants';
+import { signToken, verifyToken } from '@/shared/auth/jwt';
+import { toUserResponseDto } from './dtos/resposne';
 
 export function createAuthService(db: DatabaseClient, dispatcher: NotificationDispatcher) {
-  async function issueSessionWithinTx(tx: Tx, user: { id: string; email: string }): Promise<SessionResult> {
-    const refreshTokenCleartext = generateRefreshTokenCleartext(user.id);
-    const tokenHash = hashRefreshToken(refreshTokenCleartext);
+  async function issueSessionWithinTx(tx: Tx, user: { id: string; email: string }) {
+    const refreshToken = await signToken(
+      { userId: user.id, email: user.email },
+      env.JWT_REFRESH_SECRET,
+      CONFIGURATIONS.REFRESH_TTL_SECONDS,
+    );
 
     await tx.delete(refreshTokens).where(eq(refreshTokens.userId, user.id));
     await tx.insert(refreshTokens).values({
       userId: user.id,
-      tokenHash,
-      expiresAt: new Date(Date.now() + env.REFRESH_TTL_SECONDS * 1000),
+      tokenHash: refreshToken,
+      expiresAt: new Date(Date.now() + CONFIGURATIONS.REFRESH_TTL_SECONDS * 1000),
     });
 
-    const accessToken = await signAccessToken(
-      { sub: user.id, email: user.email },
-      env.JWT_SECRET,
-      env.ACCESS_TTL_SECONDS,
+    const accessToken = await signToken(
+      { userId: user.id, email: user.email },
+      env.JWT_ACCESS_SECRET,
+      CONFIGURATIONS.ACCESS_TTL_SECONDS,
     );
 
-    return { accessToken, refreshTokenCleartext };
+    return { accessToken, refreshToken };
   }
 
   return {
@@ -66,7 +66,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
         await tx.insert(emailVerifications).values({
           userId: createdUser!.id,
           otpHash,
-          expiresAt: new Date(Date.now() + env.OTP_TTL_MS),
+          expiresAt: new Date(Date.now() + CONFIGURATIONS.OTP_TTL_SECONDS * 1000),
           lastSentAt: new Date(),
         });
 
@@ -82,11 +82,11 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
 
       dispatcher.enqueue('email-verification', input.email, {
         otp: code,
-        expiresInMinutes: Math.round(env.OTP_TTL_MS / 1000 / 60),
+        expiresInMinutes: Math.round(CONFIGURATIONS.OTP_TTL_SECONDS / 60),
       });
     },
 
-    async verifyEmail(input: VerifyRequestType, reqId: string): Promise<SessionResult> {
+    async verifyEmail(input: VerifyRequestType, reqId: string): Promise<void> {
       return db.transaction(async (tx: Tx) => {
         const user = await tx.query.users.findFirst({
           where: eq(users.email, input.email),
@@ -108,8 +108,6 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
         await tx.update(users).set({ isVerified: true }).where(eq(users.id, user.id));
         await tx.delete(emailVerifications).where(eq(emailVerifications.userId, user.id));
 
-        const session = await issueSessionWithinTx(tx as unknown as Tx, user);
-
         await emitAudit(tx, {
           entityType: 'user',
           event: 'user.verified',
@@ -118,26 +116,19 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
           payload: { data: { email: user.email }, reqId },
           orgId: null,
         });
-
-        return session;
       });
     },
 
-    async login(input: LoginRequestType, reqId: string): Promise<SessionResult> {
+    async login(input: LoginRequestType, reqId: string) {
       return db.transaction(async (tx: Tx) => {
         const user = await tx.query.users.findFirst({
           where: eq(users.email, input.email),
         });
 
-        if (!user) {
-          await dummyVerifyPassword(input.password);
-          throw AppError.invalidCredentials();
-        }
+        if (!user) throw AppError.invalidCredentials();
 
         const passwordOk = await verifyPassword(input.password, user.passwordHash);
-        if (!passwordOk || !user.isVerified) {
-          throw AppError.invalidCredentials();
-        }
+        if (!passwordOk || !user.isVerified) throw AppError.invalidCredentials();
 
         const session = await issueSessionWithinTx(tx as unknown as Tx, user);
 
@@ -150,50 +141,46 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
           orgId: null,
         });
 
-        return session;
+        return { ...session, user: toUserResponseDto(user) };
       });
     },
 
-    async refresh(cleartext: string | undefined): Promise<SessionResult> {
-      if (!cleartext) throw AppError.unauthorized();
-
-      const tokenHash = hashRefreshToken(cleartext);
-      const row = await db.query.refreshTokens.findFirst({
-        where: eq(refreshTokens.tokenHash, tokenHash),
+    async refresh(refreshToken: string) {
+      const token = await db.query.refreshTokens.findFirst({
+        where: eq(refreshTokens.tokenHash, refreshToken),
       });
 
-      if (!row) {
-        const userId = parseUserIdFromCleartext(cleartext);
+      if (!token) {
+        const { userId } = await verifyToken(refreshToken, env.JWT_REFRESH_SECRET);
         if (userId) {
           await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
         }
         throw AppError.unauthorized();
       }
 
-      if (row.expiresAt < new Date()) {
-        await db.delete(refreshTokens).where(eq(refreshTokens.id, row.id));
+      if (token.expiresAt < new Date()) {
+        await db.delete(refreshTokens).where(eq(refreshTokens.id, token.id));
         throw AppError.unauthorized();
       }
 
-      const user = await db.query.users.findFirst({ where: eq(users.id, row.userId) });
+      const user = await db.query.users.findFirst({ where: eq(users.id, token.userId) });
       if (!user) {
-        await db.delete(refreshTokens).where(eq(refreshTokens.id, row.id));
+        await db.delete(refreshTokens).where(eq(refreshTokens.id, token.id));
         throw AppError.unauthorized();
       }
 
       return db.transaction(async (tx: Tx) => {
-        await tx.delete(refreshTokens).where(eq(refreshTokens.id, row.id));
-        return issueSessionWithinTx(tx, user);
+        await tx.delete(refreshTokens).where(eq(refreshTokens.id, token.id));
+        const session = await issueSessionWithinTx(tx, user);
+
+        return { ...session, user: toUserResponseDto(user) };
       });
     },
 
-    async logout(cleartext: string | undefined, reqId: string): Promise<{ deleted: boolean }> {
-      if (!cleartext) return { deleted: false };
-
+    async logout(refreshToken: string, reqId: string): Promise<{ deleted: boolean }> {
       return db.transaction(async (tx: Tx) => {
-        const tokenHash = hashRefreshToken(cleartext);
         const row = await tx.query.refreshTokens.findFirst({
-          where: eq(refreshTokens.tokenHash, tokenHash),
+          where: eq(refreshTokens.tokenHash, refreshToken),
         });
 
         if (!row) return { deleted: false };
@@ -233,7 +220,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
         if (!verification) throw AppError.otpCooldown();
 
         const secondsSinceLastSent = (Date.now() - verification.lastSentAt.getTime()) / 1000;
-        if (secondsSinceLastSent < env.OTP_RESEND_COOLDOWN_SEC) {
+        if (secondsSinceLastSent < CONFIGURATIONS.OTP_RESEND_COOLDOWN_SECONDS) {
           throw AppError.otpCooldown();
         }
 
@@ -243,7 +230,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
           .update(emailVerifications)
           .set({
             otpHash,
-            expiresAt: new Date(Date.now() + env.OTP_TTL_MS),
+            expiresAt: new Date(Date.now() + CONFIGURATIONS.OTP_TTL_SECONDS * 1000),
             lastSentAt: new Date(),
           })
           .where(and(eq(emailVerifications.userId, user.id)));
@@ -254,7 +241,7 @@ export function createAuthService(db: DatabaseClient, dispatcher: NotificationDi
       if (pendingCode) {
         dispatcher.enqueue('email-verification', input.email, {
           otp: pendingCode,
-          expiresInMinutes: env.OTP_TTL_MS / 1000 / 60,
+          expiresInMinutes: CONFIGURATIONS.OTP_TTL_SECONDS / 60,
         });
       }
     },

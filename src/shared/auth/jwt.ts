@@ -1,4 +1,4 @@
-import jwt, { JsonWebTokenError } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 import { AppError } from '@/shared/errors/http-error';
 
@@ -22,7 +22,7 @@ export async function verifyToken(token: string, secret: string): Promise<TokenP
     return { userId: decoded.userId!, email: decoded.email! };
   } catch (err) {
     if (err instanceof AppError) throw err;
-    if (err instanceof JsonWebTokenError) {
+    if (err instanceof jwt.JsonWebTokenError) {
       err.message;
     }
     // if (err instanceof jwt.TokenExpiredError) throw AppError.create('TOKEN_EXPIRED');
