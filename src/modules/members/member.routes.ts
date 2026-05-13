@@ -4,8 +4,8 @@ import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { createMemberController } from './member.controller';
 import {
   asignMemberRoleRequestSchema,
-  invitionsRequestSchema,
-  listMembersRequestSchema,
+  getMemberDetailsRequestSchema,
+  getMembersInOrganizationRequestSchema,
   removeMemberRequestSchema,
   revokeMemberRoleRequestSchema,
 } from './schemas/zod';
@@ -13,53 +13,53 @@ import {
 import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
 import { requirePermission } from '@/shared/permissions/guard';
-import { requireOnboardingStep } from '@/shared/http/pre-handlers/on-boarding';
+import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
 
 export async function memberRoutes(fastify: FastifyInstance) {
   const controller = createMemberController(db, fastify.dispatcher);
 
-  fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/invitations',
-
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    '/org/:orgId',
     {
-      schema: invitionsRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('invitation'), requirePermission('member:invite')],
+      schema: getMembersInOrganizationRequestSchema,
+      preHandler: [identityRequired, attachOrgId, requirePermission('member:read')],
     },
-    controller.sendInvitation,
+    controller.getMembersInOrganization,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/members',
+    ':memberId/org/:orgId',
     {
-      schema: listMembersRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete')],
+      schema: getMemberDetailsRequestSchema,
+      preHandler: [identityRequired, attachOrgId, requirePermission('member:read')],
     },
-    controller.listMembers,
+    controller.getMemberDetails,
   );
 
-  fastify.withTypeProvider<ZodTypeProvider>().delete(
-    '/:memberId',
-    {
-      schema: removeMemberRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('member:remove')],
-    },
-    controller.removeMember,
-  );
+  fastify.withTypeProvider<ZodTypeProvider>().patch(
+    '/:memberId/org/:orgId',
 
-  fastify.withTypeProvider<ZodTypeProvider>().put(
-    '/:memberId/role',
     {
       schema: asignMemberRoleRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('member:update_role')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('member:update_role')],
     },
     controller.assignMemberRole,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().delete(
-    '/:memberId/role',
+    '/:memberId/org/:orgId',
+    {
+      schema: removeMemberRequestSchema,
+      preHandler: [identityRequired, attachOrgId, requirePermission('member:remove')],
+    },
+    controller.removeMember,
+  );
+
+  fastify.withTypeProvider<ZodTypeProvider>().delete(
+    '/:memberId/org/:orgId/revoke-role',
     {
       schema: revokeMemberRoleRequestSchema,
-      preHandler: [identityRequired, requireOnboardingStep('complete'), requirePermission('member:update_role')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('member:update_role')],
     },
     controller.revokeMemberRole,
   );

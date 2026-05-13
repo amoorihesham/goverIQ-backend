@@ -4,17 +4,16 @@ import { membersService } from './member.service';
 import {
   AsignMemberRoleRequestBody,
   AsignMemberRoleRequestParams,
-  InviteMemberRequestBody,
-  ListMembersRequest,
-  MemberRequestWithOrgIdParam,
-  RemoveMembersRequest,
-  RevokeMemberRoleRequest,
+  GetMemberDetailsRequestParams,
+  GetMembersInOrganizationRequestParams,
+  RemoveMemberRequestParams,
+  RevokeMemberRoleRequestParams,
 } from './types/request';
 
-import { setRefreshToken } from '@/shared/auth/cookies';
 import { DatabaseClient } from '@/shared/database/types';
 import { contextFromRequest } from '@/shared/http/context';
 import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
+import { success } from '@/shared/errors/envelope';
 
 interface AcceptInvitationBody {
   password?: string;
@@ -23,63 +22,19 @@ interface AcceptInvitationBody {
 export const createMemberController = (db: DatabaseClient, dispatcher: NotificationDispatcher) => {
   const service = membersService(db, dispatcher);
   return {
-    async sendInvitation(
-      request: FastifyRequest<{ Body: InviteMemberRequestBody; Params: MemberRequestWithOrgIdParam }>,
+    async getMembersInOrganization(
+      request: FastifyRequest<{ Params: GetMembersInOrganizationRequestParams }>,
       reply: FastifyReply,
     ) {
-      const { orgId, userId, reqId } = contextFromRequest(request);
-      const invitation = await service.sendInvitation(userId!, orgId!, reqId!, request.body);
-      return reply.code(201).send({
-        success: true,
-        data: invitation,
-      });
+      const { userId, orgId } = contextFromRequest(request);
+      const result = await service.getMembersInOrganization(userId!, orgId!);
+      return reply.status(200).send(success({ message: 'Members fetched successfully.', data: result }));
     },
 
-    async acceptInvitation(request: FastifyRequest, reply: FastifyReply) {
-      const token = (request.params as { token: string }).token;
-      const { reqId } = contextFromRequest(request);
-      const body = request.body as AcceptInvitationBody | undefined;
-      const result = await service.acceptInvitation(token, reqId, body);
-
-      const response = reply.send({
-        success: true,
-        data: {
-          membership: result.membership,
-          accessToken: result.accessToken,
-        },
-      });
-
-      // Set refresh token cookie for new users
-      if (result.refreshTokenCleartext) {
-        setRefreshToken(reply, result.refreshTokenCleartext);
-      }
-
-      return response;
-    },
-
-    async declineInvitation(request: FastifyRequest, reply: FastifyReply) {
-      const token = (request.params as { token: string }).token;
-      const { reqId } = contextFromRequest(request);
-      const result = await service.declineInvitation(token, reqId);
-      return reply.send({
-        success: true,
-        data: result,
-      });
-    },
-
-    async listMembers(request: FastifyRequest<{ Params: ListMembersRequest }>, reply: FastifyReply) {
+    async getMemberDetails(request: FastifyRequest<{ Params: GetMemberDetailsRequestParams }>, reply: FastifyReply) {
       const { orgId, userId } = contextFromRequest(request);
-      const members = await service.listMembers(userId!, orgId!);
-      return reply.send({
-        success: true,
-        data: members,
-      });
-    },
-
-    async removeMember(request: FastifyRequest<{ Params: RemoveMembersRequest }>, reply: FastifyReply) {
-      const { orgId, userId, reqId } = contextFromRequest(request);
-      await service.removeMember(userId!, orgId!, request.params.memberId, reqId);
-      return reply.code(204).send();
+      const result = await service.getMemberDetails(userId!, orgId!, request.params.memberId);
+      return reply.status(200).send(success({ message: 'Member fetched successfully.', data: result }));
     },
 
     async assignMemberRole(
@@ -91,19 +46,27 @@ export const createMemberController = (db: DatabaseClient, dispatcher: Notificat
         userId!,
         orgId!,
         request.params.memberId,
-        reqId,
         request.body.roleId,
+        reqId,
       );
-      return reply.send({
-        success: true,
-        data: membership,
-      });
+      return reply.status(204).send(
+        success({
+          message: 'Role assined successfully.',
+          data: membership,
+        }),
+      );
     },
 
-    async revokeMemberRole(request: FastifyRequest<{ Params: RevokeMemberRoleRequest }>, reply: FastifyReply) {
+    async removeMember(request: FastifyRequest<{ Params: RemoveMemberRequestParams }>, reply: FastifyReply) {
       const { orgId, userId, reqId } = contextFromRequest(request);
-      await service.revokeMemberRole(userId!, orgId!, reqId, request.params.memberId);
-      return reply.code(204).send();
+      await service.removeMember(userId!, orgId!, request.params.memberId, reqId);
+      return reply.code(204).send(success({ message: 'Member deleted successfully.' }));
+    },
+
+    async revokeMemberRole(request: FastifyRequest<{ Params: RevokeMemberRoleRequestParams }>, reply: FastifyReply) {
+      const { orgId, userId, reqId } = contextFromRequest(request);
+      await service.revokeMemberRole(userId!, orgId!, request.params.memberId, reqId);
+      return reply.code(204).send(success({ message: 'Member role revoked.' }));
     },
   };
 };
