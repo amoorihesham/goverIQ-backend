@@ -58,7 +58,7 @@ The seven Non-Negotiable Principles in the master plan are constraints on every 
 
 The lowest-cost, highest-value phase. None of these violate any principle. Without them, a single misbehaving client or a single deploy can take production down.
 
-### 1.1 Rate limiting on auth routes — deploy-time (Cloudflare)
+### 1.1 Rate limiting on auth routes — deploy-time (Cloudflare)   [⌛]
 
 **Effort: ~0 codebase days · deploy configuration tracked in [docs/DEPLOY.md](DEPLOY.md)**
 
@@ -364,7 +364,7 @@ Schedule via BullMQ's `repeat` option in `worker.ts` startup.
 
 ---
 
-## Phase 3 — Module Discipline
+## Phase 3 — Module Discipline   [✅]
 
 **Effort: ~5.5 dev-days · Week 3**
 

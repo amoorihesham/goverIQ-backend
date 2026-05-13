@@ -1,10 +1,8 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-const envFilePath = `.env.${process.env.NODE_ENV}`;
-dotenv.config({ path: envFilePath });
-
 const envSchema = z.object({
+  // ENVIRONMENT
   NODE_ENV: z.enum(['development', 'production', 'test'], 'NODE_ENV must be one of development, production, or test'),
   PORT: z.coerce.number('PORT must be a number').int().positive(),
   HOST: z.string('HOST must be a valid string'),
@@ -13,36 +11,51 @@ const envSchema = z.object({
     'LOG_LEVEL must be one of debug, info, warn, error, or fatal',
   ),
 
+  // SERVER CONFIG
+  APP_BASE_URL: z.url(),
   MAX_BODY_LIMIT: z.coerce.number(),
 
+  // DATABASE CONFIG
   DATABASE_URL: z.string('DATABASE_URL must be a valid URL'),
   DATABASE_POOL_MAX_SIZE: z.coerce.number(),
   DB_SLOW_QUERY_THRESHOLD_MS: z.coerce.number().int().positive().default(200),
 
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET must be at least 32 characters'),
-  REFRESH_COOKIE_NAME: z.string('REFRESH_COOKIE_NAME must be a valid string'),
-  ACCESS_TTL_SECONDS: z.coerce.number('ACCESS_TTL_SECONDS must be a number'),
-  REFRESH_TTL_SECONDS: z.coerce.number('REFRESH_TTL_SECONDS must be a number'),
-  OTP_TTL_MS: z.coerce.number('OTP_TTL_MS must be a number'),
-  OTP_RESEND_COOLDOWN_SEC: z.coerce.number('OTP_RESEND_COOLDOWN_SEC must be a number'),
+  // REDIS & QUEUE CONFIG
+  REDIS_URL: z.url(),
+  QUEUE_BACKEND: z.string().default('redis'),
 
+  // JWT CONFIG
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters long')
+    .max(32, 'JWT_ACCESS_SECRET must be at most 32 characters long'),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(64, 'JWT_REFRESH_SECRET must be at least 64 characters long')
+    .max(64, 'JWT_REFRESH_SECRET must be at most 64 characters long'),
+  ACCESS_TOKEN_EXPIRATION_SECONDS: z.coerce.number().int().positive(),
+  REFRESH_TOKEN_EXPIRATION_SECONDS: z.coerce.number().int().positive(),
+  ACCESS_TOKEN_COOKIE_NAME: z.string().default('access_token'),
+  REFRESH_TOKEN_COOKIE_NAME: z.string().default('refresh_token'),
+  OTP_TTL_SECONDS: z.coerce.number().int().positive(),
+  OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive(),
+
+  // SMTP CONFIG
   SMTP_HOST: z.string(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string('SMTP_FROM must be a valid email'),
-  REDIS_URL: z.url(),
-  QUEUE_BACKEND: z.enum(['memory', 'redis']).default(process.env.NODE_ENV === 'production' ? 'redis' : 'memory'),
-  APP_BASE_URL: z.url(),
 
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
-  SERVICE_NAME: z.string().default('grove-iq-api'),
+  // OTEL CONFIG
+  OTEL_SERVICE_NAME: z.string().default('grove-iq'),
+  OTEL_SERVICE_VERSION: z.string().default('1.0.0'),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.url(),
 
+  // SENTRY CONFIG
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_ENVIRONMENT: z.string().optional(),
   SENTRY_RELEASE: z.string().optional(),
-  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -8,6 +8,9 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 import { FastifyOtelInstrumentation } from '@fastify/otel';
 import { logger } from '@sentry/node';
 import { initErrorReporter } from './shared/errors/reporter';
+import { configDotenv } from 'dotenv';
+
+configDotenv({ path: `.env.${process.env.NODE_ENV}` });
 
 initErrorReporter({
   dsn: env.SENTRY_DSN,
@@ -16,15 +19,15 @@ initErrorReporter({
 });
 
 const traceExporter = new OTLPTraceExporter({
-  url: env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4318/v1/traces',
+  url: env.OTEL_EXPORTER_OTLP_ENDPOINT,
 });
 
 const metricsExporter = new PrometheusExporter({ port: 9464 });
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: 'groven_iq',
-    [ATTR_SERVICE_VERSION]: '1.0.0',
+    [ATTR_SERVICE_NAME]: env.OTEL_SERVICE_NAME,
+    [ATTR_SERVICE_VERSION]: env.OTEL_SERVICE_VERSION,
   }),
   traceExporter,
   metricReader: metricsExporter,
