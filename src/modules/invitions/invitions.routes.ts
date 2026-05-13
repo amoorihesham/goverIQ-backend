@@ -10,42 +10,43 @@ import {
   getInvitationSchema,
   listInvitionsSchema,
 } from './schemas/zod';
+import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
 
 export async function invitionsRoutes(fastify: FastifyInstance) {
   const controller = invitionsController(db, fastify.dispatcher);
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/:orgId',
+    '/org/:orgId',
     {
       schema: listInvitionsSchema,
-      preHandler: [identityRequired, requirePermission('invitation:read')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('invitation:read')],
     },
     controller.listInvitions,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/:orgId/:invitationId',
+    '/:invitationId/org/:orgId',
     {
       schema: getInvitationSchema,
-      preHandler: [identityRequired, requirePermission('invitation:read')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('invitation:read')],
     },
     controller.getInvitation,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/',
+    '/org/:orgId',
     {
       schema: createInvitationSchema,
-      preHandler: [identityRequired, requirePermission('invitation:create')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('invitation:create')],
     },
     controller.createInvitation,
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().delete(
-    '/:invitationId',
+    '/:invitationId/org/:orgId',
     {
       schema: deleteInvitationSchema,
-      preHandler: [identityRequired, requirePermission('invitation:delete')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('invitation:delete')],
     },
     controller.deleteInvitation,
   );

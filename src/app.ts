@@ -10,6 +10,7 @@ import { authRoutes } from '@/modules/auth/public';
 import { memberRoutes } from '@/modules/members/public';
 import { orgRoutes } from '@/modules/org/public';
 import { roleRoutes } from '@/modules/roles/public';
+import { invitionsRoutes } from '@/modules/invitions/public';
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
 import { notificationPlugin } from '@/shared/notifications/plugin';
@@ -46,6 +47,7 @@ export async function buildApp() {
       await instance.register(orgRoutes, { prefix: '/orgs' });
       await instance.register(memberRoutes, { prefix: '/members' });
       await instance.register(roleRoutes, { prefix: '/roles' });
+      await instance.register(invitionsRoutes, { prefix: '/invitations' });
     },
     { prefix: '/api/v1' },
   );

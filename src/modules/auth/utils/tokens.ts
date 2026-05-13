@@ -1,7 +1,5 @@
 import { randomBytes, createHash } from 'crypto';
 
-import { CONFIGURATIONS } from '../constants';
-
 export function generateRefreshTokenCleartext(userId: string): string {
   const random = randomBytes(32).toString('hex');
   return `${userId}.${random}`;

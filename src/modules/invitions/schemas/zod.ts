@@ -14,8 +14,8 @@ export const getInvitationSchema = {
 };
 
 export const createInvitationSchema = {
+  params: object({ orgId: string() }),
   body: object({
-    orgId: string(),
     email: email(),
     roleId: string(),
   }),
@@ -24,5 +24,6 @@ export const createInvitationSchema = {
 export const deleteInvitationSchema = {
   params: object({
     invitationId: string(),
+    orgId: string(),
   }),
 };
