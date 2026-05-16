@@ -23,6 +23,10 @@ export async function authRoutes(fastify: FastifyInstance) {
     .withTypeProvider<ZodTypeProvider>()
     .post('/resend-otp', { schema: resendOtpRequestSchema }, controller.resendOtp);
   fastify.withTypeProvider<ZodTypeProvider>().post('/login', { schema: loginRequestSchema }, controller.login);
-  fastify.withTypeProvider<ZodTypeProvider>().post('/refresh', controller.refresh);
-  fastify.withTypeProvider<ZodTypeProvider>().post('/logout', controller.logout);
+  fastify
+    .withTypeProvider<ZodTypeProvider>()
+    .post('/refresh', { schema: { summary: 'Roatet the refresh token.' } }, controller.refresh);
+  fastify
+    .withTypeProvider<ZodTypeProvider>()
+    .post('/logout', { schema: { summary: 'Logout the current user.' } }, controller.logout);
 }

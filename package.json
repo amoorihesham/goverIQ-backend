@@ -16,7 +16,8 @@
     "test": "cross-env NODE_ENV=test vitest run",
     "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/shared/database/migrate.ts"
+    "db:migrate": "tsx src/shared/database/migrate.ts",
+    "gen:openapi": "cross-env NODE_ENV=development tsx src/scripts/gen-openapi.ts"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,8 @@
     "@fastify/env": "^6.0.0",
     "@fastify/helmet": "^13.0.2",
     "@fastify/otel": "^0.18.1",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.6",
     "@fastify/type-provider-zod": "^1.0.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.75.0",

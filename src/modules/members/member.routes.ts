@@ -28,7 +28,7 @@ export async function memberRoutes(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    ':memberId/org/:orgId',
+    '/:memberId/org/:orgId',
     {
       schema: getMemberDetailsRequestSchema,
       preHandler: [identityRequired, attachOrgId, requirePermission('member:read')],

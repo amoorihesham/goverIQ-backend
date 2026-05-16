@@ -1,6 +1,6 @@
 import fastifyCookie from '@fastify/cookie';
 import Fastify from 'fastify';
-import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { ulid } from 'ulid';
 
 import { env } from './shared/config/env';
@@ -36,12 +36,54 @@ export async function buildApp() {
 
   await fastify.register(fastifyCookie);
 
+  await fastify.register(import('@fastify/swagger'), {
+    openapi: {
+      info: {
+        title: 'Groven IQ API',
+        description: 'Organizations, roles, members and auth API.',
+        version: '1.0.0',
+      },
+      servers: [{ url: env.APP_BASE_URL }],
+      tags: [
+        { name: 'Health', description: 'Liveness and readiness probes' },
+        { name: 'Auth', description: 'Registration, login and token lifecycle' },
+        { name: 'Organizations', description: 'Organization CRUD' },
+        { name: 'Members', description: 'Organization membership management' },
+        { name: 'Roles', description: 'Role definition and permissions' },
+        { name: 'Invitations', description: 'Organization invitations' },
+      ],
+    },
+    transform: jsonSchemaTransform,
+  });
+
+  if (env.NODE_ENV === 'development') {
+    await fastify.register(import('@fastify/swagger-ui'), {
+      routePrefix: '/docs',
+    });
+  }
+
   fastify.setErrorHandler(createErrorHandler(fastify));
 
   await fastify.register(notificationPlugin);
 
   await fastify.register(
     async (instance) => {
+      // Group endpoints in the OpenAPI spec by module, derived from the URL prefix.
+      const tagBySegment: Record<string, string> = {
+        health: 'Health',
+        auth: 'Auth',
+        orgs: 'Organizations',
+        members: 'Members',
+        roles: 'Roles',
+        invitations: 'Invitations',
+      };
+      instance.addHook('onRoute', (route) => {
+        const segment = route.url.match(/^\/api\/v1\/([^/]+)/)?.[1];
+        const tag = segment && tagBySegment[segment];
+        if (!tag) return;
+        route.schema = { ...route.schema, tags: route.schema?.tags ?? [tag] };
+      });
+
       await instance.register(registerHealthPlugin);
       await instance.register(authRoutes, { prefix: '/auth' });
       await instance.register(orgRoutes, { prefix: '/orgs' });
