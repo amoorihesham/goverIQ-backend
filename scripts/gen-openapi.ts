@@ -1,14 +1,14 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { buildApp } from '../app';
+import { buildApp } from '../src/app';
 
 async function main() {
   const app = await buildApp();
   await app.ready();
 
   const spec = app.swagger();
-  const out = resolve(process.cwd(), 'docs/openapi.json');
+  const out = resolve(process.cwd(), 'docs/api-client.json');
 
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, JSON.stringify(spec, null, 2) + '\n');

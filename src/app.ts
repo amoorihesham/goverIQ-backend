@@ -7,10 +7,11 @@ import { env } from './shared/config/env';
 import { logger } from './shared/logger';
 
 import { authRoutes } from '@/modules/auth/public';
+import { invitionsRoutes } from '@/modules/invitions/public';
+import { meetingRoutes } from '@/modules/meetings/public';
 import { memberRoutes } from '@/modules/members/public';
 import { orgRoutes } from '@/modules/org/public';
 import { roleRoutes } from '@/modules/roles/public';
-import { invitionsRoutes } from '@/modules/invitions/public';
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
 import { notificationPlugin } from '@/shared/notifications/plugin';
@@ -51,6 +52,7 @@ export async function buildApp() {
         { name: 'Members', description: 'Organization membership management' },
         { name: 'Roles', description: 'Role definition and permissions' },
         { name: 'Invitations', description: 'Organization invitations' },
+        { name: 'Meetings', description: 'Meeting lifecycle and attendees' },
       ],
     },
     transform: jsonSchemaTransform,
@@ -76,6 +78,7 @@ export async function buildApp() {
         members: 'Members',
         roles: 'Roles',
         invitations: 'Invitations',
+        meetings: 'Meetings',
       };
       instance.addHook('onRoute', (route) => {
         const segment = route.url.match(/^\/api\/v1\/([^/]+)/)?.[1];
@@ -90,6 +93,7 @@ export async function buildApp() {
       await instance.register(memberRoutes, { prefix: '/members' });
       await instance.register(roleRoutes, { prefix: '/roles' });
       await instance.register(invitionsRoutes, { prefix: '/invitations' });
+      await instance.register(meetingRoutes, { prefix: '/meetings' });
     },
     { prefix: '/api/v1' },
   );

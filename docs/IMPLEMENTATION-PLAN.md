@@ -2,9 +2,10 @@
 
 ## GovernIQ — Organizational Governance & Meeting Intelligence Platform
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Draft
 **Date:** May 1, 2026
+**Revised:** May 16, 2026 — Phase 2 split into independent Org / Roles / Members / Invitations modules; routes, permission set, and conventions aligned with the implemented codebase.
 **Derived from:** HLD v1.0
 
 ---
@@ -93,17 +94,18 @@ Five components built once and shared across all domain modules. No domain modul
 
 **1. System Permission Set**
 
-A fixed registry of 22 permission keys across 6 domains, defined at startup. Organizations cannot add or remove entries.
+A fixed registry of 31 permission keys across 8 domains, defined at startup as the `PERMISSIONS` constant in `src/shared/permissions/set.ts`. Organizations cannot add or remove entries.
 
-| Domain       | Permissions                                                                                             |
-| ------------ | ------------------------------------------------------------------------------------------------------- |
-| Organization | `org:update`, `org:archive`                                                                             |
-| Roles        | `role:create`, `role:update`, `role:delete`, `role:assign`, `role:revoke`                               |
-| Members      | `member:invite`, `member:remove`                                                                        |
-| Meetings     | `meeting:create`, `meeting:update`, `meeting:manage_attendees`, `meeting:change_status`, `meeting:view` |
-| Voting       | `vote:create`, `vote:submit`, `vote:close`, `vote:view_results`                                         |
-| Minutes      | `minutes:create`, `minutes:edit`, `minutes:finalize`, `minutes:export`                                  |
-| Audit        | `audit:view`, `audit:export`                                                                            |
+| Domain       | Permissions                                                                          |
+| ------------ | ------------------------------------------------------------------------------------ |
+| Organization | `org:read`, `org:update`, `org:archive`                                              |
+| Roles        | `role:create`, `role:read`, `role:update`, `role:delete`                             |
+| Members      | `member:read`, `member:invite`, `member:remove`, `member:update_role`                |
+| Invitations  | `invitation:create`, `invitation:read`, `invitation:update`, `invitation:delete`     |
+| Meetings     | `meeting:create`, `meeting:read`, `meeting:update`, `meeting:cancel`, `meeting:delete` |
+| Voting       | `vote:create`, `vote:read`, `vote:open`, `vote:close`, `vote:cast_ballot`            |
+| Minutes      | `minutes:create`, `minutes:read`, `minutes:update`, `minutes:finalize`               |
+| Audit        | `audit:view`, `audit:export`                                                         |
 
 **2. Error Types & Response Envelope**
 
@@ -184,9 +186,21 @@ A request-intercepting function attached as a pre-handler to every protected rou
 
 Permission resolution happens per-request from the database. No caching. This guarantees role permission changes take effect on the very next request after they are saved.
 
+### Codebase Conventions
+
+Patterns established in Phases 0–2 that all later phases follow:
+
+- **Module layout** — each domain lives in `src/modules/<name>/` with `<name>.controller.ts`, `<name>.service.ts`, `<name>.routes.ts`, a `public.ts` barrel export, and `schemas/`, `types/`, `constants/`, `utils/` subfolders as needed.
+- **Factory functions** — controllers and services are factory functions that receive their dependencies (`db`, and `dispatcher` where notifications are sent), e.g. `createMemberController(db, dispatcher)`. No global singletons inside modules.
+- **HTTP framework** — Fastify, with `fastify-type-provider-zod` for request/response validation. Each route's Zod schema lives in the module's `schemas/zod.ts`.
+- **Pre-handlers** — composed per route: `identityRequired` → `attachOrgId` → `requirePermission(key)` (and `requireOnboardingStep(tier)` where onboarding gating applies).
+- **Database** — Drizzle ORM. State-changing operations run inside `withTx(...)`; `emitAudit(tx, …)` is always called with the active transaction handle.
+- **Background work** — a BullMQ queue (`src/shared/queue/`) handles fire-and-forget jobs: notification dispatch and invite / OTP / refresh-token cleanup.
+- **API docs** — OpenAPI generated from route schemas via `@fastify/swagger`; Swagger UI served at `/docs` in development. Routes are tagged by their URL segment.
+
 ### HTTP Conventions
 
-- **Base path:** `/api/v1` for all domain routes; `/auth` for auth routes; `/invitations` for public invite routes
+- **Base path:** `/api/v1` for all routes — including auth (`/api/v1/auth`) and invitations (`/api/v1/invitations`)
 - **Content-Type:** `application/json`
 - **Timestamps:** ISO 8601 UTC
 - **Pagination:** cursor-based — `?cursor=<opaqueToken>&limit=<n>` (default 20, max 100); response includes `nextCursor` if further results exist
@@ -228,7 +242,7 @@ Permission resolution happens per-request from the database. No caching. This gu
 
 ### Endpoints
 
-**`POST /auth/register`**
+**`POST /api/v1/auth/register`**
 Body: `{ email, password }`
 
 - Hash password
@@ -241,7 +255,7 @@ Response 201: `{ message: "Verification email sent." }`
 
 ---
 
-**`POST /auth/verify-email`**
+**`POST /api/v1/auth/verify-email`**
 Body: `{ email, otp }`
 
 - Find verification record for user
@@ -256,7 +270,7 @@ Response 200 + Set-Cookie: `{ accessToken }`
 
 ---
 
-**`POST /auth/resend-otp`**
+**`POST /api/v1/auth/resend-otp`**
 Body: `{ email }`
 
 - Find user and verification record
@@ -268,7 +282,7 @@ Response 200: `{ message: "OTP resent." }`
 
 ---
 
-**`POST /auth/login`**
+**`POST /api/v1/auth/login`**
 Body: `{ email, password }`
 
 - Find user by email → throw `NOT_FOUND` if absent
@@ -281,7 +295,7 @@ Response 200 + Set-Cookie: `{ accessToken }`
 
 ---
 
-**`POST /auth/refresh`**
+**`POST /api/v1/auth/refresh`**
 No body — reads refresh credential from cookie.
 
 - Hash cookie value → find matching `refresh_tokens` row
@@ -294,7 +308,7 @@ Response 200 + Set-Cookie: `{ accessToken }`
 
 ---
 
-**`POST /auth/logout`**
+**`POST /api/v1/auth/logout`**
 No body — reads refresh credential from cookie.
 
 - Delete matching `refresh_tokens` row
@@ -327,73 +341,79 @@ Response 204
 
 ---
 
-## Phase 2 — Organization, Roles & Members
+## Phase 2 — Organization, Roles, Members & Invitations
 
-**Goal:** Owner can create an org and complete the onboarding sequence. Custom roles can be defined from the system permission set. Members can be invited, join, and be managed.
+**Goal:** Owner can create an org and progress through onboarding. Custom roles can be defined from the system permission set. Members can be managed, and invitations issued. Roles, Members, and Invitations are each their **own module** — independent of the Organization module.
 
-### Organization Module (5 endpoints)
+### Module Layout
 
-**`POST /api/v1/orgs`**
-Identity required.
+Phase 2 is delivered as four independent modules under `src/modules/`:
+
+| Module      | Directory               | Route prefix             |
+| ----------- | ----------------------- | ------------------------ |
+| org         | `src/modules/org/`      | `/api/v1/orgs`           |
+| roles       | `src/modules/roles/`    | `/api/v1/roles`          |
+| members     | `src/modules/members/`  | `/api/v1/members`        |
+| invitations | `src/modules/invitions/`| `/api/v1/invitations`    |
+
+Roles, Members, and Invitations are org-scoped but are **not** nested under the org route. Each takes `orgId` as a path segment in a flat shape — e.g. `/api/v1/roles/org/:orgId` and `/api/v1/roles/:roleId/org/:orgId`. The `attachOrgId` pre-handler lifts `:orgId` from the path into request context; `requirePermission` then resolves the caller's membership and permissions for that org.
+
+### Organization Module (4 endpoints)
+
+**`POST /api/v1/orgs`** — create org. Identity required.
 Body: `{ name, description?, logoUrl? }`
 
 Inside a **single transaction**:
 
 - Check name uniqueness (case-insensitive) → throw `CONFLICT` if taken
 - Insert organization with `onboardingStep = PENDING_ROLES`
-- Insert Owner role (`is_owner = true`, all 22 permissions)
+- Insert Owner role (`is_owner = true`, all permissions)
 - Insert membership linking caller → org → Owner role
 - Emit: `org.created`
 
-Response 201: org object with `onboardingStep`
+Response 201: org object with `onboardingStep`.
 
----
-
-**`GET /api/v1/orgs/:orgId`** — read org profile. Identity required.
+**`GET /api/v1/orgs/:orgId`** — read org profile. Requires `org:read`.
 
 **`PATCH /api/v1/orgs/:orgId`** — update profile fields. Requires `org:update`. Name uniqueness re-checked if changing name. Emit: `org.updated`.
 
-**`DELETE /api/v1/orgs/:orgId`** — archive org. Owner only. Sets `archived_at`. Emit: `org.archived`. Response 204.
+**`DELETE /api/v1/orgs/:orgId`** — archive org. Requires `org:archive`. Sets `archived_at`. Emit: `org.archived`. Response 204.
 
-**`GET /api/v1/orgs/:orgId/onboarding`** — read current onboarding step. Identity required.
+### Onboarding Enforcement
 
-### Onboarding Enforcement Middleware
+Onboarding is enforced by the `requireOnboardingStep(tier)` pre-handler in `src/shared/http/pre-handlers/on-boarding.ts`. It loads the org's `onboardingStep` (and rejects archived orgs), then checks it against a tier gate:
 
-Registered on all non-auth, non-public routes. Runs after identity validation. Loads org's `onboardingStep` and enforces:
+| Tier            | PENDING_ROLES | PENDING_INVITES | COMPLETE |
+| --------------- | ------------- | --------------- | -------- |
+| `always`        | ✓             | ✓               | ✓        |
+| `role_creation` | ✓             | ✗               | ✓        |
+| `invitation`    | ✗             | ✓               | ✓        |
+| `complete`      | ✗             | ✗               | ✓        |
 
-```
-PENDING_ROLES   → only role-creation routes pass through; all others blocked
-PENDING_INVITES → invite routes and the skip-step route pass through; others blocked
-COMPLETE        → all routes pass through
-```
+A blocked step throws `FORBIDDEN`. The pre-handler is attached per-route — there is no global onboarding middleware.
 
-The client cannot bypass a step by navigating directly. The server evaluates and enforces the current step on every request.
-
-**Advancing onboarding:**
-
-- `PENDING_ROLES → PENDING_INVITES`: triggered when the first custom (non-Owner) role is created in the org
-- `PENDING_INVITES → COMPLETE`: triggered when an invitation is accepted, or the step is explicitly skipped
-
-Both advances happen inside the same transaction as the triggering write.
+**Advancing onboarding:** creating the first custom (non-Owner) role advances `onboardingStep` from `PENDING_ROLES` to `PENDING_INVITES`, in the same transaction as the role insert (`role.service.ts`).
 
 ### Role Module (6 endpoints)
 
-**`GET /api/v1/orgs/:orgId/roles/permissions`** — returns all 22 system permission keys. Identity required.
+All routes carry `identityRequired` and `requirePermission`; org-scoped routes also carry `attachOrgId`.
 
-**`POST /api/v1/orgs/:orgId/roles`** — create custom role. Requires `role:create`.
+**`GET /api/v1/roles/org/:orgId`** — list all roles in the org (including Owner). Requires `role:read`.
+
+**`GET /api/v1/roles/:roleId/org/:orgId`** — read a single role. Requires `role:read`.
+
+**`GET /api/v1/roles/:roleId/org/:orgId/permissions`** — list the permission keys held by a role. Requires `role:read`.
+
+**`POST /api/v1/roles/org/:orgId`** — create custom role. Requires `role:create`.
 
 - Validate all provided permission keys exist in the system set
 - **Privilege escalation check:** caller's own permissions must be a superset of the permissions being assigned → throw `PRIVILEGE_ESCALATION` if not
 - Check name uniqueness within org (case-insensitive)
 - Insert role
-- If this is the **first non-Owner role** in the org → advance `onboardingStep` to `PENDING_INVITES` in same transaction
+- If this is the **first non-Owner role** in the org → advance `onboardingStep` to `PENDING_INVITES` in the same transaction
 - Emit: `role.created`
 
-**`GET /api/v1/orgs/:orgId/roles`** — list all roles (including Owner). Identity required.
-
-**`GET /api/v1/orgs/:orgId/roles/:roleId`** — read single role. Identity required.
-
-**`PATCH /api/v1/orgs/:orgId/roles/:roleId`** — update name or permissions. Requires `role:update`.
+**`PATCH /api/v1/roles/:roleId/org/:orgId`** — update name or permissions. Requires `role:update`.
 
 - Blocked if `role.is_owner = true`
 - Privilege escalation check on new permissions
@@ -401,60 +421,53 @@ Both advances happen inside the same transaction as the triggering write.
 - Changes take effect immediately for all members holding this role
 - Emit: `role.updated`
 
-**`DELETE /api/v1/orgs/:orgId/roles/:roleId`** — delete role. Requires `role:delete`.
+**`DELETE /api/v1/roles/:roleId/org/:orgId`** — delete role. Requires `role:delete`.
 
 - Blocked if `role.is_owner = true`
 - Count active memberships with this role → throw `ROLE_IN_USE` if any exist
 - Emit: `role.deleted`. Response 204.
 
-### Member Module (7 endpoints)
+### Member Module (5 endpoints)
 
-**`POST /api/v1/orgs/:orgId/members/invitations`** — send invitation. Requires `member:invite`.
+**`GET /api/v1/members/org/:orgId`** — member list. Requires `member:read`. Each entry includes user identity, role, and join date.
 
-- Verify at least one custom role exists → throw `CONFLICT` if not
-- Check no pending invite for this email in this org → throw `PENDING_INVITE_EXISTS` if so
-- Verify target role belongs to this org and is not Owner
-- Generate random token → hash → store in `invitations` with expiry
-- Send `invitation` notification with accept/decline links (raw token in URL)
-- Emit: `member.invited`
+**`GET /api/v1/members/:memberId/org/:orgId`** — read a single member. Requires `member:read`.
 
-**`POST /invitations/:token/accept`** — public route.
+**`PATCH /api/v1/members/:memberId/org/:orgId`** — assign a role to a member. Requires `member:update_role`.
 
-- Hash token → find matching invitation
-- Validate `expires_at > now` and `status = PENDING`
-- If email has no account → create user (registration via invitation flow)
-- If email has existing account → use that user
-- Upsert membership (user → org → invited role)
-- Set invitation `status = ACCEPTED`
-- If org `onboardingStep = PENDING_INVITES` → advance to `COMPLETE` in same transaction
-- Emit: `member.joined`
+- Verify role belongs to this org
+- Privilege escalation check on the new role's permissions
+- Update membership
+- Emit: `member.role_assigned`. Response 204.
 
-**`POST /invitations/:token/decline`** — public route.
+**`DELETE /api/v1/members/:memberId/org/:orgId`** — remove member. Requires `member:remove`.
 
-- Find invitation by token hash
-- Set `status = DECLINED`
-- Emit: `member.declined`
-
-**`GET /api/v1/orgs/:orgId/members`** — paginated member list. Identity required. Each entry includes user identity, role name, and join date.
-
-**`DELETE /api/v1/orgs/:orgId/members/:memberId`** — remove member. Requires `member:remove`.
-
-- If target member's role is Owner → throw `SOLE_OWNER`
+- If the target member's role is Owner → throw `SOLE_OWNER`
 - Delete membership
 - Emit: `member.removed`. Response 204.
 
-**`PUT /api/v1/orgs/:orgId/members/:memberId/role`** — assign role. Requires `role:assign`.
+**`DELETE /api/v1/members/:memberId/org/:orgId/revoke-role`** — revoke a member's role. Requires `member:update_role`.
 
-- Verify role belongs to this org
-- Privilege escalation check on new role's permissions
-- Update membership
-- Emit: `member.role_assigned`
-
-**`DELETE /api/v1/orgs/:orgId/members/:memberId/role`** — revoke role. Requires `role:revoke`.
-
-- Blocked if target role `is_owner = true`
 - Set membership role to null
 - Emit: `member.role_revoked`. Response 204.
+
+### Invitation Module (4 endpoints)
+
+**`GET /api/v1/invitations/org/:orgId`** — list invitations for the org. Requires `invitation:read`.
+
+**`GET /api/v1/invitations/:invitationId/org/:orgId`** — read a single invitation. Requires `invitation:read`.
+
+**`POST /api/v1/invitations/org/:orgId`** — create invitation. Requires `invitation:create`.
+Body: `{ email, orgId, roleId }`
+
+- Verify the target organization exists → throw `NOT_FOUND` if absent
+- Generate a random token → hash → store in `invitations` with expiry
+- Enqueue the `invitation` notification to the invited email
+- Emit: `invitation.created`
+
+Response 201: invitation object.
+
+**`DELETE /api/v1/invitations/:invitationId/org/:orgId`** — delete invitation. Requires `invitation:delete`.
 
 ### Audit Events
 
@@ -466,29 +479,26 @@ Both advances happen inside the same transaction as the triggering write.
 | `role.created`         | Custom role created              |
 | `role.updated`         | Role name or permissions updated |
 | `role.deleted`         | Role deleted                     |
-| `member.invited`       | Invitation sent                  |
-| `member.joined`        | Invitation accepted              |
-| `member.declined`      | Invitation declined              |
-| `member.removed`       | Member removed from org          |
 | `member.role_assigned` | Role assigned to member          |
 | `member.role_revoked`  | Role revoked from member         |
+| `member.removed`       | Member removed from org          |
+| `invitation.created`   | Invitation created               |
 
 ### Phase 2 Done When
 
 - [ ] Owner creates org — Owner role and membership created atomically in one transaction
 - [ ] Org name uniqueness (case-insensitive) enforced
-- [ ] Onboarding middleware blocks non-onboarding routes until `COMPLETE`
-- [ ] System permissions list returns all 22 keys
+- [ ] `requireOnboardingStep` pre-handler gates routes by the org's current step
+- [ ] Role permissions endpoint returns a role's permission keys
 - [ ] Owner can create custom roles with any subset of permissions
 - [ ] Privilege escalation is rejected on role create and update
 - [ ] Owner role cannot be deleted or modified
 - [ ] First custom role advances onboarding to `PENDING_INVITES`
-- [ ] Invitation email is sent; accept and decline links work
-- [ ] Accepting an invitation creates the membership with the correct role
-- [ ] Accepting advances onboarding to `COMPLETE`
-- [ ] Duplicate pending invite is rejected
-- [ ] Sole Owner cannot be removed
-- [ ] All 12 audit events confirmed
+- [ ] A role with active members cannot be deleted (`ROLE_IN_USE`)
+- [ ] Members can be listed, assigned roles, have roles revoked, and be removed
+- [ ] Sole Owner cannot be removed (`SOLE_OWNER`)
+- [ ] Invitation is created with a hashed token and an `invitation` notification is enqueued
+- [ ] All 10 audit events confirmed
 
 ---
 
@@ -733,7 +743,7 @@ Response: file stream with appropriate `Content-Disposition` header.
 
 ### Audit Integrity Verification
 
-Before declaring Phase 5 complete, verify all 29 audit events are wired and transactional:
+Before declaring Phase 5 complete, verify all 27 audit events are wired and transactional:
 
 | Event                      | Module  |
 | -------------------------- | ------- |
@@ -747,12 +757,10 @@ Before declaring Phase 5 complete, verify all 29 audit events are wired and tran
 | `role.created`             | role    |
 | `role.updated`             | role    |
 | `role.deleted`             | role    |
-| `member.invited`           | member  |
-| `member.joined`            | member  |
-| `member.declined`          | member  |
-| `member.removed`           | member  |
-| `member.role_assigned`     | member  |
-| `member.role_revoked`      | member  |
+| `member.role_assigned`     | member      |
+| `member.role_revoked`      | member      |
+| `member.removed`           | member      |
+| `invitation.created`       | invitation  |
 | `meeting.created`          | meeting |
 | `meeting.updated`          | meeting |
 | `meeting.status_changed`   | meeting |
@@ -782,15 +790,15 @@ All routes documented with:
 - Response shape for success and all possible error codes
 - Permission required (if any)
 
-Total: 38 endpoints documented.
+Total: 46 endpoints documented (including `GET /health`).
 
 ### Security Hardening
 
 **Rate limiting** — applied to routes that are most exposed to abuse:
 
-- `POST /auth/register` — limit per IP per time window
-- `POST /auth/login` — limit per IP per time window
-- `POST /auth/resend-otp` — stricter limit per IP per time window
+- `POST /api/v1/auth/register` — limit per IP per time window
+- `POST /api/v1/auth/login` — limit per IP per time window
+- `POST /api/v1/auth/resend-otp` — stricter limit per IP per time window
 
 **Security headers:**
 
@@ -823,14 +831,14 @@ Total: 38 endpoints documented.
 - [ ] All filter combinations work correctly
 - [ ] CSV export produces a valid, complete flat file
 - [ ] PDF export produces a valid, human-readable document
-- [ ] All 29 audit events confirmed present in the log after running each flow
+- [ ] All 27 audit events confirmed present in the log after running each flow
 - [ ] Every `emitAudit` call verified to use the active transaction
 - [ ] DB-level INSERT-only restriction on `audit_logs` confirmed
-- [ ] API documentation covers all 38 endpoints
+- [ ] API documentation covers all 46 endpoints
 - [ ] Rate limiting is active on all auth routes
 - [ ] Health check endpoint returns 200
 - [ ] Containerized app starts cleanly from a blank environment with no prior state
-- [ ] Full end-to-end flow passes: register → verify → create org → create roles → invite member → accept invite → create meeting → add attendees → open meeting → create vote → submit ballots → close vote → complete meeting → create minutes → attach resolution → finalize → export → check audit log
+- [ ] Full end-to-end flow passes: register → verify → create org → create roles → invite member → create meeting → add attendees → open meeting → create vote → submit ballots → close vote → complete meeting → create minutes → attach resolution → finalize → export → check audit log
 
 ---
 
@@ -839,7 +847,7 @@ Total: 38 endpoints documented.
 ```
 Phase 0 (Schema + Infrastructure)
   └── Phase 1 (Auth)
-        └── Phase 2 (Org / Roles / Members)
+        └── Phase 2 (Org / Roles / Members / Invitations)
               └── Phase 3 (Meetings)
                     └── Phase 4 (Voting + Minutes)
                           └── Phase 5 (Audit + Hardening)

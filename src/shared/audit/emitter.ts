@@ -1,10 +1,12 @@
+import { env } from '../config/env';
+
+import { auditEmitTotal } from './meter';
+import { AuditEvent } from './types';
+
 import { auditLogs } from '@/db/schema/audit';
 import type { Tx } from '@/shared/database/transaction';
 import { AppError } from '@/shared/errors/http-error';
 
-import { env } from '../config/env';
-import { auditEmitTotal } from './meter';
-import { AuditEvent } from './types';
 
 export async function emitAudit(tx: Tx, event: AuditEvent): Promise<void> {
   assertValidTx(tx);

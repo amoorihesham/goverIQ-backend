@@ -1,7 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
 import { createRoleService } from './role.service';
-import { DatabaseClient } from '@/shared/database/types';
 import {
   CreateRoleRequestBody,
   CreateRoleRequestParams,
@@ -12,8 +11,10 @@ import {
   UpdateRoleRequestBody,
   UpdateRoleRequestParams,
 } from './types/requests';
-import { contextFromRequest } from '@/shared/http/context';
+
+import { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
+import { contextFromRequest } from '@/shared/http/context';
 
 export const createRoleController = (db: DatabaseClient) => {
   const service = createRoleService(db);

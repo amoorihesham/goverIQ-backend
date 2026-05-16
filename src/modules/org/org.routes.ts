@@ -6,8 +6,8 @@ import { createOrganizationSchema, getOrganizationSchema, updateOrganizationSche
 
 import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
-import { requirePermission } from '@/shared/permissions/guard';
 import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
+import { requirePermission } from '@/shared/permissions/guard';
 
 export async function orgRoutes(fastify: FastifyInstance) {
   const controller = organizationController(db);

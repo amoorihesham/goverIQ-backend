@@ -11,9 +11,9 @@ import {
 } from './types/request';
 
 import { DatabaseClient } from '@/shared/database/types';
+import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
 import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
-import { success } from '@/shared/errors/envelope';
 
 interface AcceptInvitationBody {
   password?: string;

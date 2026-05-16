@@ -1,13 +1,15 @@
-import { invitations } from '@/db/schema';
-import { DatabaseClient } from '@/shared/database/types';
-import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 import { eq } from 'drizzle-orm';
-import { CreateInvitationRequestBody } from './types/requests';
-import { withTx } from '@/shared/database/transaction';
-import { generateInviteToken, hashInviteToken } from './utils/invite-token';
+
 import { CONFIGURATIONS } from './constants';
+import { CreateInvitationRequestBody } from './types/requests';
+import { generateInviteToken, hashInviteToken } from './utils/invite-token';
+
+import { invitations } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';
+import { withTx } from '@/shared/database/transaction';
+import { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
+import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 
 export const createInivitionsService = (db: DatabaseClient, dispatcher: NotificationDispatcher) => {
   return {

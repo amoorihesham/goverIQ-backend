@@ -1,12 +1,12 @@
+import { trace } from '@opentelemetry/api';
 import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
+import jwt from 'jsonwebtoken';
 import type { Logger } from 'pino';
 
 import { AppError } from './http-error';
 import { reportError } from './reporter';
 
 import { getConstraintName, isUniqueViolation } from '@/shared/database/errors';
-import { trace } from '@opentelemetry/api';
-import jwt from 'jsonwebtoken';
 
 type LoggerHolder = {
   log: Logger;

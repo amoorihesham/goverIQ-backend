@@ -1,0 +1,471 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Meetings Module
+  version: 0.1.0
+  description: |
+    7 meeting endpoints. All require an authenticated Bearer token, a current
+    membership in the path org, and the org's onboarding step to be COMPLETE.
+    Permissions: create → meeting:create; list/detail → meeting:read; edit,
+    status transitions and attendee add/remove → meeting:update; transition to
+    CANCELLED → meeting:cancel. The org Owner bypasses permission checks.
+    State-changing operations run in one transaction with their audit write.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /api/v1/meetings/org/{orgId}:
+    post:
+      summary: Create meeting
+      operationId: createMeeting
+      description: |
+        Requires meeting:create. Inserts the meeting in DRAFT status, inserts
+        any supplied agenda items, and emits meeting.created — all in one
+        transaction. Agenda items are optional. scheduledAt must be in the future.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateMeetingRequest' }
+      responses:
+        '201':
+          description: Meeting created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeetingResponse' }
+              example:
+                success: true
+                data:
+                  id: 'm1a2b3c4-...'
+                  orgId: 'c1d2e3f4-...'
+                  title: 'Q2 Board Meeting'
+                  description: null
+                  location: 'Room A'
+                  scheduledAt: '2026-06-01T14:00:00Z'
+                  status: 'DRAFT'
+                  agendaItems:
+                    - { id: 'a1-...', title: 'Budget review', description: null, orderIndex: 0 }
+                  attendees: []
+                  createdAt: '2026-05-16T10:00:00Z'
+        '400':
+          description: Validation failed (e.g. scheduledAt not in the future)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+    get:
+      summary: List meetings
+      operationId: listMeetings
+      description: |
+        Requires meeting:read. Cursor-paginated (default 20, max 100). Filterable
+        by status, scheduled-time range (from/to), and attendeeId.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/orgId' }
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/MeetingStatus' }
+        - name: from
+          in: query
+          required: false
+          description: Lower bound (inclusive) on scheduledAt.
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          required: false
+          description: Upper bound (inclusive) on scheduledAt.
+          schema: { type: string, format: date-time }
+        - name: attendeeId
+          in: query
+          required: false
+          description: Return only meetings this membership attends.
+          schema: { type: string, format: uuid }
+        - name: cursor
+          in: query
+          required: false
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated meeting list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/MeetingSummary' }
+                      nextCursor: { type: string, nullable: true }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/meetings/{meetingId}/org/{orgId}:
+    get:
+      summary: Get meeting detail
+      operationId: getMeeting
+      description: Requires meeting:read. Returns the meeting with agenda items and attendees.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: Meeting detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeetingResponse' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Meeting not found in this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+    patch:
+      summary: Update meeting details
+      operationId: updateMeeting
+      description: |
+        Requires meeting:update. Permitted only while the meeting is DRAFT or
+        SCHEDULED — otherwise INVALID_STATE_TRANSITION. Supplying agendaItems
+        replaces the whole agenda; omitting it leaves the agenda untouched.
+        A supplied scheduledAt must be in the future. Emits meeting.updated.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateMeetingRequest' }
+      responses:
+        '200':
+          description: Meeting updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeetingResponse' }
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Meeting not found in this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: Meeting is not in an editable status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'INVALID_STATE_TRANSITION', message: 'Meeting is not editable', statusCode: 422 }
+
+  /api/v1/meetings/{meetingId}/org/{orgId}/status:
+    patch:
+      summary: Transition meeting status
+      operationId: transitionMeetingStatus
+      description: |
+        Requires meeting:update for any target, or meeting:cancel when the
+        target is CANCELLED. Validates the transition against the state machine,
+        then evaluates the transition's guards. Emits meeting.status_changed
+        with { before, after }.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/MeetingStatus' }
+      responses:
+        '200':
+          description: Status transitioned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeetingResponse' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Meeting not found in this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: Cannot complete — the meeting has an open vote
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'MEETING_HAS_OPEN_VOTES', message: 'Meeting has open votes', statusCode: 409 }
+        '422':
+          description: Invalid transition, or the meeting is being opened too early
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                invalidTransition:
+                  value:
+                    success: false
+                    error: { code: 'INVALID_STATE_TRANSITION', message: 'Cannot transition meeting from DRAFT to COMPLETED', statusCode: 422 }
+                tooEarly:
+                  value:
+                    success: false
+                    error: { code: 'MEETING_TOO_EARLY', message: 'Meeting cannot be opened more than 15 minutes early', statusCode: 422 }
+
+  /api/v1/meetings/{meetingId}/org/{orgId}/attendees:
+    post:
+      summary: Add attendees
+      operationId: addAttendees
+      description: |
+        Requires meeting:update. Permitted only while the meeting is DRAFT,
+        SCHEDULED, or IN_PROGRESS. Every memberId must be a current membership of
+        the org; otherwise the whole request is rejected. Adds are idempotent —
+        already-present attendees are skipped. Emits meeting.attendee_added per
+        newly added member.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [memberIds]
+              properties:
+                memberIds:
+                  type: array
+                  minItems: 1
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Attendees added; returns the current attendee list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeetingResponse' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Meeting not found, or a memberId is not a member of this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: Meeting is in a terminal status — attendees frozen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/meetings/{meetingId}/org/{orgId}/attendees/{memberId}:
+    delete:
+      summary: Remove attendee
+      operationId: removeAttendee
+      description: |
+        Requires meeting:update. Permitted only while the meeting is DRAFT,
+        SCHEDULED, or IN_PROGRESS. Emits meeting.attendee_removed. Response 204.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Attendee removed
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Meeting or attendee not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: Meeting is in a terminal status — attendees frozen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    orgId:
+      name: orgId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    meetingId:
+      name: meetingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    MeetingStatus:
+      type: string
+      enum: [DRAFT, SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED]
+
+    AgendaItemInput:
+      type: object
+      required: [title, orderIndex]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 1000 }
+        orderIndex: { type: integer, minimum: 0 }
+
+    AgendaItem:
+      type: object
+      required: [id, title, orderIndex]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        orderIndex: { type: integer }
+
+    Attendee:
+      type: object
+      required: [memberId]
+      properties:
+        memberId: { type: string, format: uuid }
+
+    CreateMeetingRequest:
+      type: object
+      required: [title, scheduledAt]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        location: { type: string, maxLength: 200 }
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Must be in the future.
+        agendaItems:
+          type: array
+          description: Optional; order positions must be unique within the meeting.
+          items: { $ref: '#/components/schemas/AgendaItemInput' }
+
+    UpdateMeetingRequest:
+      type: object
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        location: { type: string, maxLength: 200 }
+        scheduledAt:
+          type: string
+          format: date-time
+          description: If supplied, must be in the future.
+        agendaItems:
+          type: array
+          description: If supplied, fully replaces the existing agenda (empty array clears it).
+          items: { $ref: '#/components/schemas/AgendaItemInput' }
+
+    MeetingSummary:
+      type: object
+      required: [id, orgId, title, scheduledAt, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        location: { type: string, nullable: true }
+        scheduledAt: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/MeetingStatus' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    MeetingObject:
+      allOf:
+        - $ref: '#/components/schemas/MeetingSummary'
+        - type: object
+          required: [agendaItems, attendees]
+          properties:
+            agendaItems:
+              type: array
+              items: { $ref: '#/components/schemas/AgendaItem' }
+            attendees:
+              type: array
+              items: { $ref: '#/components/schemas/Attendee' }
+
+    MeetingResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/MeetingObject' }
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

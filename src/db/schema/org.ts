@@ -1,7 +1,7 @@
+import { relations } from 'drizzle-orm';
 import { pgTable, uuid, text, numeric, boolean, timestamp, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 import { users } from './auth';
-import { relations } from 'drizzle-orm';
 
 export const onboardingStepEnum = pgEnum('onboarding_step', ['PENDING_ROLES', 'PENDING_INVITES', 'COMPLETE']);
 

@@ -109,6 +109,16 @@ export const ERROR_CODES = {
     httpStatus: 409,
     message: 'Cannot remove the sole owner of an organization',
   },
+  INVALID_STATE_TRANSITION: {
+    code: 'INVALID_STATE_TRANSITION',
+    httpStatus: 422,
+    message: 'Invalid state transition',
+  },
+  MEETING_TOO_EARLY: {
+    code: 'MEETING_TOO_EARLY',
+    httpStatus: 422,
+    message: 'Meeting cannot be opened more than 15 minutes early',
+  },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

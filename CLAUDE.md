@@ -3,15 +3,19 @@
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at:
 
-- [specs/003-org-roles-members/plan.md](specs/003-org-roles-members/plan.md)
+- [specs/004-meetings/plan.md](specs/004-meetings/plan.md)
 
 Related artifacts:
 
-- [spec.md](specs/003-org-roles-members/spec.md) — feature specification
-- [research.md](specs/003-org-roles-members/research.md) — technology decisions (9 decisions)
-- [data-model.md](specs/003-org-roles-members/data-model.md) — column-level mapping (no schema changes)
-- [contracts/](specs/003-org-roles-members/contracts/) — 4 OpenAPI files + 2 internal contracts
-- [quickstart.md](specs/003-org-roles-members/quickstart.md) — verification walkthrough
+- [spec.md](specs/004-meetings/spec.md) — feature specification
+- [research.md](specs/004-meetings/research.md) — technology decisions (11 decisions)
+- [data-model.md](specs/004-meetings/data-model.md) — column-level mapping (no schema changes)
+- [contracts/](specs/004-meetings/contracts/) — 1 OpenAPI file + 1 internal contract
+- [quickstart.md](specs/004-meetings/quickstart.md) — verification walkthrough
+
+Prior feature (Phase 2):
+
+- [specs/003-org-roles-members/plan.md](specs/003-org-roles-members/plan.md) — org, roles, members & invitations
 
 Prior feature (Phase 1):
 

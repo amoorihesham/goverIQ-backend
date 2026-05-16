@@ -106,4 +106,12 @@ export class AppError extends Error {
   static soleOwner(message?: string): AppError {
     return AppError.create('SOLE_OWNER', message);
   }
+
+  static invalidStateTransition(message?: string): AppError {
+    return AppError.create('INVALID_STATE_TRANSITION', message);
+  }
+
+  static meetingTooEarly(message?: string): AppError {
+    return AppError.create('MEETING_TOO_EARLY', message);
+  }
 }

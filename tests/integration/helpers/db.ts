@@ -15,3 +15,9 @@ export async function truncateOrgTables(): Promise<void> {
     sql`TRUNCATE organizations, roles, memberships, invitations RESTART IDENTITY CASCADE`,
   );
 }
+
+export async function truncateMeetingTables(): Promise<void> {
+  await db.execute(
+    sql`TRUNCATE meetings, meeting_agenda_items, meeting_attendees RESTART IDENTITY CASCADE`,
+  );
+}

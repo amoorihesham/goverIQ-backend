@@ -1,5 +1,5 @@
-import * as Sentry from '@sentry/node';
 import { trace } from '@opentelemetry/api';
+import * as Sentry from '@sentry/node';
 
 export interface ErrorReportContext {
   reqId?: string;

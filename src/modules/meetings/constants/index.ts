@@ -1,0 +1,3 @@
+export const MEETING_EARLY_OPEN_MINUTES = 15;
+export const MEETINGS_PAGE_SIZE_DEFAULT = 20;
+export const MEETINGS_PAGE_SIZE_MAX = 100;

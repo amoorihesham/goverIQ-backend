@@ -1,7 +1,7 @@
-import { coerce, date, object, string, uuid } from 'zod';
+import { coerce, object, string, uuid } from 'zod';
 
 export const cursorSchema = object({
-  createdAt: date(),
+  createdAt: coerce.date(),
   id: uuid(),
 });
 

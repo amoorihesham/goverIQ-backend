@@ -1,12 +1,13 @@
 import { eq, and } from 'drizzle-orm';
 import { FastifyRequest } from 'fastify';
 
-import { roles, memberships } from '@/db/schema/org';
+import { contextFromRequest } from '../http/context';
 
+import { PermissionKey } from './types';
+
+import { roles, memberships } from '@/db/schema/org';
 import { db } from '@/shared/database/client';
 import { AppError } from '@/shared/errors/http-error';
-import { contextFromRequest } from '../http/context';
-import { PermissionKey } from './types';
 
 export function requirePermission(permission: PermissionKey) {
   return async (request: FastifyRequest) => {

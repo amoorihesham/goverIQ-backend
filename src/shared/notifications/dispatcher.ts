@@ -1,4 +1,5 @@
 import { env } from '../config/env';
+
 import { EmailVerificationPayload } from './templates/email-verification';
 import { InvitationPayload } from './templates/invitation';
 

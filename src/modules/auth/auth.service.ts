@@ -1,5 +1,7 @@
 import { and, count, eq } from 'drizzle-orm';
 
+import { CONFIGURATIONS } from './constants';
+import { toUserResponseDto } from './dtos/resposne';
 import { LoginRequestType, RegisterRequestType, ResendOtpRequestType, VerifyRequestType } from './types/request';
 import { generateOtp, hashOtp } from './utils/otp';
 import { dummyVerifyPassword, hashPassword, verifyPassword } from './utils/password';
@@ -7,14 +9,13 @@ import { generateRefreshTokenCleartext, hashRefreshToken, parseUserIdFromClearte
 
 import { emailVerifications, refreshTokens, users } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';
+import { signToken, verifyToken } from '@/shared/auth/jwt';
 import { env } from '@/shared/config/env';
 import type { Tx } from '@/shared/database/transaction';
 import type { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
 import type { NotificationDispatcher } from '@/shared/notifications/dispatcher';
-import { CONFIGURATIONS } from './constants';
-import { signToken, verifyToken } from '@/shared/auth/jwt';
-import { toUserResponseDto } from './dtos/resposne';
+
 
 export function createAuthService(db: DatabaseClient, dispatcher: NotificationDispatcher) {
   async function issueSessionWithinTx(tx: Tx, user: { id: string; email: string }) {

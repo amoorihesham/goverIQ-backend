@@ -1,10 +1,7 @@
 import type { FastifyInstance } from 'fastify';
+import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 import { createRoleController } from './role.controller';
-
-import { identityRequired } from '@/shared/auth/identity';
-import { requirePermission } from '@/shared/permissions/guard';
-import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
   createRoleRequestSchema,
   deleteRoleRequestSchema,
@@ -13,8 +10,11 @@ import {
   listRolesInOrganizationRequestSchema,
   updateRoleRequestSchema,
 } from './schemas/zod';
+
+import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
 import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
+import { requirePermission } from '@/shared/permissions/guard';
 
 export async function roleRoutes(fastify: FastifyInstance) {
   const controller = createRoleController(db);

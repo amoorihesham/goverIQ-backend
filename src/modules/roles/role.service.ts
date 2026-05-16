@@ -1,14 +1,13 @@
 import { and, eq } from 'drizzle-orm';
 
+import { CreateRoleRequestBody, UpdateRoleRequestBody } from './types/requests';
 import { assertNoPrivilegeEscalation } from './utils/privilege';
 
 import { memberships, organizations, roles } from '@/db/schema/org';
 import { emitAudit } from '@/shared/audit/emitter';
-
 import { withTx } from '@/shared/database/transaction';
-import { AppError } from '@/shared/errors/http-error';
 import { DatabaseClient } from '@/shared/database/types';
-import { CreateRoleRequestBody, UpdateRoleRequestBody } from './types/requests';
+import { AppError } from '@/shared/errors/http-error';
 
 export const createRoleService = (db: DatabaseClient) => {
   return {
