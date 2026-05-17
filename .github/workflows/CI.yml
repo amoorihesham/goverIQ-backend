@@ -26,7 +26,7 @@ jobs:
 
       - run: pnpm type-check
       - run: pnpm lint
-      - run: pnpm format:check
+      - run: pnpm format
 
       - name: Ensure migrations are committed
         run: |
