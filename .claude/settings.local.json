@@ -54,7 +54,12 @@
       "Bash(psql -U groven -h localhost -c \"SELECT 1\" groven_iq_test)",
       "Bash(psql -U groven -h localhost -c \"SELECT 1\" groven_iq)",
       "PowerShell(cd D:\\\\groven-iq; $env:PGPASSWORD = \"groven\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U groven -h localhost -c \"SELECT datname FROM pg_database WHERE datname LIKE 'groven%'\" 2>&1)",
-      "Bash(xargs ls)"
+      "Bash(xargs ls)",
+      "Skill(speckit-git-feature)",
+      "Skill(speckit-git-feature:*)",
+      "Bash(powershell.exe -NoProfile -File .specify/extensions/git/scripts/powershell/create-new-feature.ps1 -Json -ShortName \"voting-minutes\" \"phase-4 voting and minutes\")",
+      "Bash(powershell.exe -NoProfile -File .specify/scripts/powershell/setup-plan.ps1 -Json)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({dependencies:p.dependencies,devDependencies:p.devDependencies},null,1\\)\\)\")"
     ],
     "additionalDirectories": [
       "d:\\groven-iq\\specs\\003-org-roles-members"
