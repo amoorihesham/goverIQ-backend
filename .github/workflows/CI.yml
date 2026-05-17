@@ -58,7 +58,7 @@ jobs:
           git diff --exit-code src/db/migrations
 
       - run: pnpm db:migrate
-      - run: pnpm test:coverage
+      - run: pnpm test
 
   build:
     runs-on: ubuntu-latest
