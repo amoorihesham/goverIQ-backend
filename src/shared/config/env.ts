@@ -1,6 +1,6 @@
+import { config } from 'dotenv';
 import { z } from 'zod';
 
-import { config } from 'dotenv';
 config({ path: `.env.${process.env.NODE_ENV}` });
 
 const envSchema = z.object({

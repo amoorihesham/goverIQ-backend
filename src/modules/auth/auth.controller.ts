@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 import { createAuthService } from './auth.service';
+import { CONFIGURATIONS } from './constants';
 import {
   LoginRequestType,
   RefreshRequestType,
@@ -9,13 +10,11 @@ import {
   VerifyRequestType,
 } from './types/request';
 
+import { clearTokenCookie, setTokenCookie } from '@/shared/auth/cookies';
 import type { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
 import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
-import { clearTokenCookie, setTokenCookie } from '@/shared/auth/cookies';
-import { CONFIGURATIONS } from './constants';
-import { logger } from '@/shared/logger';
 
 export const createAuthController = (db: DatabaseClient, dispatcher: NotificationDispatcher) => {
   const service = createAuthService(db, dispatcher);

@@ -1,7 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { checkHealth } from './health';
 import { identityRequired } from '../auth/identity';
+
+import { checkHealth } from './health';
 
 export async function registerHealthPlugin(fastify: FastifyInstance) {
   fastify.get(

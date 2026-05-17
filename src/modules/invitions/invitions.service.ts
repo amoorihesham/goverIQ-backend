@@ -1,13 +1,15 @@
-import { invitations } from '@/db/schema';
-import { DatabaseClient } from '@/shared/database/types';
-import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 import { eq } from 'drizzle-orm';
-import { CreateInvitationRequestBody } from './types/requests';
-import { withTx } from '@/shared/database/transaction';
-import { generateInviteToken, hashInviteToken } from './utils/invite-token';
+
 import { CONFIGURATIONS } from './constants';
+import { CreateInvitationRequestBody } from './types/requests';
+import { generateInviteToken, hashInviteToken } from './utils/invite-token';
+
+import { invitations } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';
+import { withTx } from '@/shared/database/transaction';
+import { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
+import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 
 export const createInivitionsService = (db: DatabaseClient, dispatcher: NotificationDispatcher) => {
   return {
@@ -19,7 +21,7 @@ export const createInivitionsService = (db: DatabaseClient, dispatcher: Notifica
         where: (invitation, { and, eq }) => and(eq(invitation.orgId, orgId), eq(invitation.id, invitationId)),
       });
     },
-    createInvitation: async (userId: string, reqId: string, data: CreateInvitationRequestBody) => {
+    createInvitation: async (userId: string, reqId: string, orgId: string, data: CreateInvitationRequestBody) => {
       const invitationToken = generateInviteToken();
       const invitationTokenHash = hashInviteToken(invitationToken);
 
@@ -27,14 +29,14 @@ export const createInivitionsService = (db: DatabaseClient, dispatcher: Notifica
       expiresAt.setDate(expiresAt.getDate() + CONFIGURATIONS.INVITATION_TTL_DAYS);
 
       return withTx(async (tx) => {
-        const org = await db.query.organizations.findFirst({ where: eq(invitations.orgId, data.orgId) });
+        const org = await db.query.organizations.findFirst({ where: eq(invitations.orgId, orgId) });
         if (!org) throw AppError.notFound('Organization not found');
 
         const [invitation] = await tx
           .insert(invitations)
           .values({
             email: data.email,
-            orgId: data.orgId,
+            orgId: orgId,
             roleId: data.roleId,
             expiresAt,
             tokenHash: invitationTokenHash,
@@ -42,7 +44,7 @@ export const createInivitionsService = (db: DatabaseClient, dispatcher: Notifica
           .returning();
 
         emitAudit(tx, {
-          orgId: data.orgId,
+          orgId: orgId,
           actorId: userId,
           entityType: 'invitation',
           entityId: invitation.id,

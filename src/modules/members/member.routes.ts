@@ -12,11 +12,11 @@ import {
 
 import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
-import { requirePermission } from '@/shared/permissions/guard';
 import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
+import { requirePermission } from '@/shared/permissions/guard';
 
 export async function memberRoutes(fastify: FastifyInstance) {
-  const controller = createMemberController(db, fastify.dispatcher);
+  const controller = createMemberController(db);
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/org/:orgId',

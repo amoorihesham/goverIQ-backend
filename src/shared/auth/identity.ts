@@ -1,8 +1,10 @@
 import type { FastifyRequest, preHandlerHookHandler } from 'fastify';
 
-import { AppError } from '@/shared/errors/http-error';
-import { verifyToken } from './jwt';
 import { env } from '../config/env';
+
+import { verifyToken } from './jwt';
+
+import { AppError } from '@/shared/errors/http-error';
 
 export const identityRequired: preHandlerHookHandler = async (request: FastifyRequest) => {
   const cookieToken = request.cookies['access_token'];

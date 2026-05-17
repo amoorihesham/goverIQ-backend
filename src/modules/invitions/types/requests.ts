@@ -1,4 +1,5 @@
 import { infer as zInfer } from 'zod';
+
 import {
   createInvitationSchema,
   deleteInvitationSchema,

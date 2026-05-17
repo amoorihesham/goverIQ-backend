@@ -7,10 +7,10 @@ import { env } from './shared/config/env';
 import { logger } from './shared/logger';
 
 import { authRoutes } from '@/modules/auth/public';
+import { invitionsRoutes } from '@/modules/invitions/public';
 import { memberRoutes } from '@/modules/members/public';
 import { orgRoutes } from '@/modules/org/public';
 import { roleRoutes } from '@/modules/roles/public';
-import { invitionsRoutes } from '@/modules/invitions/public';
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
 import { notificationPlugin } from '@/shared/notifications/plugin';

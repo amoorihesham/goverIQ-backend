@@ -1,12 +1,13 @@
-import { env } from './shared/config/env';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { FastifyOtelInstrumentation } from '@fastify/otel';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { logger } from '@sentry/node';
+
+import { env } from './shared/config/env';
 import { initErrorReporter } from './shared/errors/reporter';
 
 initErrorReporter({

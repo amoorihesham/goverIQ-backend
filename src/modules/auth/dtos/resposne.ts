@@ -1,5 +1,6 @@
-import { users } from '@/db/schema';
 import { InferSelectModel } from 'drizzle-orm';
+
+import { users } from '@/db/schema';
 
 export function toUserResponseDto(user: InferSelectModel<typeof users>) {
   return {
