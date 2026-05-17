@@ -40,10 +40,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: setup pnpm...
+        uses: pnpm/action-setup@v6
 
       - run: pnpm install --frozen-lockfile
 
@@ -69,17 +68,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Activate pnpm
-        run: corepack prepare pnpm@10 --activate
-
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10
+      - name: setup pnpm...
+        uses: pnpm/action-setup@v6
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
