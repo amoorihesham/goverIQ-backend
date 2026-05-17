@@ -39,7 +39,6 @@ describe('identityRequired pre-handler (FR-111)', () => {
       url: '/api/v1/protected',
       headers: { authorization: 'Bearer not.a.valid.jwt' },
     });
-    console.log(res.json());
 
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('INVALID_TOKEN');

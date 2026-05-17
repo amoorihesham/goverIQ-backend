@@ -3,8 +3,8 @@ import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { truncateAllTables,  } from '../../helpers/db';
-import {  buildTestServer } from '../../helpers/server';
+import { truncateAllTables } from '../../helpers/db';
+import { buildTestServer } from '../../helpers/server';
 
 import { auditLogs } from '@/db/schema/audit';
 import { users } from '@/db/schema/auth';
@@ -44,14 +44,13 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
     const setCookie = res.headers['set-cookie'];
     expect(setCookie).toBeDefined();
     const cookieStr = Array.isArray(setCookie) ? setCookie.join(';') : (setCookie as string);
+
     expect(cookieStr).toContain('refresh_token');
     expect(cookieStr).toContain('access_token');
     expect(cookieStr).toContain('HttpOnly');
 
     const auditRows = await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.login'));
-    const audit = auditRows.find(
-      (r) => (r.payload as { data: { email: string } }).data?.email === email,
-    );
+    const audit = auditRows.find((r) => (r.payload as { data: { email: string } }).data?.email === email);
     expect(audit).toBeDefined();
   });
 
@@ -169,9 +168,7 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
     latencies.sort((a, b) => a - b);
     const p95 = latencies[Math.ceil(latencies.length * 0.95) - 1]!;
 
-    console.log(
-      `[SC-102-concurrent] login p95 over 100 concurrent calls @ ${TARGET} users: ${p95}ms`,
-    );
+    console.log(`[SC-102-concurrent] login p95 over 100 concurrent calls @ ${TARGET} users: ${p95}ms`);
     // Concurrent threshold is looser than sequential (300 vs 200 ms) because concurrent
     // bcrypt comparisons compete for the libuv thread pool (default 4 threads).
     expect(p95).toBeLessThan(300);
