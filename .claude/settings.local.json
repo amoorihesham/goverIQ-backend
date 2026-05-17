@@ -42,7 +42,11 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(xargs grep -l \"response\\\\|envelope\")",
       "Bash(find specs/003* -name \"*.md\" -type f)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({deps: Object.fromEntries\\(Object.entries\\({...p.dependencies, ...p.devDependencies}\\).filter\\(\\([k]\\)=>k.includes\\('opentelemetry'\\)||k.includes\\('otel'\\)\\)\\)}, null, 2\\)\\)\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({deps: Object.fromEntries\\(Object.entries\\({...p.dependencies, ...p.devDependencies}\\).filter\\(\\([k]\\)=>k.includes\\('opentelemetry'\\)||k.includes\\('otel'\\)\\)\\)}, null, 2\\)\\)\")",
+      "Skill(speckit-git-feature)",
+      "Skill(speckit-git-feature:*)",
+      "PowerShell(& \".specify\\\\extensions\\\\git\\\\scripts\\\\powershell\\\\create-new-feature.ps1\" -Json -ShortName \"audit-hardening-deployment\" \"The audit log is queryable and exportable via API. The system is secured, documented, and ready for production deployment.\")",
+      "PowerShell(& \".specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1\" -Json -PathsOnly)"
     ],
     "additionalDirectories": [
       "d:\\groven-iq\\specs\\003-org-roles-members"

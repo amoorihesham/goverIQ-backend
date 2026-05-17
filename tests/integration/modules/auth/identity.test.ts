@@ -1,12 +1,9 @@
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import {  buildTestServer } from '../../helpers/server';
+import { buildTestServer } from '../../helpers/server';
 import { signToken } from '@/shared/auth/jwt';
 import { CONFIGURATIONS } from '@/modules/auth/public';
 import { env } from '@/shared/config/env';
-
-
 
 let app: Awaited<ReturnType<typeof buildTestServer>>;
 
@@ -21,7 +18,7 @@ afterAll(async () => {
 describe('identityRequired pre-handler (FR-111)', () => {
   it('missing Authorization header → 401 UNAUTHORIZED', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/protected' });
-    
+
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('UNAUTHORIZED');
   });
@@ -29,7 +26,7 @@ describe('identityRequired pre-handler (FR-111)', () => {
   it('non-Bearer prefix → 401 UNAUTHORIZED', async () => {
     const res = await app.inject({
       method: 'GET',
-       url: '/api/v1/protected',
+      url: '/api/v1/protected',
       headers: { authorization: 'Basic dXNlcjpwYXNz' },
     });
     expect(res.statusCode).toBe(401);
@@ -39,26 +36,25 @@ describe('identityRequired pre-handler (FR-111)', () => {
   it('malformed JWT → 401 INVALID_TOKEN', async () => {
     const res = await app.inject({
       method: 'GET',
-url: '/api/v1/protected',
+      url: '/api/v1/protected',
       headers: { authorization: 'Bearer not.a.valid.jwt' },
     });
     console.log(res.json());
-    
+
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('INVALID_TOKEN');
   });
 
   it('expired JWT → 401 TOKEN_EXPIRED', async () => {
-    
     const expiredToken = await signToken(
       { userId: 'test-user-id', email: 'test@example.com' },
       env.JWT_ACCESS_SECRET,
-      -1 ,
+      -1,
     );
 
     const res = await app.inject({
       method: 'GET',
- url: '/api/v1/protected',
+      url: '/api/v1/protected',
       headers: { authorization: `Bearer ${expiredToken}` },
     });
     expect(res.statusCode).toBe(401);
@@ -66,10 +62,14 @@ url: '/api/v1/protected',
   });
 
   it('valid JWT → handler sees populated request.user', async () => {
-    const accessToken = await signToken({ userId: 'user-uuid-123', email: 'alice@example.com' },env.JWT_ACCESS_SECRET,CONFIGURATIONS.ACCESS_TTL_SECONDS);
+    const accessToken = await signToken(
+      { userId: 'user-uuid-123', email: 'alice@example.com' },
+      env.JWT_ACCESS_SECRET,
+      CONFIGURATIONS.ACCESS_TTL_SECONDS,
+    );
     const res = await app.inject({
       method: 'GET',
-  url: '/api/v1/protected',
+      url: '/api/v1/protected',
       headers: { authorization: `Bearer ${accessToken}` },
     });
     expect(res.statusCode).toBe(200);

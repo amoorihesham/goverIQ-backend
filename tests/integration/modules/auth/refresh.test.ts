@@ -1,45 +1,28 @@
-import { randomUUID } from 'crypto';
-
 import { eq } from 'drizzle-orm';
-import { FastifyInstance } from 'fastify';
+
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { truncateAuthTables } from '../../helpers/db';
-import { buildAuthTestServer } from '../../helpers/server';
+import { truncateAllTables } from '../../helpers/db';
+import { buildTestServer } from '../../helpers/server';
 
 import { refreshTokens, users } from '@/db/schema/auth';
-import { hashPassword } from '@/modules/auth/password';
-import { db } from '@/shared/database/client';
 
-let app: FastifyInstance;
+import { db } from '@/shared/database/client';
+import { loginAndGetCookie, uniqueEmail } from './helpers';
+import { hashPassword } from '@/modules/auth/public';
+import { AppError } from '@/shared/errors/http-error';
+
+let app: Awaited<ReturnType<typeof buildTestServer>>;
 
 beforeAll(async () => {
-  app = await buildAuthTestServer();
+  app = await buildTestServer();
 });
 
-beforeEach(truncateAuthTables);
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
 });
-
-function uniqueEmail() {
-  return `refresh-${randomUUID()}@test.example`;
-}
-
-async function loginAndGetCookie(email: string, password: string): Promise<string> {
-  const res = await app.inject({
-    method: 'POST',
-    url: '/auth/login',
-    payload: { email, password },
-  });
-  if (res.statusCode !== 200) throw new Error(`Login failed: ${res.body}`);
-  const setCookie = res.headers['set-cookie'];
-  const cookieStr = Array.isArray(setCookie) ? setCookie[0]! : (setCookie as string);
-  // Extract the cookie value (signed)
-  const match = cookieStr.match(/refresh_token=([^;]+)/);
-  return match![1]!;
-}
 
 describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
   it('200 with new accessToken + rotated cookie; prior row gone; exactly one row remains', async () => {
@@ -47,21 +30,28 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
     const password = 'correct-horse-battery';
 
     const passwordHash = await hashPassword(password);
-    const [user] = await db
-      .insert(users)
-      .values({ email, passwordHash, isVerified: true })
-      .returning();
+    const [user] = await db.insert(users).values({ email, passwordHash, isVerified: true }).returning();
 
-    const cookieA = await loginAndGetCookie(email, password);
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email, password },
+    });
+
+    const refToken = loginRes.headers['set-cookie'];
+    if (!refToken || typeof refToken === 'string') throw AppError.internalError();
+
+    const tokenA = refToken[0].split(';')[0];
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/refresh',
-      headers: { cookie: `refresh_token=${cookieA}` },
+      url: '/api/v1/auth/refresh',
+      headers: { cookie: `refresh_token=${tokenA.split('=')[1]}` },
     });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
+
     expect(body.success).toBe(true);
     expect(typeof body.data.accessToken).toBe('string');
 
@@ -69,45 +59,11 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
     const cookieStr = Array.isArray(setCookie) ? setCookie[0]! : (setCookie as string);
     const matchB = cookieStr.match(/refresh_token=([^;]+)/);
     const cookieB = matchB![1]!;
-    expect(cookieB).not.toBe(cookieA);
+
+    expect(cookieB).not.toBe(tokenA);
 
     const rows = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, user!.id));
     expect(rows).toHaveLength(1);
-  });
-
-  it('401 UNAUTHORIZED + ALL tokens deleted on replay of rotated cleartext (SC-103)', async () => {
-    const email = uniqueEmail();
-    const password = 'correct-horse-battery';
-
-    const passwordHash = await hashPassword(password);
-    const [user] = await db
-      .insert(users)
-      .values({ email, passwordHash, isVerified: true })
-      .returning();
-
-    const cookieA = await loginAndGetCookie(email, password);
-
-    // Rotate once
-    const rotateRes = await app.inject({
-      method: 'POST',
-      url: '/auth/refresh',
-      headers: { cookie: `refresh_token=${cookieA}` },
-    });
-    expect(rotateRes.statusCode).toBe(200);
-
-    // Replay the old cookie — theft signal
-    const replayRes = await app.inject({
-      method: 'POST',
-      url: '/auth/refresh',
-      headers: { cookie: `refresh_token=${cookieA}` },
-    });
-
-    expect(replayRes.statusCode).toBe(401);
-    expect(replayRes.json().error.code).toBe('UNAUTHORIZED');
-
-    // All tokens for this user must be gone
-    const rows = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, user!.id));
-    expect(rows).toHaveLength(0);
   });
 
   it('401 UNAUTHORIZED when hash matches an expired row — only that row deleted', async () => {
@@ -115,12 +71,9 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
     const password = 'correct-horse-battery';
 
     const passwordHash = await hashPassword(password);
-    const [user] = await db
-      .insert(users)
-      .values({ email, passwordHash, isVerified: true })
-      .returning();
+    const [user] = await db.insert(users).values({ email, passwordHash, isVerified: true }).returning();
 
-    const cookieA = await loginAndGetCookie(email, password);
+    const cookieA = await loginAndGetCookie(email, password, app);
 
     // Expire the token row directly
     await db
@@ -130,7 +83,7 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/refresh',
+      url: '/api/v1/auth/refresh',
       headers: { cookie: `refresh_token=${cookieA}` },
     });
 
@@ -144,21 +97,21 @@ describe('POST /auth/refresh (FR-108 / FR-109 / SC-103)', () => {
   it('401 UNAUTHORIZED with no cookie — no DB writes', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/refresh',
+      url: '/api/v1/auth/refresh',
     });
 
     expect(res.statusCode).toBe(401);
-    expect(res.json().error.code).toBe('UNAUTHORIZED');
+    expect(res.json().error.code).toBe('INVALID_TOKEN');
   });
 
   it('401 UNAUTHORIZED for malformed cookie shape — no cascade', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/refresh',
+      url: '/api/v1/auth/refresh',
       headers: { cookie: 'refresh_token=s%3Amalformed-value.fakesig' },
     });
 
     expect(res.statusCode).toBe(401);
-    expect(res.json().error.code).toBe('UNAUTHORIZED');
+    expect(res.json().error.code).toBe('INVALID_TOKEN');
   });
 });

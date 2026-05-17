@@ -10,7 +10,7 @@ pnpm-lock.yaml
 .specify
 docs
 specs
-tests
+
 
 *.md
 *-lock
