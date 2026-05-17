@@ -86,14 +86,16 @@ export function createErrorHandler(fastify: LoggerHolder) {
       return reply.status(appErr.statusCode).send(failure(appErr));
     }
 
+    if (err instanceof jwt.TokenExpiredError) {
+      const appErr = AppError.create('TOKEN_EXPIRED');
+
+      return reply.status(appErr.statusCode).send(failure(appErr));
+    }
+
     if (err instanceof jwt.JsonWebTokenError) {
-      if (err.message === 'jwt expired') {
-        const appErr = AppError.create('INVALID_TOKEN');
-        reply.status(appErr.statusCode).send(failure(appErr));
-      } else if (err.message === 'invalid signature') {
-        const appErr = AppError.create('INVALID_TOKEN');
-        reply.status(appErr.statusCode).send(failure(appErr));
-      }
+      const appErr = AppError.create('INVALID_TOKEN');
+
+      return reply.status(appErr.statusCode).send(failure(appErr));
     }
 
     const span = trace.getActiveSpan();

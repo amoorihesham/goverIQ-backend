@@ -46,7 +46,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
     const email = uniqueEmail();
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
+      url: '/api/v1/auth/register',
       payload: { email, password: 'dummy-passwords' },
     });
 
@@ -68,7 +68,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
   it('400 VALIDATION_ERROR when password < 12 chars', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
+     url: '/api/v1/auth/register',
       payload: { email: uniqueEmail(), password: 'short' },
     });
 
@@ -80,7 +80,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
     const email = uniqueEmail();
     await app.inject({
       method: 'POST',
-      url: '/auth/register',
+     url: '/api/v1/auth/register',
       payload: { email, password: 'dummy-password' },
     });
 
@@ -88,7 +88,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
+     url: '/api/v1/auth/register',
       payload: { email, password: 'another-dummy-password' },
     });
 
@@ -100,7 +100,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
     const email = uniqueEmail();
     await app.inject({
       method: 'POST',
-      url: '/auth/register',
+     url: '/api/v1/auth/register',
       payload: { email, password: 'dummy-password' },
     });
 
@@ -109,7 +109,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
+     url: '/api/v1/auth/register',
       payload: { email, password: 'another-dummy-password' },
     });
 
@@ -128,7 +128,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
+     url: '/api/v1/auth/register',
       payload: { email, password: 'dummy-password' },
     });
 
@@ -148,7 +148,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     const results = await Promise.all(
       Array.from({ length: 10 }, () =>
-        app.inject({ method: 'POST', url: '/auth/register', payload: { email, password } }),
+        app.inject({ method: 'POST',url: '/api/v1/auth/register', payload: { email, password } }),
       ),
     );
 

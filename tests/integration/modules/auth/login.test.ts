@@ -32,7 +32,7 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/login',
+      url: '/api/v1/auth/login',
       payload: { email, password },
     });
 
@@ -61,7 +61,7 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/login',
+      url: '/api/v1/auth/login',
       payload: { email, password: 'wrong-password-123' },
     });
 
@@ -72,7 +72,7 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
   it('401 INVALID_CREDENTIALS — unknown email', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/login',
+      url: '/api/v1/auth/login',
       payload: { email: `nobody-${randomUUID()}@test.example`, password: 'any-password-123' },
     });
 
@@ -88,7 +88,7 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/login',
+      url: '/api/v1/auth/login',
       payload: { email, password: 'correct-horse-battery' },
     });
 
@@ -103,12 +103,12 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
     const [wrongPw, unknownEmail] = await Promise.all([
       app.inject({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/v1/auth/login',
         payload: { email, password: 'wrong-password-xyz' },
       }),
       app.inject({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/v1/auth/login',
         payload: { email: `nobody-${randomUUID()}@test.example`, password: 'wrong-password-xyz' },
       }),
     ]);
@@ -157,7 +157,7 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
           const start = performance.now();
           const res = await app.inject({
             method: 'POST',
-            url: '/auth/login',
+            url: '/api/v1/auth/login',
             payload: { email: user.email, password },
           });
           latencies.push(performance.now() - start);
@@ -206,7 +206,7 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
       const start = Date.now();
       const res = await app.inject({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/v1/auth/login',
         payload: { email, password },
       });
       latencies.push(Date.now() - start);
