@@ -1,25 +1,11 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  timestamp,
-  pgEnum,
-  jsonb,
-  uniqueIndex,
-  index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 import { meetings } from './meeting';
 import { memberships } from './org';
 
 export const voteStatusEnum = pgEnum('vote_status', ['OPEN', 'CLOSED']);
 
-export const voteOutcomeEnum = pgEnum('vote_outcome', [
-  'PASSED',
-  'FAILED',
-  'TIED',
-  'QUORUM_NOT_MET',
-]);
+export const voteOutcomeEnum = pgEnum('vote_outcome', ['PASSED', 'FAILED', 'TIED', 'QUORUM_NOT_MET']);
 
 export const votes = pgTable(
   'votes',
@@ -30,6 +16,7 @@ export const votes = pgTable(
       .references(() => meetings.id, { onDelete: 'cascade' }),
     question: text('question').notNull(),
     options: text('options').array().notNull(),
+    affirmativeOption: text('affirmative_option').notNull(),
     status: voteStatusEnum('status').notNull().default('OPEN'),
     outcome: voteOutcomeEnum('outcome'),
     resultSummary: jsonb('result_summary'),

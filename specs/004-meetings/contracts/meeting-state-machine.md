@@ -15,11 +15,11 @@ status pre-handler behavior are fixed and testable.
 type MeetingStatus = 'DRAFT' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export const MEETING_TRANSITIONS: Record<MeetingStatus, MeetingStatus[]> = {
-  DRAFT:       ['SCHEDULED'],
-  SCHEDULED:   ['IN_PROGRESS', 'CANCELLED'],
+  DRAFT: ['SCHEDULED'],
+  SCHEDULED: ['IN_PROGRESS', 'CANCELLED'],
   IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
-  COMPLETED:   [],
-  CANCELLED:   [],
+  COMPLETED: [],
+  CANCELLED: [],
 };
 ```
 
@@ -41,12 +41,12 @@ status transition, before any guard.
 Guards run only **after** `assertValidTransition` passes, and only for the
 transition that needs them.
 
-| Transition                | Guard                                                              | Failure                          |
-| -------------------------- | ------------------------------------------------------------------ | -------------------------------- |
-| `SCHEDULED → IN_PROGRESS`  | meeting has ≥ 1 attendee                                           | `INVALID_STATE_TRANSITION` (422) |
-| `SCHEDULED → IN_PROGRESS`  | `Date.now() ≥ scheduledAt − MEETING_EARLY_OPEN_MINUTES` (inclusive) | `MEETING_TOO_EARLY` (422)        |
-| `IN_PROGRESS → COMPLETED`  | no row in `votes` with `meeting_id = id AND status = 'OPEN'`        | `MEETING_HAS_OPEN_VOTES` (409)   |
-| all other allowed transitions | none                                                            | —                                |
+| Transition                    | Guard                                                               | Failure                          |
+| ----------------------------- | ------------------------------------------------------------------- | -------------------------------- |
+| `SCHEDULED → IN_PROGRESS`     | meeting has ≥ 1 attendee                                            | `INVALID_STATE_TRANSITION` (422) |
+| `SCHEDULED → IN_PROGRESS`     | `Date.now() ≥ scheduledAt − MEETING_EARLY_OPEN_MINUTES` (inclusive) | `MEETING_TOO_EARLY` (422)        |
+| `IN_PROGRESS → COMPLETED`     | no row in `votes` with `meeting_id = id AND status = 'OPEN'`        | `MEETING_HAS_OPEN_VOTES` (409)   |
+| all other allowed transitions | none                                                                | —                                |
 
 `MEETING_EARLY_OPEN_MINUTES = 15` (named constant in `constants/index.ts`).
 
@@ -80,14 +80,14 @@ but cannot drive any other transition.
 
 ## 4. Pre-handler chain per route
 
-| Route                                               | Pre-handlers                                                                                |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `POST   /meetings/org/:orgId`                       | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:create')` |
-| `GET    /meetings/org/:orgId`                       | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:read')`   |
-| `GET    /meetings/:meetingId/org/:orgId`            | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:read')`   |
-| `PATCH  /meetings/:meetingId/org/:orgId`            | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:update')` |
-| `PATCH  /meetings/:meetingId/org/:orgId/status`     | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requireStatusTransitionPermission`   |
-| `POST   /meetings/:meetingId/org/:orgId/attendees`  | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:update')` |
+| Route                                                        | Pre-handlers                                                                                            |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `POST   /meetings/org/:orgId`                                | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:create')` |
+| `GET    /meetings/org/:orgId`                                | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:read')`   |
+| `GET    /meetings/:meetingId/org/:orgId`                     | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:read')`   |
+| `PATCH  /meetings/:meetingId/org/:orgId`                     | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:update')` |
+| `PATCH  /meetings/:meetingId/org/:orgId/status`              | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requireStatusTransitionPermission`   |
+| `POST   /meetings/:meetingId/org/:orgId/attendees`           | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:update')` |
 | `DELETE /meetings/:meetingId/org/:orgId/attendees/:memberId` | `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:update')` |
 
 ---
@@ -97,13 +97,13 @@ but cannot drive any other transition.
 Every state-changing service method opens one `withTx` block that performs the
 write(s) and the matching `emitAudit(tx, …)` call together:
 
-| Operation         | Writes                                              | Audit event                |
-| ----------------- | --------------------------------------------------- | -------------------------- |
-| create            | `meetings` insert + `meeting_agenda_items` inserts  | `meeting.created`          |
-| update            | `meetings` update (+ agenda delete/insert)          | `meeting.updated`          |
-| status transition | `meetings.status` update                            | `meeting.status_changed`   |
-| add attendees     | `meeting_attendees` insert (`ON CONFLICT DO NOTHING`)| `meeting.attendee_added` ×N |
-| remove attendee   | `meeting_attendees` delete                          | `meeting.attendee_removed` |
+| Operation         | Writes                                                | Audit event                 |
+| ----------------- | ----------------------------------------------------- | --------------------------- |
+| create            | `meetings` insert + `meeting_agenda_items` inserts    | `meeting.created`           |
+| update            | `meetings` update (+ agenda delete/insert)            | `meeting.updated`           |
+| status transition | `meetings.status` update                              | `meeting.status_changed`    |
+| add attendees     | `meeting_attendees` insert (`ON CONFLICT DO NOTHING`) | `meeting.attendee_added` ×N |
+| remove attendee   | `meeting_attendees` delete                            | `meeting.attendee_removed`  |
 
 If the transaction rolls back, the audit row rolls back with it — no ghost
 entries (Constitution audit invariant, FR-315).

@@ -51,12 +51,12 @@ tests.
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principle                    | Status | Gate Verification                                                                                                                                                                          |
-| ---------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| I. Code Quality              | Pass   | Module split into routes / controller / service / schemas / types; the state machine is a pure module with no Fastify or DB import; magic numbers (15-min window, page sizes) become named constants; lint + Prettier enforced |
-| II. Testing Standards        | Pass   | Unit tests for `state-machine.ts` (every transition + rejection); 5 integration test files, one per user story (create, status, attendees, list, update); coverage stays ≥ 80%; TDD enforced |
+| Principle                    | Status | Gate Verification                                                                                                                                                                                                                    |
+| ---------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| I. Code Quality              | Pass   | Module split into routes / controller / service / schemas / types; the state machine is a pure module with no Fastify or DB import; magic numbers (15-min window, page sizes) become named constants; lint + Prettier enforced       |
+| II. Testing Standards        | Pass   | Unit tests for `state-machine.ts` (every transition + rejection); 5 integration test files, one per user story (create, status, attendees, list, update); coverage stays ≥ 80%; TDD enforced                                         |
 | III. API Design Consistency  | Pass   | All 7 responses use the existing success/error envelope; all errors use registry codes (2 new codes added here); `meetings.openapi.yaml` contract authored before any handler; cursor pagination consistent with Phase 0 conventions |
-| IV. Performance Requirements | Pass   | List uses keyset pagination on `meetings_org_status_idx`; the open-votes guard hits `votes_meeting_status_idx`; attendee add is a single bulk insert; agenda replace is one delete + one insert — no N+1 patterns |
+| IV. Performance Requirements | Pass   | List uses keyset pagination on `meetings_org_status_idx`; the open-votes guard hits `votes_meeting_status_idx`; attendee add is a single bulk insert; agenda replace is one delete + one insert — no N+1 patterns                    |
 
 **Pre-design Constitution Check: PASS.** No violations. Complexity Tracking
 section is empty.
@@ -151,11 +151,11 @@ reused as-is.
 
 ```ts
 export const MEETING_TRANSITIONS: Record<MeetingStatus, MeetingStatus[]> = {
-  DRAFT:       ['SCHEDULED'],
-  SCHEDULED:   ['IN_PROGRESS', 'CANCELLED'],
+  DRAFT: ['SCHEDULED'],
+  SCHEDULED: ['IN_PROGRESS', 'CANCELLED'],
   IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
-  COMPLETED:   [],
-  CANCELLED:   [],
+  COMPLETED: [],
+  CANCELLED: [],
 };
 
 export function assertValidTransition(from: MeetingStatus, to: MeetingStatus): void {
@@ -189,7 +189,9 @@ const earliest = new Date(meeting.scheduledAt.getTime() - MEETING_EARLY_OPEN_MIN
 if (Date.now() < earliest.getTime()) throw AppError.meetingTooEarly();
 
 // IN_PROGRESS → COMPLETED  (FR-306 — wired now, real effect in Phase 4)
-const [openVotes] = await tx.select({ n: count() }).from(votes)
+const [openVotes] = await tx
+  .select({ n: count() })
+  .from(votes)
   .where(and(eq(votes.meetingId, meeting.id), eq(votes.status, 'OPEN')));
 if (openVotes.n > 0) throw AppError.create('MEETING_HAS_OPEN_VOTES');
 ```
@@ -198,12 +200,17 @@ if (openVotes.n > 0) throw AppError.create('MEETING_HAS_OPEN_VOTES');
 
 ```ts
 await withTx(async (tx) => {
-  assertValidTransition(meeting.status, target);   // map check first
+  assertValidTransition(meeting.status, target); // map check first
   // ...evaluate guards for the specific transition...
   await tx.update(meetings).set({ status: target }).where(eq(meetings.id, meeting.id));
-  await emitAudit(tx, { orgId, actorId: userId, event: 'meeting.status_changed',
-    entityType: 'meeting', entityId: meeting.id,
-    payload: { before: meeting.status, after: target } });
+  await emitAudit(tx, {
+    orgId,
+    actorId: userId,
+    event: 'meeting.status_changed',
+    entityType: 'meeting',
+    entityId: meeting.id,
+    payload: { before: meeting.status, after: target },
+  });
 });
 ```
 
@@ -212,19 +219,24 @@ await withTx(async (tx) => {
 ```ts
 // when agendaItems supplied on PATCH:
 await tx.delete(meetingAgendaItems).where(eq(meetingAgendaItems.meetingId, id));
-await tx.insert(meetingAgendaItems).values(items);   // (meeting_id, order_index) unique rejects dupes
+await tx.insert(meetingAgendaItems).values(items); // (meeting_id, order_index) unique rejects dupes
 ```
 
 ### Idempotent Attendee Add (FR-308)
 
 ```ts
-const inserted = await tx.insert(meetingAttendees)
+const inserted = await tx
+  .insert(meetingAttendees)
   .values(memberIds.map((memberId) => ({ meetingId, memberId })))
   .onConflictDoNothing()
   .returning();
 for (const row of inserted) {
-  await emitAudit(tx, { event: 'meeting.attendee_added', entityType: 'meeting',
-    entityId: meetingId, payload: { data: { memberId: row.memberId } } });
+  await emitAudit(tx, {
+    event: 'meeting.attendee_added',
+    entityType: 'meeting',
+    entityId: meetingId,
+    payload: { data: { memberId: row.memberId } },
+  });
 }
 ```
 
@@ -258,11 +270,11 @@ export async function truncateMeetingTables(): Promise<void> {
 After generating `research.md`, `data-model.md`, `contracts/`, and
 `quickstart.md`:
 
-| Principle                    | Status | Notes                                                                                                                                                       |
-| ---------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I. Code Quality              | Pass   | `state-machine.ts` is pure (no Fastify/DB import); single responsibility per file; the 15-minute window and page sizes are named constants in `constants/`   |
-| II. Testing Standards        | Pass   | 1 unit test file exhaustively covers the transition matrix; 5 integration files cover every FR/SC; rollback-injection tests confirm transactional audit      |
-| III. API Design Consistency  | Pass   | 1 OpenAPI contract + 1 internal contract authored before implementation; all routes use the existing envelope; 2 new error codes registered                 |
-| IV. Performance Requirements | Pass   | Every hot-path query hits an existing index; guards are bounded fixed-cost; agenda replace and attendee add are single statements — no N+1                  |
+| Principle                    | Status | Notes                                                                                                                                                      |
+| ---------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Code Quality              | Pass   | `state-machine.ts` is pure (no Fastify/DB import); single responsibility per file; the 15-minute window and page sizes are named constants in `constants/` |
+| II. Testing Standards        | Pass   | 1 unit test file exhaustively covers the transition matrix; 5 integration files cover every FR/SC; rollback-injection tests confirm transactional audit    |
+| III. API Design Consistency  | Pass   | 1 OpenAPI contract + 1 internal contract authored before implementation; all routes use the existing envelope; 2 new error codes registered                |
+| IV. Performance Requirements | Pass   | Every hot-path query hits an existing index; guards are bounded fixed-cost; agenda replace and attendee add are single statements — no N+1                 |
 
 **Post-design Constitution Check: PASS.** Ready for `/speckit-tasks`.

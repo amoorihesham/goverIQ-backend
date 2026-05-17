@@ -3,15 +3,19 @@
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at:
 
-- [specs/004-meetings/plan.md](specs/004-meetings/plan.md)
+- [specs/005-voting-minutes/plan.md](specs/005-voting-minutes/plan.md)
 
 Related artifacts:
 
-- [spec.md](specs/004-meetings/spec.md) — feature specification
-- [research.md](specs/004-meetings/research.md) — technology decisions (11 decisions)
-- [data-model.md](specs/004-meetings/data-model.md) — column-level mapping (no schema changes)
-- [contracts/](specs/004-meetings/contracts/) — 1 OpenAPI file + 1 internal contract
-- [quickstart.md](specs/004-meetings/quickstart.md) — verification walkthrough
+- [spec.md](specs/005-voting-minutes/spec.md) — feature specification
+- [research.md](specs/005-voting-minutes/research.md) — technology decisions (13 decisions)
+- [data-model.md](specs/005-voting-minutes/data-model.md) — table mapping + one additive migration (votes.affirmative_option)
+- [contracts/](specs/005-voting-minutes/contracts/) — 2 OpenAPI files + 1 internal contract
+- [quickstart.md](specs/005-voting-minutes/quickstart.md) — verification walkthrough
+
+Prior feature (Phase 3):
+
+- [specs/004-meetings/plan.md](specs/004-meetings/plan.md) — meetings module
 
 Prior feature (Phase 2):
 

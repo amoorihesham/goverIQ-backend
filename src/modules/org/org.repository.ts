@@ -122,11 +122,7 @@ export class OrgRepository {
     if (data.description !== undefined) updates.description = data.description;
     if (data.logoUrl !== undefined) updates.logoUrl = data.logoUrl;
 
-    const [org] = await tx
-      .update(organizations)
-      .set(updates)
-      .where(eq(organizations.id, orgId))
-      .returning();
+    const [org] = await tx.update(organizations).set(updates).where(eq(organizations.id, orgId)).returning();
     return org!;
   }
 

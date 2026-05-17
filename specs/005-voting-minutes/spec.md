@@ -564,8 +564,8 @@ corrections.
   available and are reused without modification.
 - This feature uses the implemented permission set in
   `src/shared/permissions/set.ts` — `VOTE: vote:create, vote:read, vote:open,
-  vote:close, vote:cast_ballot` and `MINUTES: minutes:create, minutes:read,
-  minutes:update, minutes:finalize`. The Phase 4 prose in
+vote:close, vote:cast_ballot` and `MINUTES: minutes:create, minutes:read,
+minutes:update, minutes:finalize`. The Phase 4 prose in
   `docs/IMPLEMENTATION-PLAN.md` cites different names (`vote:view_results`,
   `vote:submit`, `minutes:edit`, `minutes:export`); this spec deliberately uses
   the implemented keys. Operations map as: create vote → `vote:create`; list and

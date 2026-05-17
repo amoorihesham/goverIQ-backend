@@ -21,3 +21,13 @@ export async function truncateMeetingTables(): Promise<void> {
     sql`TRUNCATE meetings, meeting_agenda_items, meeting_attendees RESTART IDENTITY CASCADE`,
   );
 }
+
+export async function truncateVoteTables(): Promise<void> {
+  await db.execute(sql`TRUNCATE votes, vote_eligibility, ballots RESTART IDENTITY CASCADE`);
+}
+
+export async function truncateMinutesTables(): Promise<void> {
+  await db.execute(
+    sql`TRUNCATE minutes, minutes_resolutions, minutes_corrections RESTART IDENTITY CASCADE`,
+  );
+}

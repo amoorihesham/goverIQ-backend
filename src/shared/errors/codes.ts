@@ -119,6 +119,16 @@ export const ERROR_CODES = {
     httpStatus: 422,
     message: 'Meeting cannot be opened more than 15 minutes early',
   },
+  VOTE_CLOSED: {
+    code: 'VOTE_CLOSED',
+    httpStatus: 422,
+    message: 'Vote is closed',
+  },
+  MINUTES_FINALIZED: {
+    code: 'MINUTES_FINALIZED',
+    httpStatus: 422,
+    message: 'Minutes are finalized and cannot be modified',
+  },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

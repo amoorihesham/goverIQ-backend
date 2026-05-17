@@ -44,10 +44,11 @@ upfront-schema principle guards against; it is a one-time additive change for a
 requirement clarified after Phase 0.
 
 **Alternatives considered**:
-- *Positional convention (`options[0]` is the affirmative option)* — no schema
+
+- _Positional convention (`options[0]` is the affirmative option)_ — no schema
   change, but encodes semantics in array order; implicit and error-prone for API
   consumers and future readers.
-- *Explicit field + server reorder* — accept `affirmativeOption`, then reorder
+- _Explicit field + server reorder_ — accept `affirmativeOption`, then reorder
   `options` so it sits first; rejected because silently rearranging
   client-supplied input is surprising and still relies on positional meaning.
 
@@ -64,7 +65,7 @@ hierarchy:
 `/minutes/meeting/:meetingId/org/:orgId/...`.
 
 **Rationale**: The implementation-plan prose shows `/orgs/:orgId/meetings/...`
-nesting, but the *implemented* meetings module uses the flat
+nesting, but the _implemented_ meetings module uses the flat
 `/:meetingId/org/:orgId` form so the `attachOrgId` pre-handler can lift `:orgId`
 into context for `requirePermission`. Consistency with the live codebase beats
 consistency with stale prose. Both `:meetingId` and `:orgId` appear in the path
@@ -153,7 +154,7 @@ feature. No service method, route, or util writes to the table after creation.
 
 **Rationale**: FR-403 and SC-402 require the snapshot to be immutable —
 later attendee changes must not affect a vote's eligible set. Enforcing this by
-*absence of write paths* is simpler and stronger than any runtime guard.
+_absence of write paths_ is simpler and stronger than any runtime guard.
 `vote_eligibility` has no `id` and no update timestamp, which already signals an
 insert-only table.
 
@@ -177,9 +178,10 @@ dependency is introduced once and reused. Confirmed with the user during
 planning ("PDF").
 
 **Alternatives considered**:
-- *HTML / Markdown* — no new dependency, but shifts the burden of producing an
+
+- _HTML / Markdown_ — no new dependency, but shifts the burden of producing an
   archival artifact onto the client.
-- *Headless-browser PDF (Puppeteer)* — rejected: a heavyweight dependency and a
+- _Headless-browser PDF (Puppeteer)_ — rejected: a heavyweight dependency and a
   bundled browser binary, far more than this export needs.
 
 ---
@@ -198,10 +200,11 @@ is required to still reject non-members with `FORBIDDEN`. It reuses the exact
 membership query from `guard.ts`.
 
 **Alternatives considered**:
-- *Checking membership inside the service* — rejected: membership resolution is
+
+- _Checking membership inside the service_ — rejected: membership resolution is
   a cross-cutting concern handled by pre-handlers everywhere else in the
   codebase; the service should receive an already-authorized caller.
-- *Refactoring `requirePermission` to compose `requireMembership`* — deferred:
+- _Refactoring `requirePermission` to compose `requireMembership`_ — deferred:
   desirable cleanup but out of scope; keeping `requirePermission` untouched
   minimizes regression risk to four shipped modules.
 
@@ -266,14 +269,14 @@ integrity verification.
 
 ## Resolved Unknowns Summary
 
-| Technical Context item            | Resolution |
-| ---------------------------------- | ---------- |
-| New dependency?                    | `pdfkit` + `@types/pdfkit` (Decision 9) |
-| Schema change?                     | One additive migration — `votes.affirmative_option` (Decision 2) |
-| Route shape                        | Flat, meeting-and-org path segments (Decision 3) |
-| Outcome algorithm placement        | Pure `votes/utils/outcome.ts` (Decision 4) |
-| Quorum threshold type handling     | `Number()` on the `numeric` string (Decision 5) |
-| New error codes                    | `VOTE_CLOSED`, `MINUTES_FINALIZED` (Decision 11) |
-| Identity-only minutes read         | New `requireMembership` pre-handler (Decision 10) |
+| Technical Context item         | Resolution                                                       |
+| ------------------------------ | ---------------------------------------------------------------- |
+| New dependency?                | `pdfkit` + `@types/pdfkit` (Decision 9)                          |
+| Schema change?                 | One additive migration — `votes.affirmative_option` (Decision 2) |
+| Route shape                    | Flat, meeting-and-org path segments (Decision 3)                 |
+| Outcome algorithm placement    | Pure `votes/utils/outcome.ts` (Decision 4)                       |
+| Quorum threshold type handling | `Number()` on the `numeric` string (Decision 5)                  |
+| New error codes                | `VOTE_CLOSED`, `MINUTES_FINALIZED` (Decision 11)                 |
+| Identity-only minutes read     | New `requireMembership` pre-handler (Decision 10)                |
 
 No `NEEDS CLARIFICATION` markers remain. Ready for Phase 1 design artifacts.

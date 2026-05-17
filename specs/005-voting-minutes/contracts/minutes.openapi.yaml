@@ -1,0 +1,461 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Minutes Module
+  version: 0.1.0
+  description: |
+    7 minutes endpoints. All require an authenticated Bearer token, a current
+    membership in the path org, and the org's onboarding step to be COMPLETE.
+    Permissions: create → minutes:create; edit, attach resolution, append
+    correction → minutes:update; finalize → minutes:finalize; export →
+    minutes:read. Reading minutes requires identity only — any member of the
+    organization may read them, with no permission key. The org Owner bypasses
+    permission checks. State-changing operations run in one transaction with
+    their audit write. A finalized minutes document is immutable; only
+    append-only corrections may follow finalization.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /api/v1/minutes/meeting/{meetingId}/org/{orgId}:
+    post:
+      summary: Create minutes
+      operationId: createMinutes
+      description: |
+        Requires minutes:create. The meeting MUST be COMPLETED, else
+        INVALID_STATE_TRANSITION. At most one minutes document may exist per
+        meeting — a second attempt is rejected with CONFLICT. Created with
+        status DRAFT; emits minutes.created in one transaction.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateMinutesRequest' }
+      responses:
+        '201':
+          description: Minutes document created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MinutesResponse' }
+              example:
+                success: true
+                data:
+                  id: 'd1a2b3c4-...'
+                  meetingId: 'm1a2b3c4-...'
+                  summary: 'Quarterly board meeting.'
+                  attendanceNotes: null
+                  status: 'DRAFT'
+                  finalizedAt: null
+                  resolutions: []
+                  corrections: []
+                  createdAt: '2026-05-17T12:00:00Z'
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Meeting not found in this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: A minutes document already exists for this meeting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'CONFLICT', message: 'Minutes already exist for this meeting', statusCode: 409 }
+        '422':
+          description: The meeting is not COMPLETED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  {
+                    code: 'INVALID_STATE_TRANSITION',
+                    message: 'Minutes can only be created for a completed meeting',
+                    statusCode: 422,
+                  }
+
+    get:
+      summary: Read minutes
+      operationId: readMinutes
+      description: |
+        Identity only — any member of the meeting's organization may read the
+        minutes; no permission key is required. Returns the minutes body, its
+        attached resolutions, and its appended corrections (chronological).
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: Minutes with resolutions and corrections
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MinutesResponse' }
+        '403':
+          description: Caller is not a member of the organization, or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: No minutes document exists for this meeting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+    patch:
+      summary: Edit minutes
+      operationId: editMinutes
+      description: |
+        Requires minutes:update. Permitted only while the document is DRAFT —
+        a FINALIZED document rejects edits with MINUTES_FINALIZED. Updates
+        summary and/or attendanceNotes; emits minutes.updated.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EditMinutesRequest' }
+      responses:
+        '200':
+          description: Minutes updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MinutesResponse' }
+        '400':
+          description: Validation failed (empty body)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: No minutes document exists for this meeting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: The minutes document is finalized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  {
+                    code: 'MINUTES_FINALIZED',
+                    message: 'Minutes are finalized and cannot be modified',
+                    statusCode: 422,
+                  }
+
+  /api/v1/minutes/meeting/{meetingId}/org/{orgId}/resolutions:
+    post:
+      summary: Attach a resolution
+      operationId: attachResolution
+      description: |
+        Requires minutes:update. Permitted only while the minutes are DRAFT
+        (else MINUTES_FINALIZED). The referenced vote MUST belong to this
+        meeting and be CLOSED; otherwise the request is rejected. Records the
+        resolution against the minutes. Emits no audit event.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [voteId, description]
+              properties:
+                voteId: { type: string, format: uuid }
+                description: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        '201':
+          description: Resolution attached
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MinutesResponse' }
+        '400':
+          description: The referenced vote is not CLOSED, or does not belong to this meeting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  {
+                    code: 'VALIDATION_ERROR',
+                    message: 'Resolution must reference a closed vote from this meeting',
+                    statusCode: 400,
+                  }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: No minutes document, or the referenced vote does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: The minutes document is finalized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  {
+                    code: 'MINUTES_FINALIZED',
+                    message: 'Minutes are finalized and cannot be modified',
+                    statusCode: 422,
+                  }
+
+  /api/v1/minutes/meeting/{meetingId}/org/{orgId}/finalize:
+    post:
+      summary: Finalize minutes
+      operationId: finalizeMinutes
+      description: |
+        Requires minutes:finalize. Permitted only while the document is DRAFT —
+        an already-finalized document is rejected with CONFLICT. Sets status
+        FINALIZED and records finalizedAt; emits minutes.finalized. After this
+        the document body and resolution set are permanently immutable.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: Minutes finalized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MinutesResponse' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: No minutes document exists for this meeting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: The minutes document is already finalized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'CONFLICT', message: 'Minutes are already finalized', statusCode: 409 }
+
+  /api/v1/minutes/meeting/{meetingId}/org/{orgId}/corrections:
+    post:
+      summary: Append a correction
+      operationId: appendCorrection
+      description: |
+        Requires minutes:update. Permitted only while the document is FINALIZED
+        — a DRAFT document is rejected with INVALID_STATE_TRANSITION. Records a
+        timestamped, append-only correction; the finalized body is never
+        altered. Emits minutes.correction_added.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        '201':
+          description: Correction appended
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MinutesResponse' }
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: No minutes document exists for this meeting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: The minutes document is still a draft
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  {
+                    code: 'INVALID_STATE_TRANSITION',
+                    message: 'Corrections apply only to finalized minutes',
+                    statusCode: 422,
+                  }
+
+  /api/v1/minutes/meeting/{meetingId}/org/{orgId}/export:
+    get:
+      summary: Export minutes as PDF
+      operationId: exportMinutes
+      description: |
+        Requires minutes:read. Produces a structured, human-readable PDF
+        containing the meeting details, the minutes body, the resolutions, and
+        the corrections, suitable for compliance archiving. Emits
+        minutes.exported. The response is the PDF file, not the JSON envelope.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: The minutes document as a PDF file
+          headers:
+            Content-Disposition:
+              description: attachment; filename="minutes-{meetingId}.pdf"
+              schema: { type: string }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: No minutes document exists for this meeting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    orgId:
+      name: orgId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    meetingId:
+      name: meetingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    MinutesStatus:
+      type: string
+      enum: [DRAFT, FINALIZED]
+
+    Resolution:
+      type: object
+      required: [id, voteId, description, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        voteId: { type: string, format: uuid }
+        description: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    Correction:
+      type: object
+      required: [id, content, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    CreateMinutesRequest:
+      type: object
+      properties:
+        summary: { type: string, maxLength: 5000 }
+        attendanceNotes: { type: string, maxLength: 5000 }
+
+    EditMinutesRequest:
+      type: object
+      minProperties: 1
+      description: At least one of summary or attendanceNotes must be supplied.
+      properties:
+        summary: { type: string, nullable: true, maxLength: 5000 }
+        attendanceNotes: { type: string, nullable: true, maxLength: 5000 }
+
+    MinutesObject:
+      type: object
+      required: [id, meetingId, status, resolutions, corrections, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        meetingId: { type: string, format: uuid }
+        summary: { type: string, nullable: true }
+        attendanceNotes: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/MinutesStatus' }
+        finalizedAt: { type: string, format: date-time, nullable: true }
+        resolutions:
+          type: array
+          items: { $ref: '#/components/schemas/Resolution' }
+        corrections:
+          type: array
+          description: Chronological order, oldest first.
+          items: { $ref: '#/components/schemas/Correction' }
+        createdAt: { type: string, format: date-time }
+
+    MinutesResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/MinutesObject' }
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

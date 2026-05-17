@@ -18,9 +18,7 @@ export function instrumentPool(pool: Pool): void {
 
 function wrapQuery(target: Pool | PoolClient): void {
   const original = target.query.bind(target) as (...args: unknown[]) => unknown;
-  (target as { query: (...args: unknown[]) => unknown }).query = (
-    ...args: unknown[]
-  ): unknown => {
+  (target as { query: (...args: unknown[]) => unknown }).query = (...args: unknown[]): unknown => {
     const start = performance.now();
     const sql = extractSql(args[0] as QueryArg);
     const result = original(...args);
@@ -28,10 +26,7 @@ function wrapQuery(target: Pool | PoolClient): void {
       return Promise.resolve(result).finally(() => {
         const duration = performance.now() - start;
         if (duration > THRESHOLD_MS) {
-          logger.warn(
-            { duration_ms: Math.round(duration), sql },
-            'slow query',
-          );
+          logger.warn({ duration_ms: Math.round(duration), sql }, 'slow query');
         }
       });
     }
@@ -40,11 +35,7 @@ function wrapQuery(target: Pool | PoolClient): void {
 }
 
 function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { then?: unknown }).then === 'function'
-  );
+  return typeof value === 'object' && value !== null && typeof (value as { then?: unknown }).then === 'function';
 }
 
 function extractSql(arg: QueryArg): string {

@@ -7,7 +7,6 @@ import { auditLogs } from '@/db/schema/audit';
 import type { Tx } from '@/shared/database/transaction';
 import { AppError } from '@/shared/errors/http-error';
 
-
 export async function emitAudit(tx: Tx, event: AuditEvent): Promise<void> {
   assertValidTx(tx);
 

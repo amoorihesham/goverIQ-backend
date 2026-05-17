@@ -22,6 +22,13 @@
       "when": 1778625368267,
       "tag": "0002_enable_pg_stat_statements",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779014284598,
+      "tag": "0003_lowly_titanium_man",
+      "breakpoints": true
     }
   ]
 }

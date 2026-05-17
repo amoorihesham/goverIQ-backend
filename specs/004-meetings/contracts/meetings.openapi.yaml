@@ -254,11 +254,21 @@ paths:
                 invalidTransition:
                   value:
                     success: false
-                    error: { code: 'INVALID_STATE_TRANSITION', message: 'Cannot transition meeting from DRAFT to COMPLETED', statusCode: 422 }
+                    error:
+                      {
+                        code: 'INVALID_STATE_TRANSITION',
+                        message: 'Cannot transition meeting from DRAFT to COMPLETED',
+                        statusCode: 422,
+                      }
                 tooEarly:
                   value:
                     success: false
-                    error: { code: 'MEETING_TOO_EARLY', message: 'Meeting cannot be opened more than 15 minutes early', statusCode: 422 }
+                    error:
+                      {
+                        code: 'MEETING_TOO_EARLY',
+                        message: 'Meeting cannot be opened more than 15 minutes early',
+                        statusCode: 422,
+                      }
 
   /api/v1/meetings/{meetingId}/org/{orgId}/attendees:
     post:

@@ -59,7 +59,9 @@
       "Skill(speckit-git-feature:*)",
       "Bash(powershell.exe -NoProfile -File .specify/extensions/git/scripts/powershell/create-new-feature.ps1 -Json -ShortName \"voting-minutes\" \"phase-4 voting and minutes\")",
       "Bash(powershell.exe -NoProfile -File .specify/scripts/powershell/setup-plan.ps1 -Json)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({dependencies:p.dependencies,devDependencies:p.devDependencies},null,1\\)\\)\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({dependencies:p.dependencies,devDependencies:p.devDependencies},null,1\\)\\)\")",
+      "Bash(powershell.exe -NoProfile -Command \".specify/scripts/powershell/setup-plan.ps1 -Json\")",
+      "Bash(powershell.exe -NoProfile -Command \".specify/scripts/powershell/check-prerequisites.ps1 -Json\")"
     ],
     "additionalDirectories": [
       "d:\\groven-iq\\specs\\003-org-roles-members"

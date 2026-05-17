@@ -90,12 +90,7 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorEnvelope' }
               example:
                 success: false
-                error:
-                  {
-                    code: 'INVALID_STATE_TRANSITION',
-                    message: 'Invitation has expired',
-                    statusCode: 422,
-                  }
+                error: { code: 'INVALID_STATE_TRANSITION', message: 'Invitation has expired', statusCode: 422 }
 
   /invitations/{token}/decline:
     post:
