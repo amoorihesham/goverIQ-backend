@@ -23,6 +23,5 @@ export default defineConfig({
         branches: 80,
       },
     },
-    setupFiles: ['./tests/setup.ts'],
   },
 });

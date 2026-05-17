@@ -1,41 +1,28 @@
 import { randomUUID } from 'crypto';
 
 import { eq } from 'drizzle-orm';
-import { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { truncateAuthTables } from '../../helpers/db';
-import { buildAuthTestServer } from '../../helpers/server';
+import { truncateAllTables,  } from '../../helpers/db';
+import {  buildTestServer } from '../../helpers/server';
 
 import { auditLogs } from '@/db/schema/audit';
 import { users } from '@/db/schema/auth';
-import { hashPassword } from '@/modules/auth/password';
+import { hashPassword } from '@/modules/auth/public';
 import { db } from '@/shared/database/client';
+import { createVerifiedUser, uniqueEmail } from './helpers';
 
-let app: FastifyInstance;
+let app: Awaited<ReturnType<typeof buildTestServer>>;
 
 beforeAll(async () => {
-  app = await buildAuthTestServer();
+  app = await buildTestServer();
 });
 
-beforeEach(truncateAuthTables);
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
 });
-
-function uniqueEmail() {
-  return `login-${randomUUID()}@test.example`;
-}
-
-async function createVerifiedUser(email: string, password: string) {
-  const passwordHash = await hashPassword(password);
-  const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash, isVerified: true })
-    .returning();
-  return user!;
-}
 
 describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 / SC-106)', () => {
   it('200 with accessToken + Set-Cookie + audit row on correct credentials', async () => {
@@ -58,6 +45,7 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
     expect(setCookie).toBeDefined();
     const cookieStr = Array.isArray(setCookie) ? setCookie.join(';') : (setCookie as string);
     expect(cookieStr).toContain('refresh_token');
+    expect(cookieStr).toContain('access_token');
     expect(cookieStr).toContain('HttpOnly');
 
     const auditRows = await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.login'));
@@ -166,13 +154,13 @@ describe('POST /auth/login (FR-105 / FR-106 / FR-107 / FR-112 / SC-102 / SC-104 
       await Promise.all(
         Array.from({ length: slice }, async (_, j) => {
           const user = pool[j % CONCURRENCY]!;
-          const start = Date.now();
+          const start = performance.now();
           const res = await app.inject({
             method: 'POST',
             url: '/auth/login',
             payload: { email: user.email, password },
           });
-          latencies.push(Date.now() - start);
+          latencies.push(performance.now() - start);
           expect(res.statusCode).toBe(200);
         }),
       );

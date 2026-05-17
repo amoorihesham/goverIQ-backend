@@ -9,4 +9,9 @@ pnpm-lock.yaml
 .opencode
 .specify
 docs
+specs
 tests
+
+*.md
+*-lock
+pnpm-workspace.yaml

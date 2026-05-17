@@ -70,12 +70,8 @@
           "name": "email_verifications_user_id_users_id_fk",
           "tableFrom": "email_verifications",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -160,12 +156,8 @@
           "name": "refresh_tokens_user_id_users_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -175,9 +167,7 @@
         "refresh_tokens_token_hash_unique": {
           "name": "refresh_tokens_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -252,9 +242,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -368,12 +356,8 @@
           "name": "invitations_org_id_organizations_id_fk",
           "tableFrom": "invitations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -381,12 +365,8 @@
           "name": "invitations_role_id_roles_id_fk",
           "tableFrom": "invitations",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -396,9 +376,7 @@
         "invitations_token_hash_unique": {
           "name": "invitations_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -477,12 +455,8 @@
           "name": "memberships_user_id_users_id_fk",
           "tableFrom": "memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -490,12 +464,8 @@
           "name": "memberships_org_id_organizations_id_fk",
           "tableFrom": "memberships",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -503,12 +473,8 @@
           "name": "memberships_role_id_roles_id_fk",
           "tableFrom": "memberships",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -634,16 +600,12 @@
         "organizations_name_lower_unique": {
           "name": "organizations_name_lower_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name_lower"
-          ]
+          "columns": ["name_lower"]
         },
         "organizations_slug_unique": {
           "name": "organizations_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -745,12 +707,8 @@
           "name": "roles_org_id_organizations_id_fk",
           "tableFrom": "roles",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -839,12 +797,8 @@
           "name": "meeting_agenda_items_meeting_id_meetings_id_fk",
           "tableFrom": "meeting_agenda_items",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -914,12 +868,8 @@
           "name": "meeting_attendees_meeting_id_meetings_id_fk",
           "tableFrom": "meeting_attendees",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -927,12 +877,8 @@
           "name": "meeting_attendees_member_id_memberships_id_fk",
           "tableFrom": "meeting_attendees",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["member_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1050,12 +996,8 @@
           "name": "meetings_org_id_organizations_id_fk",
           "tableFrom": "meetings",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1131,12 +1073,8 @@
           "name": "ballots_vote_id_votes_id_fk",
           "tableFrom": "ballots",
           "tableTo": "votes",
-          "columnsFrom": [
-            "vote_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vote_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1144,12 +1082,8 @@
           "name": "ballots_member_id_memberships_id_fk",
           "tableFrom": "ballots",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["member_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1212,12 +1146,8 @@
           "name": "vote_eligibility_vote_id_votes_id_fk",
           "tableFrom": "vote_eligibility",
           "tableTo": "votes",
-          "columnsFrom": [
-            "vote_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vote_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1225,12 +1155,8 @@
           "name": "vote_eligibility_member_id_memberships_id_fk",
           "tableFrom": "vote_eligibility",
           "tableTo": "memberships",
-          "columnsFrom": [
-            "member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["member_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1339,12 +1265,8 @@
           "name": "votes_meeting_id_meetings_id_fk",
           "tableFrom": "votes",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1435,12 +1357,8 @@
           "name": "minutes_meeting_id_meetings_id_fk",
           "tableFrom": "minutes",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1510,12 +1428,8 @@
           "name": "minutes_corrections_minutes_id_minutes_id_fk",
           "tableFrom": "minutes_corrections",
           "tableTo": "minutes",
-          "columnsFrom": [
-            "minutes_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["minutes_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1585,12 +1499,8 @@
           "name": "minutes_resolutions_minutes_id_minutes_id_fk",
           "tableFrom": "minutes_resolutions",
           "tableTo": "minutes",
-          "columnsFrom": [
-            "minutes_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["minutes_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1598,12 +1508,8 @@
           "name": "minutes_resolutions_vote_id_votes_id_fk",
           "tableFrom": "minutes_resolutions",
           "tableTo": "votes",
-          "columnsFrom": [
-            "vote_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vote_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1773,58 +1679,32 @@
     "public.invitation_status": {
       "name": "invitation_status",
       "schema": "public",
-      "values": [
-        "PENDING",
-        "ACCEPTED",
-        "DECLINED",
-        "EXPIRED"
-      ]
+      "values": ["PENDING", "ACCEPTED", "DECLINED", "EXPIRED"]
     },
     "public.onboarding_step": {
       "name": "onboarding_step",
       "schema": "public",
-      "values": [
-        "PENDING_ROLES",
-        "PENDING_INVITES",
-        "COMPLETE"
-      ]
+      "values": ["PENDING_ROLES", "PENDING_INVITES", "COMPLETE"]
     },
     "public.meeting_status": {
       "name": "meeting_status",
       "schema": "public",
-      "values": [
-        "DRAFT",
-        "SCHEDULED",
-        "IN_PROGRESS",
-        "COMPLETED",
-        "CANCELLED"
-      ]
+      "values": ["DRAFT", "SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
     },
     "public.vote_outcome": {
       "name": "vote_outcome",
       "schema": "public",
-      "values": [
-        "PASSED",
-        "FAILED",
-        "TIED",
-        "QUORUM_NOT_MET"
-      ]
+      "values": ["PASSED", "FAILED", "TIED", "QUORUM_NOT_MET"]
     },
     "public.vote_status": {
       "name": "vote_status",
       "schema": "public",
-      "values": [
-        "OPEN",
-        "CLOSED"
-      ]
+      "values": ["OPEN", "CLOSED"]
     },
     "public.minutes_status": {
       "name": "minutes_status",
       "schema": "public",
-      "values": [
-        "DRAFT",
-        "FINALIZED"
-      ]
+      "values": ["DRAFT", "FINALIZED"]
     }
   },
   "schemas": {},
