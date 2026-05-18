@@ -1,7 +1,5 @@
 FROM node:22-alpine
 
-RUN npm install -g pnpm
-
 WORKDIR /app
 
 # Dependencies first (layer caching)
@@ -11,7 +9,7 @@ RUN npm install
 # Only source code needed for the build
 COPY . .
 
-RUN pnpm build
+RUN npm run build
 
 EXPOSE 3000
-CMD ["pnpm", "start"]
+CMD ["npm", "run", "start"]
