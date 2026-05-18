@@ -28,8 +28,8 @@ const envSchema = z.object({
   QUEUE_BACKEND: z.string().default('redis'),
 
   // JWT CONFIG
-  JWT_ACCESS_SECRET: z.string(),
-  JWT_REFRESH_SECRET: z.string(),
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
 
   // SMTP CONFIG
   SMTP_HOST: z.string(),

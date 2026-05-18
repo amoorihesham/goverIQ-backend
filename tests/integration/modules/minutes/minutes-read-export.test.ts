@@ -1,12 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  truncateAuthTables,
-  truncateMeetingTables,
-  truncateMinutesTables,
-  truncateOrgTables,
-  truncateVoteTables,
-} from '../../helpers/db';
+import { truncateAllTables } from '../../helpers/db';
 import { buildAppTestServer } from '../../helpers/server';
 import { setupMinutesContext } from './helpers';
 
@@ -16,13 +10,7 @@ beforeAll(async () => {
   app = await buildAppTestServer();
 });
 
-beforeEach(async () => {
-  await truncateMinutesTables();
-  await truncateVoteTables();
-  await truncateMeetingTables();
-  await truncateOrgTables();
-  await truncateAuthTables();
-});
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();

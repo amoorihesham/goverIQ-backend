@@ -1,15 +1,18 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildTestServer } from '../../helpers/server';
 import { signToken } from '@/shared/auth/jwt';
 import { CONFIGURATIONS } from '@/modules/auth/public';
 import { env } from '@/shared/config/env';
+import { truncateAllTables } from '../../helpers/db';
 
 let app: Awaited<ReturnType<typeof buildTestServer>>;
 
 beforeAll(async () => {
   app = await buildTestServer();
 });
+
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();

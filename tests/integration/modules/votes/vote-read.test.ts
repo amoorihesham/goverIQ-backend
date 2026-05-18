@@ -1,11 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  truncateAuthTables,
-  truncateMeetingTables,
-  truncateOrgTables,
-  truncateVoteTables,
-} from '../../helpers/db';
+import { truncateAllTables } from '../../helpers/db';
 import { buildAppTestServer } from '../../helpers/server';
 import { setupVoteContext } from './helpers';
 
@@ -15,12 +10,7 @@ beforeAll(async () => {
   app = await buildAppTestServer();
 });
 
-beforeEach(async () => {
-  await truncateVoteTables();
-  await truncateMeetingTables();
-  await truncateOrgTables();
-  await truncateAuthTables();
-});
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
@@ -33,7 +23,12 @@ const votePayload = {
   deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
 };
 
-async function createVote(app: Awaited<ReturnType<typeof buildAppTestServer>>, token: string, meetingId: string, orgId: string) {
+async function createVote(
+  app: Awaited<ReturnType<typeof buildAppTestServer>>,
+  token: string,
+  meetingId: string,
+  orgId: string,
+) {
   const res = await app.inject({
     method: 'POST',
     url: `/api/v1/votes/meeting/${meetingId}/org/${orgId}`,

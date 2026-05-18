@@ -1,15 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'crypto';
 
-import { truncateAuthTables, truncateMeetingTables, truncateOrgTables } from '../../helpers/db';
+import { truncateAllTables } from '../../helpers/db';
 import { buildAppTestServer } from '../../helpers/server';
-import {
-  futureDate,
-  setupMeetingContext,
-  createVerifiedUser,
-  loginUser,
-  uniqueEmail,
-} from './helpers';
+import { futureDate, setupMeetingContext, createVerifiedUser, loginUser, uniqueEmail } from './helpers';
 import { db } from '@/shared/database/client';
 import { memberships } from '@/db/schema/org';
 import { eq } from 'drizzle-orm';
@@ -20,11 +14,7 @@ beforeAll(async () => {
   app = await buildAppTestServer();
 });
 
-beforeEach(async () => {
-  await truncateAuthTables();
-  await truncateOrgTables();
-  await truncateMeetingTables();
-});
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();

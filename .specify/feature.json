@@ -1,12 +1,3 @@
-<<<<<<< HEAD
 {
-<<<<<<< HEAD
-  "feature_directory": "specs/004-meetings"
-=======
-  "feature_directory": "specs/005-voting-minutes"
->>>>>>> 005-voting-minutes
-=======
-﻿{
   "feature_directory": "specs/006-audit-hardening-deployment"
->>>>>>> main
 }

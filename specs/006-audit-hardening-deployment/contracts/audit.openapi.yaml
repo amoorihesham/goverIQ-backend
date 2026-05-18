@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: Groven IQ — Audit Module
+  description: >
+    Organization-scoped audit log query and export. Two endpoints, both
+    read-only; reading the audit log is not itself an audited action.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Audit
+    description: Audit log query and export
+
+paths:
+  /audit/org/{orgId}:
+    get:
+      tags: [Audit]
+      summary: Query the organization audit log
+      description: >
+        Returns audit entries for the organization, newest-first, in cursor
+        paginated pages. All filters are optional and combine with AND. Requires
+        the `audit:view` permission. Sensitive payload fields are redacted at
+        read time; the stored record is unchanged.
+      operationId: queryAuditLog
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: actorId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: event, in: query, required: false, schema: { type: string } }
+        - { name: entityType, in: query, required: false, schema: { type: string } }
+        - { name: entityId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date-time }, description: Inclusive lower bound on createdAt }
+        - { name: to, in: query, required: false, schema: { type: string, format: date-time }, description: Inclusive upper bound on createdAt }
+        - { name: cursor, in: query, required: false, schema: { type: string }, description: Opaque keyset cursor }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: A page of audit entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data:
+                    type: object
+                    required: [entries, nextCursor]
+                    properties:
+                      entries:
+                        type: array
+                        items: { $ref: '#/components/schemas/AuditEntry' }
+                      nextCursor:
+                        type: [string, 'null']
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /audit/org/{orgId}/export:
+    get:
+      tags: [Audit]
+      summary: Export the organization audit log
+      description: >
+        Streams the complete filtered audit log as a downloadable file — no
+        page-size limit. Accepts the same filters as the query (minus cursor and
+        limit). Requires the `audit:export` permission.
+      operationId: exportAuditLog
+      parameters:
+        - { name: orgId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [csv, pdf], default: csv } }
+        - { name: actorId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: event, in: query, required: false, schema: { type: string } }
+        - { name: entityType, in: query, required: false, schema: { type: string } }
+        - { name: entityId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: >
+            The audit log as a file download. A zero-match filter set still
+            yields a well-formed file (CSV header only / empty-bodied PDF).
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              description: attachment; filename="audit-<orgId>-<timestamp>.<ext>"
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+            application/pdf:
+              schema: { type: string, format: binary }
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    AuditEntry:
+      type: object
+      required: [id, event, entityType, payload, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        actorId: { type: [string, 'null'], format: uuid }
+        event:
+          type: string
+          description: One of the 29 registered audit event types, e.g. org.created
+        entityType: { type: string }
+        entityId: { type: [string, 'null'], format: uuid }
+        payload:
+          type: object
+          description: >
+            { before, after } for a mutation or { data } for a creation, with
+            deny-listed sensitive fields removed at read time.
+        createdAt: { type: string, format: date-time }
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, const: false }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }
+  responses:
+    ValidationError:
+      description: Invalid query parameter, cursor, or unsupported export format.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: Missing or invalid access credential.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: Caller lacks the required audit permission.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    InternalError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }

@@ -1,40 +1,23 @@
-<<<<<<< HEAD
 import fastifyCookie from '@fastify/cookie';
-import Fastify from 'fastify';
+import fastify from 'fastify';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 
-import { authRoutes } from '@/modules/auth/public';
-import { identityRequired } from '@/shared/auth/identity';
-import { db } from '@/shared/database/client';
-import { runMigrations } from '@/shared/database/migrate';
-import { createErrorHandler } from '@/shared/errors/envelope';
-import { logger } from '@/shared/logger';
 import { buildApp } from '@/app';
-
-export async function buildAuthTestServer() {
-  logger.info('Running database migrations...');
-  await runMigrations(db);
-
-  const app = Fastify({ logger: false });
-
-  await app.register(fastifyCookie);
-
-  app.setErrorHandler(createErrorHandler(app as any));
-  await app.register(authRoutes, { prefix: '/auth' });
-=======
 import { authRoutes } from '@/modules/auth/public';
-import { orgRoutes } from '@/modules/org/public';
-import { memberRoutes } from '@/modules/members/public';
-import { roleRoutes } from '@/modules/roles/public';
 import { invitionsRoutes } from '@/modules/invitions/public';
+import { memberRoutes } from '@/modules/members/public';
+import { orgRoutes } from '@/modules/org/public';
+import { roleRoutes } from '@/modules/roles/public';
+import { auditRoutes } from '@/modules/audit/public';
+import { voteRoutes } from '@/modules/votes/public';
+import { minutesRoutes } from '@/modules/minutes/public';
+import { meetingRoutes } from '@/modules/meetings/public';
 import { env } from '@/shared/config/env';
 import { db } from '@/shared/database/client';
 import { runMigrations } from '@/shared/database/migrate';
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
 import { notificationPlugin } from '@/shared/notifications/plugin';
-import fastify from 'fastify';
-import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
-import fastifyCookie from '@fastify/cookie';
 
 export async function buildTestServer() {
   const app = fastify({
@@ -52,7 +35,6 @@ export async function buildTestServer() {
   });
   await app.register(fastifyCookie);
   app.setErrorHandler(createErrorHandler(app));
->>>>>>> main
 
   await app.register(notificationPlugin);
 
@@ -64,6 +46,10 @@ export async function buildTestServer() {
       await instance.register(memberRoutes, { prefix: '/members' });
       await instance.register(roleRoutes, { prefix: '/roles' });
       await instance.register(invitionsRoutes, { prefix: '/invitations' });
+      await instance.register(meetingRoutes, { prefix: '/meetings' });
+      await instance.register(voteRoutes, { prefix: '/votes' });
+      await instance.register(minutesRoutes, { prefix: '/minutes' });
+      await instance.register(auditRoutes, { prefix: '/audit' });
     },
     { prefix: '/api/v1' },
   );

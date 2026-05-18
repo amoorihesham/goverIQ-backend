@@ -1,12 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  truncateAuthTables,
-  truncateMeetingTables,
-  truncateMinutesTables,
-  truncateOrgTables,
-  truncateVoteTables,
-} from '../../helpers/db';
+import { truncateAllTables } from '../../helpers/db';
 import { buildAppTestServer } from '../../helpers/server';
 import { setupMinutesContext } from './helpers';
 
@@ -16,19 +10,18 @@ beforeAll(async () => {
   app = await buildAppTestServer();
 });
 
-beforeEach(async () => {
-  await truncateMinutesTables();
-  await truncateVoteTables();
-  await truncateMeetingTables();
-  await truncateOrgTables();
-  await truncateAuthTables();
-});
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
 });
 
-async function createMinutes(app: Awaited<ReturnType<typeof buildAppTestServer>>, token: string, meetingId: string, orgId: string) {
+async function createMinutes(
+  app: Awaited<ReturnType<typeof buildAppTestServer>>,
+  token: string,
+  meetingId: string,
+  orgId: string,
+) {
   const res = await app.inject({
     method: 'POST',
     url: `/api/v1/minutes/meeting/${meetingId}/org/${orgId}`,
@@ -39,7 +32,12 @@ async function createMinutes(app: Awaited<ReturnType<typeof buildAppTestServer>>
   return res.json().data as { id: string; status: string };
 }
 
-async function finalizeMinutes(app: Awaited<ReturnType<typeof buildAppTestServer>>, token: string, meetingId: string, orgId: string) {
+async function finalizeMinutes(
+  app: Awaited<ReturnType<typeof buildAppTestServer>>,
+  token: string,
+  meetingId: string,
+  orgId: string,
+) {
   return app.inject({
     method: 'POST',
     url: `/api/v1/minutes/meeting/${meetingId}/org/${orgId}/finalize`,

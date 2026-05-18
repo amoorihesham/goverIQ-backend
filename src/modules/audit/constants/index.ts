@@ -1,0 +1,3 @@
+export const AUDIT_PAGE_SIZE_DEFAULT = 20;
+export const AUDIT_PAGE_SIZE_MAX = 100;
+export const AUDIT_EXPORT_BATCH_SIZE = 500;

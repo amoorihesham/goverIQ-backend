@@ -6,20 +6,15 @@ import { ulid } from 'ulid';
 import { env } from './shared/config/env';
 import { logger } from './shared/logger';
 
+import { auditRoutes } from '@/modules/audit/public';
 import { authRoutes } from '@/modules/auth/public';
 import { invitionsRoutes } from '@/modules/invitions/public';
-<<<<<<< HEAD
 import { meetingRoutes } from '@/modules/meetings/public';
-=======
->>>>>>> main
 import { memberRoutes } from '@/modules/members/public';
 import { minutesRoutes } from '@/modules/minutes/public';
 import { orgRoutes } from '@/modules/org/public';
 import { roleRoutes } from '@/modules/roles/public';
-<<<<<<< HEAD
 import { voteRoutes } from '@/modules/votes/public';
-=======
->>>>>>> main
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
 import { notificationPlugin } from '@/shared/notifications/plugin';
@@ -37,7 +32,10 @@ export async function buildApp() {
   await fastify.setSerializerCompiler(serializerCompiler);
 
   await fastify.register(import('@fastify/helmet'), {
-    hsts: { maxAge: env.HELMET_HSTS_MAX_AGE, includeSubDomains: true, preload: true },
+    hsts:
+      env.NODE_ENV === 'production'
+        ? { maxAge: env.HELMET_HSTS_MAX_AGE, includeSubDomains: true, preload: true }
+        : false,
     frameguard: { action: 'deny' },
     referrerPolicy: { policy: 'no-referrer' },
     noSniff: true,
@@ -63,6 +61,7 @@ export async function buildApp() {
         { name: 'Meetings', description: 'Meeting lifecycle and attendees' },
         { name: 'Voting', description: 'Formal votes, ballots and outcomes' },
         { name: 'Minutes', description: 'Meeting minutes, resolutions and corrections' },
+        { name: 'Audit', description: 'Audit log query and export' },
       ],
     },
     transform: jsonSchemaTransform,
@@ -91,6 +90,7 @@ export async function buildApp() {
         meetings: 'Meetings',
         votes: 'Voting',
         minutes: 'Minutes',
+        audit: 'Audit',
       };
       instance.addHook('onRoute', (route) => {
         const segment = route.url.match(/^\/api\/v1\/([^/]+)/)?.[1];
@@ -108,6 +108,7 @@ export async function buildApp() {
       await instance.register(meetingRoutes, { prefix: '/meetings' });
       await instance.register(voteRoutes, { prefix: '/votes' });
       await instance.register(minutesRoutes, { prefix: '/minutes' });
+      await instance.register(auditRoutes, { prefix: '/audit' });
     },
     { prefix: '/api/v1' },
   );

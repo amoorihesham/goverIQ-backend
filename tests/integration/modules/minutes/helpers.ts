@@ -92,7 +92,13 @@ export async function setupMinutesContext(app: AppLike) {
       affirmativeOption: 'Yes',
       status: 'CLOSED',
       outcome: 'PASSED',
-      resultSummary: JSON.stringify({ outcome: 'PASSED', winner: 'Yes', totalEligible: 1, totalCast: 1, optionCounts: { Yes: 1, No: 0 } }),
+      resultSummary: JSON.stringify({
+        outcome: 'PASSED',
+        winner: 'Yes',
+        totalEligible: 1,
+        totalCast: 1,
+        optionCounts: { Yes: 1, No: 0 },
+      }),
       closedAt: new Date(),
     })
     .returning();

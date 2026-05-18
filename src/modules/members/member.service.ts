@@ -6,10 +6,6 @@ import { emitAudit } from '@/shared/audit/emitter';
 import { withTx } from '@/shared/database/transaction';
 import { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
-<<<<<<< HEAD
-import type { NotificationDispatcher } from '@/shared/notifications/dispatcher';
-=======
->>>>>>> main
 
 export const membersService = (db: DatabaseClient) => {
   return {

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { truncateAuthTables, truncateMeetingTables, truncateOrgTables } from '../../helpers/db';
+import { truncateAllTables } from '../../helpers/db';
 import { buildAppTestServer } from '../../helpers/server';
 import { futureDate, setupMeetingContext } from './helpers';
 
@@ -10,11 +10,7 @@ beforeAll(async () => {
   app = await buildAppTestServer();
 });
 
-beforeEach(async () => {
-  await truncateAuthTables();
-  await truncateOrgTables();
-  await truncateMeetingTables();
-});
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
@@ -51,7 +47,13 @@ async function transition(
   });
 }
 
-async function addAttendee(app: Awaited<ReturnType<typeof buildAppTestServer>>, token: string, meetingId: string, orgId: string, memberId: string) {
+async function addAttendee(
+  app: Awaited<ReturnType<typeof buildAppTestServer>>,
+  token: string,
+  meetingId: string,
+  orgId: string,
+  memberId: string,
+) {
   return app.inject({
     method: 'POST',
     url: `/api/v1/meetings/${meetingId}/org/${orgId}/attendees`,

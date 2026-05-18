@@ -1,11 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  truncateAuthTables,
-  truncateMeetingTables,
-  truncateOrgTables,
-  truncateVoteTables,
-} from '../../helpers/db';
+import { truncateAllTables } from '../../helpers/db';
 import { buildAppTestServer } from '../../helpers/server';
 import { setupVoteContext, nearFutureDate } from './helpers';
 
@@ -15,18 +10,18 @@ beforeAll(async () => {
   app = await buildAppTestServer();
 });
 
-beforeEach(async () => {
-  await truncateVoteTables();
-  await truncateMeetingTables();
-  await truncateOrgTables();
-  await truncateAuthTables();
-});
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
 });
 
-async function createVote(app: Awaited<ReturnType<typeof buildAppTestServer>>, token: string, meetingId: string, orgId: string) {
+async function createVote(
+  app: Awaited<ReturnType<typeof buildAppTestServer>>,
+  token: string,
+  meetingId: string,
+  orgId: string,
+) {
   const res = await app.inject({
     method: 'POST',
     url: `/api/v1/votes/meeting/${meetingId}/org/${orgId}`,
@@ -42,7 +37,14 @@ async function createVote(app: Awaited<ReturnType<typeof buildAppTestServer>>, t
   return res.json().data as { id: string };
 }
 
-async function castBallot(app: Awaited<ReturnType<typeof buildAppTestServer>>, token: string, voteId: string, meetingId: string, orgId: string, choice: string) {
+async function castBallot(
+  app: Awaited<ReturnType<typeof buildAppTestServer>>,
+  token: string,
+  voteId: string,
+  meetingId: string,
+  orgId: string,
+  choice: string,
+) {
   return app.inject({
     method: 'POST',
     url: `/api/v1/votes/${voteId}/meeting/${meetingId}/org/${orgId}/ballots`,
@@ -51,7 +53,13 @@ async function castBallot(app: Awaited<ReturnType<typeof buildAppTestServer>>, t
   });
 }
 
-async function closeVote(app: Awaited<ReturnType<typeof buildAppTestServer>>, token: string, voteId: string, meetingId: string, orgId: string) {
+async function closeVote(
+  app: Awaited<ReturnType<typeof buildAppTestServer>>,
+  token: string,
+  voteId: string,
+  meetingId: string,
+  orgId: string,
+) {
   return app.inject({
     method: 'PATCH',
     url: `/api/v1/votes/${voteId}/meeting/${meetingId}/org/${orgId}/close`,

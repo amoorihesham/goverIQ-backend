@@ -1,30 +1,23 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
-import { identityRequired } from '../auth/identity';
+import { FastifyInstance } from 'fastify';
 
 import { checkHealth } from './health';
 
 export async function registerHealthPlugin(fastify: FastifyInstance) {
   fastify.get(
     '/health/live',
-    { schema: { summary: 'Test the live server is live and running.' } },
-    (request, reply) => {
-      reply.status(200).send({ ok: 'OK' });
+    { schema: { summary: 'Liveness probe — returns 200 with no dependency check', tags: ['Health'] } },
+    (_request, reply) => {
+      reply.status(200).send({ status: 'live', timestamp: new Date().toISOString() });
     },
   );
+
   fastify.get(
     '/health/ready',
-    { schema: { summary: 'Test the server is live and ready to accept connections.' } },
-    async (request, reply) => {
+    { schema: { summary: 'Readiness probe — returns 200 when DB is reachable, 503 otherwise', tags: ['Health'] } },
+    async (_request, reply) => {
       const result = await checkHealth();
-      reply.status(result.status).send({ ready: result.status === 200 ? true : false });
-    },
-  );
-  fastify.get(
-    '/protected',
-    { preHandler: [identityRequired] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      reply.status(200).send({ user: { userId: request.user?.userId, email: request.user?.email } });
+      const status = result.status === 200 ? 'ready' : 'unavailable';
+      reply.status(result.status === 200 ? 200 : 503).send({ status, timestamp: new Date().toISOString() });
     },
   );
 }

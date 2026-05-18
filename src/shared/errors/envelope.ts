@@ -1,9 +1,5 @@
 import { trace } from '@opentelemetry/api';
-<<<<<<< HEAD
-import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
-=======
 import { FastifyError, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
->>>>>>> main
 import jwt from 'jsonwebtoken';
 import type { Logger } from 'pino';
 

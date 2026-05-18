@@ -29,6 +29,13 @@
       "when": 1779014284598,
       "tag": "0003_lowly_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1747526400000,
+      "tag": "0004_audit_append_only",
+      "breakpoints": true
     }
   ]
 }

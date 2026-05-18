@@ -34,7 +34,7 @@ async function shutdown(signal: string, app: AppInstance) {
   logger.info({ signal }, 'Shutdown Signal Received.');
 
   const timeoutId = setTimeout(() => {
-    console.error('Graceful shutdown timed out, forcing exit.');
+    logger.error('Graceful shutdown timed out, forcing exit.');
     process.exit(1);
   }, 30000);
 

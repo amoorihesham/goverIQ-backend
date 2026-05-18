@@ -13,10 +13,6 @@ import {
 import { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
-<<<<<<< HEAD
-import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
-=======
->>>>>>> main
 
 export const createMemberController = (db: DatabaseClient) => {
   const service = membersService(db);

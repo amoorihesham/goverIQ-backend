@@ -3,15 +3,19 @@
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at:
 
-- [specs/005-voting-minutes/plan.md](specs/005-voting-minutes/plan.md)
+- [specs/006-audit-hardening-deployment/plan.md](specs/006-audit-hardening-deployment/plan.md)
 
 Related artifacts:
 
-- [spec.md](specs/005-voting-minutes/spec.md) — feature specification
-- [research.md](specs/005-voting-minutes/research.md) — technology decisions (13 decisions)
-- [data-model.md](specs/005-voting-minutes/data-model.md) — table mapping + one additive migration (votes.affirmative_option)
-- [contracts/](specs/005-voting-minutes/contracts/) — 2 OpenAPI files + 1 internal contract
-- [quickstart.md](specs/005-voting-minutes/quickstart.md) — verification walkthrough
+- [spec.md](specs/006-audit-hardening-deployment/spec.md) — feature specification
+- [research.md](specs/006-audit-hardening-deployment/research.md) — technology decisions (13 decisions)
+- [data-model.md](specs/006-audit-hardening-deployment/data-model.md) — audit_logs read map + one additive migration (append-only trigger)
+- [contracts/](specs/006-audit-hardening-deployment/contracts/) — 1 OpenAPI file + 2 internal contracts
+- [quickstart.md](specs/006-audit-hardening-deployment/quickstart.md) — verification walkthrough
+
+Prior feature (Phase 4):
+
+- [specs/005-voting-minutes/plan.md](specs/005-voting-minutes/plan.md) — voting & minutes module
 
 Prior feature (Phase 3):
 

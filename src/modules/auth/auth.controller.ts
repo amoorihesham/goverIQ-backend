@@ -14,10 +14,6 @@ import { clearTokenCookie, setTokenCookie } from '@/shared/auth/cookies';
 import type { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
-<<<<<<< HEAD
-import { logger } from '@/shared/logger';
-=======
->>>>>>> main
 import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 
 export const createAuthController = (db: DatabaseClient, dispatcher: NotificationDispatcher) => {
