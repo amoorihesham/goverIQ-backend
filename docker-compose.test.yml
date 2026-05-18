@@ -1,4 +1,4 @@
-name: groven_iq_development
+name: groven_iq_test
 services:
   postgres:
     image: postgres:latest
@@ -31,30 +31,3 @@ services:
       - '1025:1025'
       - '8025:8025'
     restart: unless-stopped
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - '16686:16686' # Jaeger UI
-      - '4317:4317' # OTLP gRPC
-      - '4318:4318' # OTLP HTTP ← your app sends traces here
-
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - '9090:9090'
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - '3001:3000' # avoid clash with Next.js on 3000
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on:
-      - prometheus
-      - jaeger
-
-volumes:
-  postgres_test_data:

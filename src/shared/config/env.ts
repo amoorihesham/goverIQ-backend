@@ -42,11 +42,6 @@ const envSchema = z.object({
   OTEL_SERVICE_NAME: z.string().default('grove-iq'),
   OTEL_SERVICE_VERSION: z.string().default('1.0.0'),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url(),
-
-  // SENTRY CONFIG
-  SENTRY_DSN: z.string().url().optional(),
-  SENTRY_ENVIRONMENT: z.string().optional(),
-  SENTRY_RELEASE: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

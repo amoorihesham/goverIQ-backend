@@ -8,13 +8,6 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 import { logger } from '@sentry/node';
 
 import { env } from './shared/config/env';
-import { initErrorReporter } from './shared/errors/reporter';
-
-initErrorReporter({
-  dsn: env.SENTRY_DSN,
-  environment: env.SENTRY_ENVIRONMENT,
-  release: env.SENTRY_RELEASE,
-});
 
 const traceExporter = new OTLPTraceExporter({
   url: env.OTEL_EXPORTER_OTLP_ENDPOINT,

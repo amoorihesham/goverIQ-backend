@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import type { Logger } from 'pino';
 
 import { AppError } from './http-error';
-import { reportError } from './reporter';
 
 import { getConstraintName, isUniqueViolation } from '@/shared/database/errors';
 
@@ -99,11 +98,6 @@ export function createErrorHandler(fastify: LoggerHolder | FastifyInstance) {
     }
 
     const span = trace.getActiveSpan();
-    reportError(err, {
-      reqId: request.id,
-      userId: request.user?.userId,
-      orgId: request.orgId,
-    });
 
     fastify.log.error({ err, traceId: span?.spanContext().traceId }, 'Unhandled error');
     return reply.status(500).send(failure(AppError.internalError()));
