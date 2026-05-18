@@ -4,8 +4,7 @@ import { CONFIGURATIONS } from './constants';
 import { toUserResponseDto } from './dtos/resposne';
 import { LoginRequestType, RegisterRequestType, ResendOtpRequestType, VerifyRequestType } from './types/request';
 import { generateOtp, hashOtp } from './utils/otp';
-import { dummyVerifyPassword, hashPassword, verifyPassword } from './utils/password';
-import { generateRefreshTokenCleartext, hashRefreshToken, parseUserIdFromCleartext } from './utils/tokens';
+import { hashPassword, verifyPassword } from './utils/password';
 
 import { emailVerifications, refreshTokens, users } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';

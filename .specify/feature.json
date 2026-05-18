@@ -1,3 +1,8 @@
+<<<<<<< HEAD
 {
   "feature_directory": "specs/005-voting-minutes"
+=======
+﻿{
+  "feature_directory": "specs/006-audit-hardening-deployment"
+>>>>>>> main
 }

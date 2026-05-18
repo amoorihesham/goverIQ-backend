@@ -23,11 +23,14 @@ export const invitionsController = (db: DatabaseClient, dispatcher: Notification
     },
 
     createInvitation: async (request: FastifyRequest<{ Body: CreateInvitationRequestBody }>, reply: FastifyReply) => {
-      const { userId, reqId } = contextFromRequest(request);
-      const invitation = await service.createInvitation(userId!, reqId, request.body);
+      const { userId, reqId, orgId } = contextFromRequest(request);
+      const invitation = await service.createInvitation(userId!, reqId, orgId!, request.body);
       return reply.status(201).send(success({ data: invitation }));
     },
 
-    deleteInvitation: async (request: FastifyRequest, reply: FastifyReply) => {},
+    deleteInvitation: async (request: FastifyRequest, reply: FastifyReply) => {
+      const { reqId } = contextFromRequest(request);
+      reply.status(200).send(success({ reqId }));
+    },
   };
 };

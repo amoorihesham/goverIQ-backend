@@ -43,6 +43,7 @@
       "Bash(xargs grep -l \"response\\\\|envelope\")",
       "Bash(find specs/003* -name \"*.md\" -type f)",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({deps: Object.fromEntries\\(Object.entries\\({...p.dependencies, ...p.devDependencies}\\).filter\\(\\([k]\\)=>k.includes\\('opentelemetry'\\)||k.includes\\('otel'\\)\\)\\)}, null, 2\\)\\)\")",
+<<<<<<< HEAD
       "Bash(powershell -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
       "Bash(dir \"d:\\\\groven-iq\\\\src\\\\modules\\\\meetings\")",
       "Bash(dir \"d:\\\\groven-iq\\\\src\")",
@@ -62,6 +63,12 @@
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({dependencies:p.dependencies,devDependencies:p.devDependencies},null,1\\)\\)\")",
       "Bash(powershell.exe -NoProfile -Command \".specify/scripts/powershell/setup-plan.ps1 -Json\")",
       "Bash(powershell.exe -NoProfile -Command \".specify/scripts/powershell/check-prerequisites.ps1 -Json\")"
+=======
+      "Skill(speckit-git-feature)",
+      "Skill(speckit-git-feature:*)",
+      "PowerShell(& \".specify\\\\extensions\\\\git\\\\scripts\\\\powershell\\\\create-new-feature.ps1\" -Json -ShortName \"audit-hardening-deployment\" \"The audit log is queryable and exportable via API. The system is secured, documented, and ready for production deployment.\")",
+      "PowerShell(& \".specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1\" -Json -PathsOnly)"
+>>>>>>> main
     ],
     "additionalDirectories": [
       "d:\\groven-iq\\specs\\003-org-roles-members"

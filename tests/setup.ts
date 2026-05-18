@@ -1,8 +1,6 @@
-import { defineConfig } from 'vitest/config';
+import { db } from '@/shared/database/client';
+import { runMigrations } from '@/shared/database/migrate';
 
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-  },
-});
+export default async function () {
+  await runMigrations(db);
+}

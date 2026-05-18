@@ -1,49 +1,28 @@
-import { randomUUID } from 'crypto';
-
 import { eq } from 'drizzle-orm';
-import { FastifyInstance } from 'fastify';
+
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { truncateAuthTables } from '../../helpers/db';
-import { buildAuthTestServer } from '../../helpers/server';
+import { truncateAllTables } from '../../helpers/db';
+import { buildTestServer } from '../../helpers/server';
 
 import { emailVerifications, users } from '@/db/schema/auth';
-import { hashOtp } from '@/modules/auth/otp';
-import { hashPassword } from '@/modules/auth/password';
-import { db } from '@/shared/database/client';
 
-let app: FastifyInstance;
+import { db } from '@/shared/database/client';
+import { createUnverifiedUserWithVerification, uniqueEmail } from './helpers';
+import { randomUUID } from 'crypto';
+import { hashPassword } from '@/modules/auth/public';
+
+let app: Awaited<ReturnType<typeof buildTestServer>>;
 
 beforeAll(async () => {
-  app = await buildAuthTestServer();
+  app = await buildTestServer();
 });
 
-beforeEach(truncateAuthTables);
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
 });
-
-function uniqueEmail() {
-  return `resend-${randomUUID()}@test.example`;
-}
-
-async function createUnverifiedUserWithVerification(email: string, lastSentSecondsAgo = 0) {
-  const passwordHash = await hashPassword('correct-horse-battery');
-  const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash, isVerified: false })
-    .returning();
-
-  await db.insert(emailVerifications).values({
-    userId: user!.id,
-    otpHash: hashOtp('123456'),
-    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    lastSentAt: new Date(Date.now() - lastSentSecondsAgo * 1000),
-  });
-
-  return user!;
-}
 
 describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
   it('422 OTP_COOLDOWN inside cooldown window', async () => {
@@ -52,7 +31,7 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/resend-otp',
+      url: '/api/v1/auth/resend-otp',
       payload: { email },
     });
 
@@ -65,25 +44,19 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
     await createUnverifiedUserWithVerification(email, 65); // sent 65s ago
 
     const [user] = await db.select().from(users).where(eq(users.email, email));
-    const [oldVer] = await db
-      .select()
-      .from(emailVerifications)
-      .where(eq(emailVerifications.userId, user!.id));
+    const [oldVer] = await db.select().from(emailVerifications).where(eq(emailVerifications.userId, user!.id));
     const oldHash = oldVer!.otpHash;
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/resend-otp',
+      url: '/api/v1/auth/resend-otp',
       payload: { email },
     });
 
     expect(res.statusCode).toBe(200);
     expect(res.json().data.message).toBe('Verification code resent.');
 
-    const [newVer] = await db
-      .select()
-      .from(emailVerifications)
-      .where(eq(emailVerifications.userId, user!.id));
+    const [newVer] = await db.select().from(emailVerifications).where(eq(emailVerifications.userId, user!.id));
     expect(newVer!.otpHash).not.toBe(oldHash);
     expect(newVer!.lastSentAt.getTime()).toBeGreaterThan(oldVer!.lastSentAt.getTime());
   });
@@ -95,12 +68,12 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
     const [cooldownRes, unknownRes] = await Promise.all([
       app.inject({
         method: 'POST',
-        url: '/auth/resend-otp',
+        url: '/api/v1/auth/resend-otp',
         payload: { email },
       }),
       app.inject({
         method: 'POST',
-        url: '/auth/resend-otp',
+        url: '/api/v1/auth/resend-otp',
         payload: { email: `nobody-${randomUUID()}@test.example` },
       }),
     ]);
@@ -111,15 +84,12 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
   });
 
   it('422 OTP_COOLDOWN at cooldown boundary − 1s (59s ago, still blocked)', async () => {
-    // The cooldown is OTP_RESEND_COOLDOWN_SEC=60. At 59 s the window has not
-    // elapsed yet, so the server must reject. This pins the off-by-one: if the
-    // comparison were `<` instead of `<=` this test would flip to 200.
     const email = uniqueEmail();
     await createUnverifiedUserWithVerification(email, 59);
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/resend-otp',
+      url: '/api/v1/auth/resend-otp',
       payload: { email },
     });
 
@@ -128,14 +98,12 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
   });
 
   it('200 at cooldown boundary + 1s (61s ago, just allowed)', async () => {
-    // At 61 s the cooldown has fully elapsed. This is the mirror of the test
-    // above: both together prove the boundary is [0, 60] closed, not open.
     const email = uniqueEmail();
     await createUnverifiedUserWithVerification(email, 61);
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/resend-otp',
+      url: '/api/v1/auth/resend-otp',
       payload: { email },
     });
 
@@ -151,7 +119,7 @@ describe('POST /auth/resend-otp (FR-102 / FR-103 / FR-106)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/resend-otp',
+      url: '/api/v1/auth/resend-otp',
       payload: { email },
     });
 

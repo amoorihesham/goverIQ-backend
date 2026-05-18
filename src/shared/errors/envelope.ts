@@ -1,5 +1,9 @@
 import { trace } from '@opentelemetry/api';
+<<<<<<< HEAD
 import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
+=======
+import { FastifyError, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+>>>>>>> main
 import jwt from 'jsonwebtoken';
 import type { Logger } from 'pino';
 
@@ -63,7 +67,7 @@ const UNIQUE_CONSTRAINT_MAP: Record<string, () => AppError> = {
   users_email_idx: () => AppError.duplicateEmail(),
 };
 
-export function createErrorHandler(fastify: LoggerHolder) {
+export function createErrorHandler(fastify: LoggerHolder | FastifyInstance) {
   return async (err: FastifyError | Error, request: FastifyRequest, reply: FastifyReply) => {
     if (err instanceof AppError) {
       return reply.status(err.statusCode).send(failure(err));
@@ -86,14 +90,16 @@ export function createErrorHandler(fastify: LoggerHolder) {
       return reply.status(appErr.statusCode).send(failure(appErr));
     }
 
+    if (err instanceof jwt.TokenExpiredError) {
+      const appErr = AppError.create('TOKEN_EXPIRED');
+
+      return reply.status(appErr.statusCode).send(failure(appErr));
+    }
+
     if (err instanceof jwt.JsonWebTokenError) {
-      if (err.message === 'jwt expired') {
-        const appErr = AppError.create('INVALID_TOKEN');
-        reply.status(appErr.statusCode).send(failure(appErr));
-      } else if (err.message === 'invalid signature') {
-        const appErr = AppError.create('INVALID_TOKEN');
-        reply.status(appErr.statusCode).send(failure(appErr));
-      }
+      const appErr = AppError.create('INVALID_TOKEN');
+
+      return reply.status(appErr.statusCode).send(failure(appErr));
     }
 
     const span = trace.getActiveSpan();

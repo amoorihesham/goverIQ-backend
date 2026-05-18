@@ -1,6 +1,5 @@
+import { hashPassword, verifyPassword } from '@/modules/auth/public';
 import { describe, it, expect } from 'vitest';
-
-import { hashPassword, verifyPassword } from '@/modules/auth/password';
 
 describe('password', () => {
   it('hashes same password differently (salt presence)', async () => {

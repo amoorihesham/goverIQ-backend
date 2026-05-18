@@ -8,12 +8,18 @@ import { logger } from './shared/logger';
 
 import { authRoutes } from '@/modules/auth/public';
 import { invitionsRoutes } from '@/modules/invitions/public';
+<<<<<<< HEAD
 import { meetingRoutes } from '@/modules/meetings/public';
+=======
+>>>>>>> main
 import { memberRoutes } from '@/modules/members/public';
 import { minutesRoutes } from '@/modules/minutes/public';
 import { orgRoutes } from '@/modules/org/public';
 import { roleRoutes } from '@/modules/roles/public';
+<<<<<<< HEAD
 import { voteRoutes } from '@/modules/votes/public';
+=======
+>>>>>>> main
 import { createErrorHandler } from '@/shared/errors/envelope';
 import { registerHealthPlugin } from '@/shared/http/plugin';
 import { notificationPlugin } from '@/shared/notifications/plugin';

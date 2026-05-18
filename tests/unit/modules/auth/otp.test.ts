@@ -1,6 +1,5 @@
+import { generateOtp, hashOtp } from '@/modules/auth/public';
 import { describe, it, expect } from 'vitest';
-
-import { generateOtp, hashOtp } from '@/modules/auth/otp';
 
 describe('otp', () => {
   it('generates OTP with length 6', () => {

@@ -1,21 +1,26 @@
-import { randomUUID } from 'crypto';
-
 import { eq } from 'drizzle-orm';
-import { FastifyInstance } from 'fastify';
+
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { truncateAuthTables } from '../../helpers/db';
-import { buildAuthTestServer } from '../../helpers/server';
+import { truncateAllTables } from '../../helpers/db';
+import {  buildTestServer } from '../../helpers/server';
 
 import { auditLogs } from '@/db/schema/audit';
 import { users } from '@/db/schema/auth';
 import { db } from '@/shared/database/client';
+import { uniqueEmail } from './helpers';
+import { createDispatcher } from '@/shared/notifications/dispatcher';
 
-// Wrap emitAudit so the rollback test can mock-once without persisting state across
-// tests. vi.mock is hoisted so this still affects the auth.service import chain.
-vi.mock('@/shared/audit/emitter', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('@/shared/audit/emitter')>();
-  return { ...mod, emitAudit: vi.fn(mod.emitAudit) };
+let app: Awaited<ReturnType<typeof buildTestServer>>;
+
+beforeAll(async () => {
+  app = await buildTestServer();
+});
+
+beforeEach(truncateAllTables);
+
+afterAll(async () => {
+  await app.close();
 });
 
 afterEach(async () => {
@@ -28,29 +33,21 @@ afterEach(async () => {
   vi.mocked(emitAudit).mockImplementation(original.emitAudit);
 });
 
-let app: FastifyInstance;
 
-beforeAll(async () => {
-  app = await buildAuthTestServer();
+// Wrap emitAudit so the rollback test can mock-once without persisting state across
+// tests. vi.mock is hoisted so this still affects the auth.service import chain.
+vi.mock('@/shared/audit/emitter', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/shared/audit/emitter')>();
+  return { ...mod, emitAudit: vi.fn(mod.emitAudit) };
 });
-
-beforeEach(truncateAuthTables);
-
-afterAll(async () => {
-  await app.close();
-});
-
-function uniqueEmail() {
-  return `reg-${randomUUID()}@test.example`;
-}
 
 describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
   it('201 happy path — user created + audit row inserted', async () => {
     const email = uniqueEmail();
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
-      payload: { email, password: 'correct-horse-battery' },
+      url: '/api/v1/auth/register',
+      payload: { email, password: 'dummy-passwords' },
     });
 
     expect(res.statusCode).toBe(201);
@@ -71,7 +68,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
   it('400 VALIDATION_ERROR when password < 12 chars', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
+     url: '/api/v1/auth/register',
       payload: { email: uniqueEmail(), password: 'short' },
     });
 
@@ -83,16 +80,16 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
     const email = uniqueEmail();
     await app.inject({
       method: 'POST',
-      url: '/auth/register',
-      payload: { email, password: 'correct-horse-battery' },
+     url: '/api/v1/auth/register',
+      payload: { email, password: 'dummy-password' },
     });
 
     await db.update(users).set({ isVerified: true }).where(eq(users.email, email));
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
-      payload: { email, password: 'another-password-12' },
+     url: '/api/v1/auth/register',
+      payload: { email, password: 'another-dummy-password' },
     });
 
     expect(res.statusCode).toBe(409);
@@ -103,8 +100,8 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
     const email = uniqueEmail();
     await app.inject({
       method: 'POST',
-      url: '/auth/register',
-      payload: { email, password: 'first-password-12chr' },
+     url: '/api/v1/auth/register',
+      payload: { email, password: 'dummy-password' },
     });
 
     const [firstUser] = await db.select().from(users).where(eq(users.email, email));
@@ -112,8 +109,8 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
-      payload: { email, password: 'second-password-12ch' },
+     url: '/api/v1/auth/register',
+      payload: { email, password: 'another-dummy-password' },
     });
 
     expect(res.statusCode).toBe(201);
@@ -126,13 +123,13 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
   it('201 even when email delivery fails (fire-and-forget)', async () => {
     const email = uniqueEmail();
-    const { notificationService } = await import('@/shared/notifications/service');
-    vi.spyOn(notificationService, 'send').mockRejectedValueOnce(new Error('SMTP down'));
+    const dispatcher=await createDispatcher()
+    vi.spyOn(dispatcher, 'enqueue').mockRejectedValueOnce(new Error('SMTP down'));
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/register',
-      payload: { email, password: 'correct-horse-battery' },
+     url: '/api/v1/auth/register',
+      payload: { email, password: 'dummy-password' },
     });
 
     expect(res.statusCode).toBe(201);
@@ -151,7 +148,7 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
 
     const results = await Promise.all(
       Array.from({ length: 10 }, () =>
-        app.inject({ method: 'POST', url: '/auth/register', payload: { email, password } }),
+        app.inject({ method: 'POST',url: '/api/v1/auth/register', payload: { email, password } }),
       ),
     );
 
@@ -169,13 +166,15 @@ describe('POST /auth/register (FR-101 / FR-102 / FR-112)', () => {
   it('audit rollback invariant — when emitAudit throws, no user row is committed', async () => {
     const email = uniqueEmail();
     const { emitAudit } = await import('@/shared/audit/emitter');
+    const { createDispatcher } = await import('@/shared/notifications/dispatcher');
+    const dispatcher=await createDispatcher();
     vi.mocked(emitAudit).mockRejectedValueOnce(new Error('forced DB failure'));
 
     const { createAuthService } = await import('@/modules/auth/auth.service');
 
-    const svc = createAuthService(db);
+    const svc = createAuthService(db,dispatcher);
 
-    await expect(svc.register({ email, password: 'correct-horse-battery' })).rejects.toThrow();
+    await expect(svc.register({ email, password: 'correct-horse-battery' },'dummy-reqId')).rejects.toThrow();
 
     const userRows = await db.select().from(users).where(eq(users.email, email));
     expect(userRows).toHaveLength(0);

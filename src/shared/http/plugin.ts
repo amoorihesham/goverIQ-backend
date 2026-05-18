@@ -1,4 +1,6 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+
+import { identityRequired } from '../auth/identity';
 
 import { checkHealth } from './health';
 
@@ -16,6 +18,13 @@ export async function registerHealthPlugin(fastify: FastifyInstance) {
     async (request, reply) => {
       const result = await checkHealth();
       reply.status(result.status).send({ ready: result.status === 200 ? true : false });
+    },
+  );
+  fastify.get(
+    '/protected',
+    { preHandler: [identityRequired] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      reply.status(200).send({ user: { userId: request.user?.userId, email: request.user?.email } });
     },
   );
 }

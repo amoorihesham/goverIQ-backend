@@ -1,45 +1,28 @@
-import { randomUUID } from 'crypto';
-
 import { eq } from 'drizzle-orm';
-import { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { truncateAuthTables } from '../../helpers/db';
-import { buildAuthTestServer } from '../../helpers/server';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { auditLogs } from '@/db/schema/audit';
 import { refreshTokens, users } from '@/db/schema/auth';
-import { hashPassword } from '@/modules/auth/password';
-import { db } from '@/shared/database/client';
 
-let app: FastifyInstance;
+import { db } from '@/shared/database/client';
+import { buildTestServer } from '../../helpers/server';
+import { truncateAllTables } from '../../helpers/db';
+import { loginAndGetCookie, uniqueEmail } from './helpers';
+import { hashPassword } from '@/modules/auth/public';
+import { AppError } from '@/shared/errors/http-error';
+
+let app: Awaited<ReturnType<typeof buildTestServer>>;
 
 beforeAll(async () => {
-  app = await buildAuthTestServer();
+  app = await buildTestServer();
 });
 
-beforeEach(truncateAuthTables);
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
 });
-
-function uniqueEmail() {
-  return `logout-${randomUUID()}@test.example`;
-}
-
-async function loginAndGetCookie(email: string, password: string): Promise<string> {
-  const res = await app.inject({
-    method: 'POST',
-    url: '/auth/login',
-    payload: { email, password },
-  });
-  if (res.statusCode !== 200) throw new Error(`Login failed: ${res.body}`);
-  const setCookie = res.headers['set-cookie'];
-  const cookieStr = Array.isArray(setCookie) ? setCookie[0]! : (setCookie as string);
-  const match = cookieStr.match(/refresh_token=([^;]+)/);
-  return match![1]!;
-}
 
 describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
   it('204 + cookie cleared + DB row gone + user.logout audit row', async () => {
@@ -47,17 +30,23 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
     const password = 'correct-horse-battery';
 
     const passwordHash = await hashPassword(password);
-    const [user] = await db
-      .insert(users)
-      .values({ email, passwordHash, isVerified: true })
-      .returning();
+    const [user] = await db.insert(users).values({ email, passwordHash, isVerified: true }).returning();
 
-    const cookie = await loginAndGetCookie(email, password);
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email, password },
+    });
+
+    const refToken = loginRes.headers['set-cookie'];
+    if (!refToken || typeof refToken === 'string') throw AppError.internalError();
+
+    const tokenA = refToken[0].split(';')[0];
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/logout',
-      headers: { cookie: `refresh_token=${cookie}` },
+      url: '/api/v1/auth/logout',
+      headers: { cookie: `refresh_token=${tokenA.split('=')[1]}` },
     });
 
     expect(res.statusCode).toBe(204);
@@ -79,34 +68,40 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
     const password = 'correct-horse-battery';
 
     const passwordHash = await hashPassword(password);
-    const [user] = await db
-      .insert(users)
-      .values({ email, passwordHash, isVerified: true })
-      .returning();
+    const [user] = await db.insert(users).values({ email, passwordHash, isVerified: true }).returning();
 
-    const cookie = await loginAndGetCookie(email, password);
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email, password },
+    });
+
+    const refToken = loginRes.headers['set-cookie'];
+    if (!refToken || typeof refToken === 'string') throw AppError.internalError();
+
+    const tokenA = refToken[0].split(';')[0];
 
     await app.inject({
       method: 'POST',
-      url: '/auth/logout',
-      headers: { cookie: `refresh_token=${cookie}` },
+      url: '/api/v1/auth/logout',
+      headers: { cookie: `refresh_token=${tokenA.split('=')[1]}` },
     });
 
-    const auditCountBefore = (
-      await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.logout'))
-    ).filter((r) => r.actorId === user!.id).length;
+    const auditCountBefore = (await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.logout'))).filter(
+      (r) => r.actorId === user!.id,
+    ).length;
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/logout',
-      headers: { cookie: `refresh_token=${cookie}` },
+      url: '/api/v1/auth/logout',
+      headers: { cookie: `refresh_token=${tokenA.split('=')[1]}` },
     });
 
     expect(res.statusCode).toBe(204);
 
-    const auditCountAfter = (
-      await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.logout'))
-    ).filter((r) => r.actorId === user!.id).length;
+    const auditCountAfter = (await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.logout'))).filter(
+      (r) => r.actorId === user!.id,
+    ).length;
 
     expect(auditCountAfter).toBe(auditCountBefore);
   });
@@ -114,7 +109,7 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
   it('204 with no cookie — no error, no DB writes', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/logout',
+      url: '/api/v1/auth/logout',
     });
 
     expect(res.statusCode).toBe(204);
@@ -127,20 +122,29 @@ describe('POST /auth/logout (FR-110 / FR-112 / SC-107)', () => {
     const passwordHash = await hashPassword(password);
     await db.insert(users).values({ email, passwordHash, isVerified: true });
 
-    const cookie = await loginAndGetCookie(email, password);
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email, password },
+    });
+
+    const refToken = loginRes.headers['set-cookie'];
+    if (!refToken || typeof refToken === 'string') throw AppError.internalError();
+
+    const tokenA = refToken[0].split(';')[0];
 
     // Logout
     await app.inject({
       method: 'POST',
-      url: '/auth/logout',
-      headers: { cookie: `refresh_token=${cookie}` },
+      url: '/api/v1/auth/logout',
+      headers: { cookie: `refresh_token=${tokenA.split('=')[1]}` },
     });
 
     // Subsequent refresh must fail
     const refreshRes = await app.inject({
       method: 'POST',
-      url: '/auth/refresh',
-      headers: { cookie: `refresh_token=${cookie}` },
+      url: '/api/v1/auth/refresh',
+      headers: { cookie: `refresh_token=${tokenA.split('=')[1]}` },
     });
 
     expect(refreshRes.statusCode).toBe(401);
