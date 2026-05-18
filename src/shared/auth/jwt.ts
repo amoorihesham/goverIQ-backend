@@ -14,19 +14,9 @@ export async function signToken(payload: TokenPayload, secret: string, expiresIn
 }
 
 export async function verifyToken(token: string, secret: string): Promise<TokenPayload> {
-  try {
-    const decoded = jwt.verify(token, secret);
-    if (typeof decoded === 'string' || !('userId' in decoded) || !('email' in decoded))
-      throw AppError.create('INVALID_TOKEN');
-
-    return { userId: decoded.userId!, email: decoded.email! };
-  } catch (err) {
-    if (err instanceof AppError) throw err;
-    if (err instanceof jwt.JsonWebTokenError) {
-      err.message;
-    }
-    // if (err instanceof jwt.TokenExpiredError) throw AppError.create('TOKEN_EXPIRED');
-
+  const decoded = jwt.verify(token, secret);
+  if (typeof decoded === 'string' || !('userId' in decoded) || !('email' in decoded))
     throw AppError.create('INVALID_TOKEN');
-  }
+
+  return { userId: decoded.userId!, email: decoded.email! };
 }

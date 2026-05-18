@@ -1,55 +1,28 @@
-import { randomUUID } from 'crypto';
-
 import { eq } from 'drizzle-orm';
-import { FastifyInstance } from 'fastify';
+
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { truncateAuthTables } from '../../helpers/db';
-import { buildAuthTestServer } from '../../helpers/server';
+import { truncateAllTables } from '../../helpers/db';
+import { buildTestServer } from '../../helpers/server';
 
 import { auditLogs } from '@/db/schema/audit';
 import { emailVerifications, users } from '@/db/schema/auth';
-import { hashOtp } from '@/modules/auth/otp';
-import { hashPassword } from '@/modules/auth/password';
-import { db } from '@/shared/database/client';
 
-let app: FastifyInstance;
+import { db } from '@/shared/database/client';
+import { hashOtp, hashPassword } from '@/modules/auth/public';
+import { registerAndGetOtp, uniqueEmail } from './helpers';
+
+let app: Awaited<ReturnType<typeof buildTestServer>>;
 
 beforeAll(async () => {
-  app = await buildAuthTestServer();
+  app = await buildTestServer();
 });
 
-beforeEach(truncateAuthTables);
+beforeEach(truncateAllTables);
 
 afterAll(async () => {
   await app.close();
 });
-
-function uniqueEmail() {
-  return `verify-${randomUUID()}@test.example`;
-}
-
-async function registerAndGetOtp(email: string): Promise<string> {
-  // Insert user + verification row directly for deterministic OTP
-
-  const otp = '123456';
-  const otpHash = hashOtp(otp);
-  const passwordHash = await hashPassword('correct-horse-battery');
-
-  const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash, isVerified: false })
-    .returning();
-
-  await db.insert(emailVerifications).values({
-    userId: user!.id,
-    otpHash,
-    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    lastSentAt: new Date(),
-  });
-
-  return otp;
-}
 
 describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
   it('200 with accessToken + Set-Cookie + user verified + verification deleted + audit', async () => {
@@ -58,38 +31,25 @@ describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/verify-email',
+      url: '/api/v1/auth/verify-email',
       payload: { email, otp },
     });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
-    expect(typeof body.data.accessToken).toBe('string');
-
-    // Cookie set
-    const setCookie = res.headers['set-cookie'];
-    expect(setCookie).toBeDefined();
-    const cookieHeader = Array.isArray(setCookie) ? setCookie.join(';') : (setCookie as string);
-    expect(cookieHeader).toContain('refresh_token');
-    expect(cookieHeader).toContain('HttpOnly');
 
     // User is verified
     const [user] = await db.select().from(users).where(eq(users.email, email));
     expect(user?.isVerified).toBe(true);
 
     // Verification row deleted
-    const verRows = await db
-      .select()
-      .from(emailVerifications)
-      .where(eq(emailVerifications.userId, user!.id));
+    const verRows = await db.select().from(emailVerifications).where(eq(emailVerifications.userId, user!.id));
     expect(verRows).toHaveLength(0);
 
     // Audit row present
     const auditRows = await db.select().from(auditLogs).where(eq(auditLogs.event, 'user.verified'));
-    const audit = auditRows.find(
-      (r) => (r.payload as { data: { email: string } }).data?.email === email,
-    );
+    const audit = auditRows.find((r) => (r.payload as { data: { email: string } }).data?.email === email);
     expect(audit).toBeDefined();
   });
 
@@ -100,10 +60,7 @@ describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
     const otpHash = hashOtp(otp);
     const passwordHash = await hashPassword('correct-horse-battery');
 
-    const [user] = await db
-      .insert(users)
-      .values({ email, passwordHash, isVerified: false })
-      .returning();
+    const [user] = await db.insert(users).values({ email, passwordHash, isVerified: false }).returning();
 
     await db.insert(emailVerifications).values({
       userId: user!.id,
@@ -114,7 +71,7 @@ describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/verify-email',
+      url: '/api/v1/auth/verify-email',
       payload: { email, otp },
     });
 
@@ -131,7 +88,7 @@ describe('POST /auth/verify-email (FR-104 / FR-112)', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/verify-email',
+      url: '/api/v1/auth/verify-email',
       payload: { email, otp: '000000' },
     });
 

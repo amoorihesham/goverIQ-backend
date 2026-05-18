@@ -13,14 +13,13 @@ import {
 import { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
+<<<<<<< HEAD
 import { NotificationDispatcher } from '@/shared/notifications/dispatcher';
+=======
+>>>>>>> main
 
-interface AcceptInvitationBody {
-  password?: string;
-}
-
-export const createMemberController = (db: DatabaseClient, dispatcher: NotificationDispatcher) => {
-  const service = membersService(db, dispatcher);
+export const createMemberController = (db: DatabaseClient) => {
+  const service = membersService(db);
   return {
     async getMembersInOrganization(
       request: FastifyRequest<{ Params: GetMembersInOrganizationRequestParams }>,

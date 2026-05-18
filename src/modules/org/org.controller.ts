@@ -10,7 +10,6 @@ import {
 import { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
-import { logger } from '@/shared/logger';
 
 export const organizationController = (db: DatabaseClient) => {
   const orgService = organizationService(db);

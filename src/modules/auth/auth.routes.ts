@@ -2,13 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 import { createAuthController } from './auth.controller';
-import {
-  loginRequestSchema,
-  refreshRequestSchema,
-  registerRequestSchema,
-  resendOtpRequestSchema,
-  verifyRequestSchema,
-} from './schemas/zod';
+import { loginRequestSchema, registerRequestSchema, resendOtpRequestSchema, verifyRequestSchema } from './schemas/zod';
 
 import { db } from '@/shared/database/client';
 

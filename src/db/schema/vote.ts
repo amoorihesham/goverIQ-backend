@@ -1,25 +1,11 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  timestamp,
-  pgEnum,
-  jsonb,
-  uniqueIndex,
-  index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, pgEnum, jsonb, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 import { meetings } from './meeting';
 import { memberships } from './org';
 
 export const voteStatusEnum = pgEnum('vote_status', ['OPEN', 'CLOSED']);
 
-export const voteOutcomeEnum = pgEnum('vote_outcome', [
-  'PASSED',
-  'FAILED',
-  'TIED',
-  'QUORUM_NOT_MET',
-]);
+export const voteOutcomeEnum = pgEnum('vote_outcome', ['PASSED', 'FAILED', 'TIED', 'QUORUM_NOT_MET']);
 
 export const votes = pgTable(
   'votes',

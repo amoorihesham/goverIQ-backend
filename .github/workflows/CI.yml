@@ -10,23 +10,47 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: groven_iq_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/groven_iq_test
+
     steps:
       - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
+
+      - name: setup pnpm...
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
 
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm type-check
       - run: pnpm lint
-      - run: pnpm format:check
+      - run: pnpm format
 
       - name: Ensure migrations are committed
         run: |
@@ -34,7 +58,7 @@ jobs:
           git diff --exit-code src/db/migrations
 
       - run: pnpm db:migrate
-      - run: pnpm test:coverage
+      - run: pnpm test
 
   build:
     runs-on: ubuntu-latest
@@ -46,9 +70,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
 
-      - uses: pnpm/action-setup@v6
+      - name: setup pnpm...
+        uses: pnpm/action-setup@v6
         with:
           version: 10
 

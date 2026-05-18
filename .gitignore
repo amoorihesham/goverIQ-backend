@@ -9,7 +9,7 @@ build/
 # Environment files
 .env.development
 .env.production
-.env.test
+
 
 
 # IDE files

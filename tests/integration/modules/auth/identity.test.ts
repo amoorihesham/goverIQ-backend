@@ -1,14 +1,14 @@
-import { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { buildAuthTestServer } from '../../helpers/server';
+import { buildTestServer } from '../../helpers/server';
+import { signToken } from '@/shared/auth/jwt';
+import { CONFIGURATIONS } from '@/modules/auth/public';
+import { env } from '@/shared/config/env';
 
-import { signAccessToken } from '@/shared/auth/jwt';
-
-let app: FastifyInstance;
+let app: Awaited<ReturnType<typeof buildTestServer>>;
 
 beforeAll(async () => {
-  app = await buildAuthTestServer();
+  app = await buildTestServer();
 });
 
 afterAll(async () => {
@@ -17,7 +17,8 @@ afterAll(async () => {
 
 describe('identityRequired pre-handler (FR-111)', () => {
   it('missing Authorization header → 401 UNAUTHORIZED', async () => {
-    const res = await app.inject({ method: 'GET', url: '/protected' });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/protected' });
+
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('UNAUTHORIZED');
   });
@@ -25,7 +26,7 @@ describe('identityRequired pre-handler (FR-111)', () => {
   it('non-Bearer prefix → 401 UNAUTHORIZED', async () => {
     const res = await app.inject({
       method: 'GET',
-      url: '/protected',
+      url: '/api/v1/protected',
       headers: { authorization: 'Basic dXNlcjpwYXNz' },
     });
     expect(res.statusCode).toBe(401);
@@ -35,24 +36,24 @@ describe('identityRequired pre-handler (FR-111)', () => {
   it('malformed JWT → 401 INVALID_TOKEN', async () => {
     const res = await app.inject({
       method: 'GET',
-      url: '/protected',
+      url: '/api/v1/protected',
       headers: { authorization: 'Bearer not.a.valid.jwt' },
     });
+
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('INVALID_TOKEN');
   });
 
   it('expired JWT → 401 TOKEN_EXPIRED', async () => {
-    const jwt = (await import('jsonwebtoken')).default;
-    const expiredToken = jwt.sign(
-      { sub: 'test-user-id', email: 'test@example.com' },
-      process.env.JWT_SECRET!,
-      { expiresIn: -1 },
+    const expiredToken = await signToken(
+      { userId: 'test-user-id', email: 'test@example.com' },
+      env.JWT_ACCESS_SECRET,
+      -1,
     );
 
     const res = await app.inject({
       method: 'GET',
-      url: '/protected',
+      url: '/api/v1/protected',
       headers: { authorization: `Bearer ${expiredToken}` },
     });
     expect(res.statusCode).toBe(401);
@@ -60,11 +61,15 @@ describe('identityRequired pre-handler (FR-111)', () => {
   });
 
   it('valid JWT → handler sees populated request.user', async () => {
-    const token = await signAccessToken({ sub: 'user-uuid-123', email: 'alice@example.com' });
+    const accessToken = await signToken(
+      { userId: 'user-uuid-123', email: 'alice@example.com' },
+      env.JWT_ACCESS_SECRET,
+      CONFIGURATIONS.ACCESS_TTL_SECONDS,
+    );
     const res = await app.inject({
       method: 'GET',
-      url: '/protected',
-      headers: { authorization: `Bearer ${token}` },
+      url: '/api/v1/protected',
+      headers: { authorization: `Bearer ${accessToken}` },
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();

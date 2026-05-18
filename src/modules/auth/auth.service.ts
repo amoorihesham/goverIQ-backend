@@ -4,8 +4,7 @@ import { CONFIGURATIONS } from './constants';
 import { toUserResponseDto } from './dtos/resposne';
 import { LoginRequestType, RegisterRequestType, ResendOtpRequestType, VerifyRequestType } from './types/request';
 import { generateOtp, hashOtp } from './utils/otp';
-import { dummyVerifyPassword, hashPassword, verifyPassword } from './utils/password';
-import { generateRefreshTokenCleartext, hashRefreshToken, parseUserIdFromCleartext } from './utils/tokens';
+import { hashPassword, verifyPassword } from './utils/password';
 
 import { emailVerifications, refreshTokens, users } from '@/db/schema';
 import { emitAudit } from '@/shared/audit/emitter';
@@ -15,7 +14,10 @@ import type { Tx } from '@/shared/database/transaction';
 import type { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
 import type { NotificationDispatcher } from '@/shared/notifications/dispatcher';
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 
 export function createAuthService(db: DatabaseClient, dispatcher: NotificationDispatcher) {
   async function issueSessionWithinTx(tx: Tx, user: { id: string; email: string }) {
