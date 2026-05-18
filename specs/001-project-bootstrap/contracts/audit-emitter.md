@@ -13,9 +13,7 @@ export interface AuditEvent {
   event: string; // dot-namespaced, e.g. "org.created", "user.registered"
   entityType: string; // e.g. "organization", "user", "vote"
   entityId: string | null; // nullable for events without an entity (logout)
-  payload:
-    | { before: Record<string, unknown>; after: Record<string, unknown> }
-    | { data: Record<string, unknown> };
+  payload: { before: Record<string, unknown>; after: Record<string, unknown> } | { data: Record<string, unknown> };
 }
 
 export async function emitAudit(tx: PgTransaction<any, any, any>, event: AuditEvent): Promise<void>;

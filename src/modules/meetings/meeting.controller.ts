@@ -62,10 +62,7 @@ export const createMeetingController = (db: DatabaseClient) => {
       return reply.send(success(page));
     },
 
-    async getMeeting(
-      request: FastifyRequest<{ Params: { meetingId: string; orgId: string } }>,
-      reply: FastifyReply,
-    ) {
+    async getMeeting(request: FastifyRequest<{ Params: { meetingId: string; orgId: string } }>, reply: FastifyReply) {
       const { orgId } = contextFromRequest(request);
       const meeting = await service.getMeeting(request.params.meetingId, orgId!);
       return reply.send(success(meeting));

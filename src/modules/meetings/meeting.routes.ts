@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
-
 import { createMeetingController } from './meeting.controller';
 import { requireStatusTransitionPermission } from './pre-handlers/status-permission';
 import {
@@ -27,7 +26,12 @@ export async function meetingRoutes(fastify: FastifyInstance) {
     '/org/:orgId',
     {
       schema: createMeetingSchema,
-      preHandler: [identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:create')],
+      preHandler: [
+        identityRequired,
+        attachOrgId,
+        requireOnboardingStep('complete'),
+        requirePermission('meeting:create'),
+      ],
     },
     controller.createMeeting,
   );
@@ -54,7 +58,12 @@ export async function meetingRoutes(fastify: FastifyInstance) {
     '/:meetingId/org/:orgId',
     {
       schema: updateMeetingSchema,
-      preHandler: [identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:update')],
+      preHandler: [
+        identityRequired,
+        attachOrgId,
+        requireOnboardingStep('complete'),
+        requirePermission('meeting:update'),
+      ],
     },
     controller.updateMeeting,
   );
@@ -72,7 +81,12 @@ export async function meetingRoutes(fastify: FastifyInstance) {
     '/:meetingId/org/:orgId/attendees',
     {
       schema: addAttendeesSchema,
-      preHandler: [identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:update')],
+      preHandler: [
+        identityRequired,
+        attachOrgId,
+        requireOnboardingStep('complete'),
+        requirePermission('meeting:update'),
+      ],
     },
     controller.addAttendees,
   );
@@ -81,7 +95,12 @@ export async function meetingRoutes(fastify: FastifyInstance) {
     '/:meetingId/org/:orgId/attendees/:memberId',
     {
       schema: removeAttendeeSchema,
-      preHandler: [identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:update')],
+      preHandler: [
+        identityRequired,
+        attachOrgId,
+        requireOnboardingStep('complete'),
+        requirePermission('meeting:update'),
+      ],
     },
     controller.removeAttendee,
   );

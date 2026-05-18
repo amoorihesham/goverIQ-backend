@@ -16,6 +16,7 @@ export const votes = pgTable(
       .references(() => meetings.id, { onDelete: 'cascade' }),
     question: text('question').notNull(),
     options: text('options').array().notNull(),
+    affirmativeOption: text('affirmative_option').notNull(),
     status: voteStatusEnum('status').notNull().default('OPEN'),
     outcome: voteOutcomeEnum('outcome'),
     resultSummary: jsonb('result_summary'),

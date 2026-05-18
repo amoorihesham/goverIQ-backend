@@ -32,8 +32,8 @@ New module lives in `src/modules/meetings/`.
 
 **Purpose**: Module skeleton and constants.
 
-- [X] T001 Create the `src/modules/meetings/` directory tree — subfolders `schemas/`, `types/`, `constants/`, `utils/`, `pre-handlers/` — and an empty barrel `src/modules/meetings/public.ts`
-- [X] T002 [P] Add meeting constants to `src/modules/meetings/constants/index.ts` — `MEETING_EARLY_OPEN_MINUTES = 15`, `MEETINGS_PAGE_SIZE_DEFAULT = 20`, `MEETINGS_PAGE_SIZE_MAX = 100`
+- [x] T001 Create the `src/modules/meetings/` directory tree — subfolders `schemas/`, `types/`, `constants/`, `utils/`, `pre-handlers/` — and an empty barrel `src/modules/meetings/public.ts`
+- [x] T002 [P] Add meeting constants to `src/modules/meetings/constants/index.ts` — `MEETING_EARLY_OPEN_MINUTES = 15`, `MEETINGS_PAGE_SIZE_DEFAULT = 20`, `MEETINGS_PAGE_SIZE_MAX = 100`
 
 ---
 
@@ -43,12 +43,12 @@ New module lives in `src/modules/meetings/`.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [X] T003 Add error codes `INVALID_STATE_TRANSITION` (httpStatus 422) and `MEETING_TOO_EARLY` (httpStatus 422) to `src/shared/errors/codes.ts`
-- [X] T004 Add `invalidStateTransition(message?)` and `meetingTooEarly()` factory methods to `src/shared/errors/http-error.ts` (depends on T003)
-- [X] T005 [P] Create the controller and service factory shells — `src/modules/meetings/meeting.controller.ts` (`createMeetingController(db)`) and `src/modules/meetings/meeting.service.ts` (`meetingService(db)`) — with empty method maps and a shared `findMeetingInOrgOrThrow` service helper
-- [X] T006 [P] Create the routes shell `src/modules/meetings/meeting.routes.ts` exporting an (initially empty) `meetingRoutes` plugin, and re-export it from `src/modules/meetings/public.ts`
-- [X] T007 Register `meetingRoutes` under prefix `/meetings` in `src/app.ts`, add `meetings: 'Meetings'` to `tagBySegment`, and add the `Meetings` tag to the Swagger config (depends on T006)
-- [X] T008 [P] Add `truncateMeetingTables()` to `tests/integration/helpers/db.ts` — `TRUNCATE meetings, meeting_agenda_items, meeting_attendees RESTART IDENTITY CASCADE`
+- [x] T003 Add error codes `INVALID_STATE_TRANSITION` (httpStatus 422) and `MEETING_TOO_EARLY` (httpStatus 422) to `src/shared/errors/codes.ts`
+- [x] T004 Add `invalidStateTransition(message?)` and `meetingTooEarly()` factory methods to `src/shared/errors/http-error.ts` (depends on T003)
+- [x] T005 [P] Create the controller and service factory shells — `src/modules/meetings/meeting.controller.ts` (`createMeetingController(db)`) and `src/modules/meetings/meeting.service.ts` (`meetingService(db)`) — with empty method maps and a shared `findMeetingInOrgOrThrow` service helper
+- [x] T006 [P] Create the routes shell `src/modules/meetings/meeting.routes.ts` exporting an (initially empty) `meetingRoutes` plugin, and re-export it from `src/modules/meetings/public.ts`
+- [x] T007 Register `meetingRoutes` under prefix `/meetings` in `src/app.ts`, add `meetings: 'Meetings'` to `tagBySegment`, and add the `Meetings` tag to the Swagger config (depends on T006)
+- [x] T008 [P] Add `truncateMeetingTables()` to `tests/integration/helpers/db.ts` — `TRUNCATE meetings, meeting_agenda_items, meeting_attendees RESTART IDENTITY CASCADE`
 
 **Checkpoint**: Module is wired into the app; user-story implementation can begin.
 
@@ -62,14 +62,14 @@ New module lives in `src/modules/meetings/`.
 
 ### Tests for User Story 1 ⚠️ (write first, must fail)
 
-- [X] T009 [P] [US1] Integration test `tests/integration/modules/meetings/meeting-create.test.ts` — FR-301/302/303/317: create with/without agenda, status starts `DRAFT`, atomic rollback leaves no rows, non-future `scheduledAt` rejected, duplicate agenda `orderIndex` rejected
+- [x] T009 [P] [US1] Integration test `tests/integration/modules/meetings/meeting-create.test.ts` — FR-301/302/303/317: create with/without agenda, status starts `DRAFT`, atomic rollback leaves no rows, non-future `scheduledAt` rejected, duplicate agenda `orderIndex` rejected
 
 ### Implementation for User Story 1
 
-- [X] T010 [P] [US1] Add `createMeetingSchema` to `src/modules/meetings/schemas/zod.ts` (`title`, optional `description`/`location`, `scheduledAt` with future `.refine()`, optional `agendaItems[]`) plus its inferred request type in `src/modules/meetings/types/request.ts`
-- [X] T011 [US1] Implement `createMeeting` in `src/modules/meetings/meeting.service.ts` — `withTx`: insert meeting `DRAFT`, insert agenda items, `emitAudit(tx, 'meeting.created')` (depends on T005, T010)
-- [X] T012 [US1] Implement the `createMeeting` handler in `src/modules/meetings/meeting.controller.ts` (depends on T011)
-- [X] T013 [US1] Register `POST /meetings/org/:orgId` in `src/modules/meetings/meeting.routes.ts` with pre-handlers `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:create')` (depends on T006, T012)
+- [x] T010 [P] [US1] Add `createMeetingSchema` to `src/modules/meetings/schemas/zod.ts` (`title`, optional `description`/`location`, `scheduledAt` with future `.refine()`, optional `agendaItems[]`) plus its inferred request type in `src/modules/meetings/types/request.ts`
+- [x] T011 [US1] Implement `createMeeting` in `src/modules/meetings/meeting.service.ts` — `withTx`: insert meeting `DRAFT`, insert agenda items, `emitAudit(tx, 'meeting.created')` (depends on T005, T010)
+- [x] T012 [US1] Implement the `createMeeting` handler in `src/modules/meetings/meeting.controller.ts` (depends on T011)
+- [x] T013 [US1] Register `POST /meetings/org/:orgId` in `src/modules/meetings/meeting.routes.ts` with pre-handlers `identityRequired, attachOrgId, requireOnboardingStep('complete'), requirePermission('meeting:create')` (depends on T006, T012)
 
 **Checkpoint**: Meetings can be created and read back — MVP is demonstrable.
 
@@ -83,17 +83,17 @@ New module lives in `src/modules/meetings/`.
 
 ### Tests for User Story 2 ⚠️ (write first, must fail)
 
-- [X] T014 [P] [US2] Unit test `tests/unit/modules/meetings/state-machine.test.ts` — every allowed transition passes, every other pair (incl. repeats, out of terminal states) throws `INVALID_STATE_TRANSITION`
-- [X] T015 [P] [US2] Integration test `tests/integration/modules/meetings/meeting-status.test.ts` — FR-304/305/306/307: valid transitions, invalid rejected, `MEETING_TOO_EARLY`, zero-attendee block, open-votes guard, `meeting.status_changed` audit with `{before,after}`, `meeting:cancel` vs `meeting:update` permission
+- [x] T014 [P] [US2] Unit test `tests/unit/modules/meetings/state-machine.test.ts` — every allowed transition passes, every other pair (incl. repeats, out of terminal states) throws `INVALID_STATE_TRANSITION`
+- [x] T015 [P] [US2] Integration test `tests/integration/modules/meetings/meeting-status.test.ts` — FR-304/305/306/307: valid transitions, invalid rejected, `MEETING_TOO_EARLY`, zero-attendee block, open-votes guard, `meeting.status_changed` audit with `{before,after}`, `meeting:cancel` vs `meeting:update` permission
 
 ### Implementation for User Story 2
 
-- [X] T016 [P] [US2] Implement `src/modules/meetings/utils/state-machine.ts` — `MEETING_TRANSITIONS` map and pure `assertValidTransition(from, to)`
-- [X] T017 [P] [US2] Implement `requireStatusTransitionPermission` in `src/modules/meetings/pre-handlers/status-permission.ts` — picks `meeting:cancel` for a `CANCELLED` target, else `meeting:update`, then delegates to `requirePermission`
-- [X] T018 [P] [US2] Add `transitionStatusSchema` to `src/modules/meetings/schemas/zod.ts` plus its request type in `types/request.ts`
-- [X] T019 [US2] Implement `transitionStatus` in `src/modules/meetings/meeting.service.ts` — `withTx`: `assertValidTransition`, evaluate transition guards (attendee count, 15-min window, open-votes query on `votes`), update status, `emitAudit(tx, 'meeting.status_changed')` (depends on T016, T018)
-- [X] T020 [US2] Implement the `transitionStatus` handler in `src/modules/meetings/meeting.controller.ts` (depends on T019)
-- [X] T021 [US2] Register `PATCH /meetings/:meetingId/org/:orgId/status` in `meeting.routes.ts` with pre-handlers `identityRequired, attachOrgId, requireOnboardingStep('complete'), requireStatusTransitionPermission` (depends on T017, T020)
+- [x] T016 [P] [US2] Implement `src/modules/meetings/utils/state-machine.ts` — `MEETING_TRANSITIONS` map and pure `assertValidTransition(from, to)`
+- [x] T017 [P] [US2] Implement `requireStatusTransitionPermission` in `src/modules/meetings/pre-handlers/status-permission.ts` — picks `meeting:cancel` for a `CANCELLED` target, else `meeting:update`, then delegates to `requirePermission`
+- [x] T018 [P] [US2] Add `transitionStatusSchema` to `src/modules/meetings/schemas/zod.ts` plus its request type in `types/request.ts`
+- [x] T019 [US2] Implement `transitionStatus` in `src/modules/meetings/meeting.service.ts` — `withTx`: `assertValidTransition`, evaluate transition guards (attendee count, 15-min window, open-votes query on `votes`), update status, `emitAudit(tx, 'meeting.status_changed')` (depends on T016, T018)
+- [x] T020 [US2] Implement the `transitionStatus` handler in `src/modules/meetings/meeting.controller.ts` (depends on T019)
+- [x] T021 [US2] Register `PATCH /meetings/:meetingId/org/:orgId/status` in `meeting.routes.ts` with pre-handlers `identityRequired, attachOrgId, requireOnboardingStep('complete'), requireStatusTransitionPermission` (depends on T017, T020)
 
 **Checkpoint**: A meeting can be driven through its full lifecycle with all guards enforced.
 
@@ -107,14 +107,14 @@ New module lives in `src/modules/meetings/`.
 
 ### Tests for User Story 3 ⚠️ (write first, must fail)
 
-- [X] T022 [P] [US3] Integration test `tests/integration/modules/meetings/meeting-attendees.test.ts` — FR-308/309: idempotent add, non-member rejected, terminal-status rejected, remove, `meeting.attendee_added`/`meeting.attendee_removed` audit
+- [x] T022 [P] [US3] Integration test `tests/integration/modules/meetings/meeting-attendees.test.ts` — FR-308/309: idempotent add, non-member rejected, terminal-status rejected, remove, `meeting.attendee_added`/`meeting.attendee_removed` audit
 
 ### Implementation for User Story 3
 
-- [X] T023 [P] [US3] Add `addAttendeesSchema` to `src/modules/meetings/schemas/zod.ts` plus request types in `types/request.ts`
-- [X] T024 [US3] Implement `addAttendees` and `removeAttendee` in `src/modules/meetings/meeting.service.ts` — validate every `memberId` is a current org membership, enforce the `DRAFT`/`SCHEDULED`/`IN_PROGRESS` window, `INSERT … ON CONFLICT DO NOTHING`, `emitAudit` per newly added row and on removal (depends on T005, T023)
-- [X] T025 [US3] Implement the `addAttendees` and `removeAttendee` handlers in `src/modules/meetings/meeting.controller.ts` (depends on T024)
-- [X] T026 [US3] Register `POST /meetings/:meetingId/org/:orgId/attendees` and `DELETE /meetings/:meetingId/org/:orgId/attendees/:memberId` in `meeting.routes.ts` with `requirePermission('meeting:update')` (depends on T006, T025)
+- [x] T023 [P] [US3] Add `addAttendeesSchema` to `src/modules/meetings/schemas/zod.ts` plus request types in `types/request.ts`
+- [x] T024 [US3] Implement `addAttendees` and `removeAttendee` in `src/modules/meetings/meeting.service.ts` — validate every `memberId` is a current org membership, enforce the `DRAFT`/`SCHEDULED`/`IN_PROGRESS` window, `INSERT … ON CONFLICT DO NOTHING`, `emitAudit` per newly added row and on removal (depends on T005, T023)
+- [x] T025 [US3] Implement the `addAttendees` and `removeAttendee` handlers in `src/modules/meetings/meeting.controller.ts` (depends on T024)
+- [x] T026 [US3] Register `POST /meetings/:meetingId/org/:orgId/attendees` and `DELETE /meetings/:meetingId/org/:orgId/attendees/:memberId` in `meeting.routes.ts` with `requirePermission('meeting:update')` (depends on T006, T025)
 
 **Checkpoint**: All three P1 stories work — a complete create→schedule→attendee→lifecycle slice is demonstrable.
 
@@ -128,14 +128,14 @@ New module lives in `src/modules/meetings/`.
 
 ### Tests for User Story 4 ⚠️ (write first, must fail)
 
-- [X] T027 [P] [US4] Integration test `tests/integration/modules/meetings/meeting-list.test.ts` — FR-311/312: each filter, cursor pagination + `nextCursor`, detail returns agenda + attendees
+- [x] T027 [P] [US4] Integration test `tests/integration/modules/meetings/meeting-list.test.ts` — FR-311/312: each filter, cursor pagination + `nextCursor`, detail returns agenda + attendees
 
 ### Implementation for User Story 4
 
-- [X] T028 [P] [US4] Add `listMeetingsSchema` (query: `status`, `from`, `to`, `attendeeId`, `cursor`, `limit`) to `src/modules/meetings/schemas/zod.ts` plus request types in `types/request.ts`
-- [X] T029 [US4] Implement `listMeetings` (keyset pagination via `applyKeysetWhere`, status/range/attendee filters) and `getMeeting` (detail with agenda + attendees) in `src/modules/meetings/meeting.service.ts` (depends on T005, T028)
-- [X] T030 [US4] Implement the `listMeetings` and `getMeeting` handlers in `src/modules/meetings/meeting.controller.ts` (depends on T029)
-- [X] T031 [US4] Register `GET /meetings/org/:orgId` and `GET /meetings/:meetingId/org/:orgId` in `meeting.routes.ts` with `requirePermission('meeting:read')` (depends on T006, T030)
+- [x] T028 [P] [US4] Add `listMeetingsSchema` (query: `status`, `from`, `to`, `attendeeId`, `cursor`, `limit`) to `src/modules/meetings/schemas/zod.ts` plus request types in `types/request.ts`
+- [x] T029 [US4] Implement `listMeetings` (keyset pagination via `applyKeysetWhere`, status/range/attendee filters) and `getMeeting` (detail with agenda + attendees) in `src/modules/meetings/meeting.service.ts` (depends on T005, T028)
+- [x] T030 [US4] Implement the `listMeetings` and `getMeeting` handlers in `src/modules/meetings/meeting.controller.ts` (depends on T029)
+- [x] T031 [US4] Register `GET /meetings/org/:orgId` and `GET /meetings/:meetingId/org/:orgId` in `meeting.routes.ts` with `requirePermission('meeting:read')` (depends on T006, T030)
 
 **Checkpoint**: Meetings are browsable and viewable.
 
@@ -149,14 +149,14 @@ New module lives in `src/modules/meetings/`.
 
 ### Tests for User Story 5 ⚠️ (write first, must fail)
 
-- [X] T032 [P] [US5] Integration test `tests/integration/modules/meetings/meeting-update.test.ts` — FR-310/317: edit in `DRAFT`/`SCHEDULED`, agenda wholesale replace, frozen in `IN_PROGRESS`+, non-future `scheduledAt` rejected, `meeting.updated` audit
+- [x] T032 [P] [US5] Integration test `tests/integration/modules/meetings/meeting-update.test.ts` — FR-310/317: edit in `DRAFT`/`SCHEDULED`, agenda wholesale replace, frozen in `IN_PROGRESS`+, non-future `scheduledAt` rejected, `meeting.updated` audit
 
 ### Implementation for User Story 5
 
-- [X] T033 [P] [US5] Add `updateMeetingSchema` (all fields optional, `scheduledAt` future `.refine()`, optional `agendaItems[]`) to `src/modules/meetings/schemas/zod.ts` plus request types in `types/request.ts`
-- [X] T034 [US5] Implement `updateMeeting` in `src/modules/meetings/meeting.service.ts` — enforce `DRAFT`/`SCHEDULED` edit window, replace agenda items inside `withTx` when supplied, `emitAudit(tx, 'meeting.updated')` (depends on T005, T033)
-- [X] T035 [US5] Implement the `updateMeeting` handler in `src/modules/meetings/meeting.controller.ts` (depends on T034)
-- [X] T036 [US5] Register `PATCH /meetings/:meetingId/org/:orgId` in `meeting.routes.ts` with `requirePermission('meeting:update')` (depends on T006, T035)
+- [x] T033 [P] [US5] Add `updateMeetingSchema` (all fields optional, `scheduledAt` future `.refine()`, optional `agendaItems[]`) to `src/modules/meetings/schemas/zod.ts` plus request types in `types/request.ts`
+- [x] T034 [US5] Implement `updateMeeting` in `src/modules/meetings/meeting.service.ts` — enforce `DRAFT`/`SCHEDULED` edit window, replace agenda items inside `withTx` when supplied, `emitAudit(tx, 'meeting.updated')` (depends on T005, T033)
+- [x] T035 [US5] Implement the `updateMeeting` handler in `src/modules/meetings/meeting.controller.ts` (depends on T034)
+- [x] T036 [US5] Register `PATCH /meetings/:meetingId/org/:orgId` in `meeting.routes.ts` with `requirePermission('meeting:update')` (depends on T006, T035)
 
 **Checkpoint**: All five user stories are independently functional.
 
@@ -194,7 +194,7 @@ New module lives in `src/modules/meetings/`.
 
 US1–US5 each append to the same four files — `meeting.service.ts`,
 `meeting.controller.ts`, `meeting.routes.ts`, and `schemas/zod.ts`. The stories
-are *logically* independent and independently testable, but their
+are _logically_ independent and independently testable, but their
 service/controller/route/schema tasks **serialize on these files**. Treat the
 stories as sequential by priority (US1 → US2 → US3 → US4 → US5) unless a
 developer takes a whole story end-to-end on a branch.

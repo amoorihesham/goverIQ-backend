@@ -48,8 +48,7 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorEnvelope' }
               example:
                 success: false
-                error:
-                  { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', statusCode: 401 }
+                error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', statusCode: 401 }
         '422':
           description: OTP has expired
           content:
@@ -57,8 +56,7 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorEnvelope' }
               example:
                 success: false
-                error:
-                  { code: 'OTP_EXPIRED', message: 'Verification code has expired', statusCode: 422 }
+                error: { code: 'OTP_EXPIRED', message: 'Verification code has expired', statusCode: 422 }
 components:
   schemas:
     VerifyEmailRequest:

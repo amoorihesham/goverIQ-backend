@@ -13,7 +13,10 @@ import { identityRequired } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
 import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
 import { requirePermission } from '@/shared/permissions/guard';
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
 
 export async function invitionsRoutes(fastify: FastifyInstance) {
   const controller = invitionsController(db, fastify.dispatcher);

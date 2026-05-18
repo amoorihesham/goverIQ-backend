@@ -18,9 +18,11 @@ export const createMeetingSchema = {
     title: string().min(1),
     description: string().optional(),
     location: string().optional(),
-    scheduledAt: string().datetime().refine((v) => new Date(v) > new Date(), {
-      message: 'scheduledAt must be in the future',
-    }),
+    scheduledAt: string()
+      .datetime()
+      .refine((v) => new Date(v) > new Date(), {
+        message: 'scheduledAt must be in the future',
+      }),
     agendaItems: agendaItemsSchema.optional(),
   }),
 };
@@ -71,9 +73,12 @@ export const updateMeetingSchema = {
     title: string().min(1).optional(),
     description: string().nullable().optional(),
     location: string().nullable().optional(),
-    scheduledAt: string().datetime().refine((v) => new Date(v) > new Date(), {
-      message: 'scheduledAt must be in the future',
-    }).optional(),
+    scheduledAt: string()
+      .datetime()
+      .refine((v) => new Date(v) > new Date(), {
+        message: 'scheduledAt must be in the future',
+      })
+      .optional(),
     agendaItems: agendaItemsSchema.optional(),
   }),
 };

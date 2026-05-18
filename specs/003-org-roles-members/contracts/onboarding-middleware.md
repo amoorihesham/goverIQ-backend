@@ -58,11 +58,7 @@ import { requirePermission } from '@/shared/permissions/guard';
 fastify.post(
   '/api/v1/orgs/:orgId/roles',
   {
-    preHandler: [
-      identityRequired,
-      requireOnboardingStep('role_creation'),
-      requirePermission('role:create'),
-    ],
+    preHandler: [identityRequired, requireOnboardingStep('role_creation'), requirePermission('role:create')],
   },
   controller.createRole,
 );

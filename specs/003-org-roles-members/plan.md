@@ -222,11 +222,7 @@ export function generateSlug(name: string): string {
 export async function ensureUniqueSlug(db, base: string): Promise<string> {
   for (let i = 0; i <= SLUG_MAX_SUFFIX_ATTEMPTS; i++) {
     const candidate = i === 0 ? base : `${base}-${i + 1}`;
-    const exists = await db
-      .select()
-      .from(organizations)
-      .where(eq(organizations.slug, candidate))
-      .limit(1);
+    const exists = await db.select().from(organizations).where(eq(organizations.slug, candidate)).limit(1);
     if (!exists.length) return candidate;
   }
   return `${base}-${randomBytes(SLUG_FALLBACK_RANDOM_BYTES).toString('hex')}`;

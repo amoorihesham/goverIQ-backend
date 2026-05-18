@@ -13,17 +13,17 @@ and the state transitions it performs.
 
 ### `meetings`
 
-| Column         | Type                              | Used in                                                                  |
-| -------------- | --------------------------------- | ------------------------------------------------------------------------ |
-| `id`           | uuid PK                           | route param `:meetingId`; FK target for agenda items, attendees, votes   |
-| `org_id`       | uuid FK → organizations (CASCADE) | every meeting query; org-scoping; permission/onboarding resolution       |
-| `title`        | text NOT NULL                     | FR-301/FR-302 (write), FR-310 (update)                                   |
-| `description`  | text                              | FR-302 (write, optional), FR-310 (update)                                |
-| `location`     | text                              | FR-302 (write, optional), FR-310 (update)                                |
-| `scheduled_at` | timestamptz NOT NULL              | FR-302 (write), FR-305 (15-min guard), FR-317 (future check)             |
-| `status`       | enum NOT NULL DEFAULT 'DRAFT'     | FR-301 (starts `DRAFT`), FR-304..307 (transitions), FR-310 (edit window) |
-| `created_at`   | timestamptz NOT NULL DEFAULT now()| informational                                                            |
-| `updated_at`   | timestamptz NOT NULL DEFAULT now()| bumped on every write                                                     |
+| Column         | Type                               | Used in                                                                  |
+| -------------- | ---------------------------------- | ------------------------------------------------------------------------ |
+| `id`           | uuid PK                            | route param `:meetingId`; FK target for agenda items, attendees, votes   |
+| `org_id`       | uuid FK → organizations (CASCADE)  | every meeting query; org-scoping; permission/onboarding resolution       |
+| `title`        | text NOT NULL                      | FR-301/FR-302 (write), FR-310 (update)                                   |
+| `description`  | text                               | FR-302 (write, optional), FR-310 (update)                                |
+| `location`     | text                               | FR-302 (write, optional), FR-310 (update)                                |
+| `scheduled_at` | timestamptz NOT NULL               | FR-302 (write), FR-305 (15-min guard), FR-317 (future check)             |
+| `status`       | enum NOT NULL DEFAULT 'DRAFT'      | FR-301 (starts `DRAFT`), FR-304..307 (transitions), FR-310 (edit window) |
+| `created_at`   | timestamptz NOT NULL DEFAULT now() | informational                                                            |
+| `updated_at`   | timestamptz NOT NULL DEFAULT now() | bumped on every write                                                    |
 
 **`meeting_status` enum**: `DRAFT`, `SCHEDULED`, `IN_PROGRESS`, `COMPLETED`,
 `CANCELLED`.
@@ -39,15 +39,15 @@ and the state transitions it performs.
 
 ### `meeting_agenda_items`
 
-| Column        | Type                         | Used in                                              |
-| ------------- | ---------------------------- | ---------------------------------------------------- |
-| `id`          | uuid PK                      | internal                                             |
-| `meeting_id`  | uuid FK → meetings (CASCADE) | FR-301 (insert), FR-310 (replace), FR-312 (detail)   |
-| `title`       | text NOT NULL                | FR-303 (write)                                       |
-| `description` | text                         | FR-303 (write, optional)                             |
-| `order_index` | integer NOT NULL             | FR-303 (ordering; uniqueness within meeting)         |
-| `created_at`  | timestamptz NOT NULL         | informational                                        |
-| `updated_at`  | timestamptz NOT NULL         | informational                                        |
+| Column        | Type                         | Used in                                            |
+| ------------- | ---------------------------- | -------------------------------------------------- |
+| `id`          | uuid PK                      | internal                                           |
+| `meeting_id`  | uuid FK → meetings (CASCADE) | FR-301 (insert), FR-310 (replace), FR-312 (detail) |
+| `title`       | text NOT NULL                | FR-303 (write)                                     |
+| `description` | text                         | FR-303 (write, optional)                           |
+| `order_index` | integer NOT NULL             | FR-303 (ordering; uniqueness within meeting)       |
+| `created_at`  | timestamptz NOT NULL         | informational                                      |
+| `updated_at`  | timestamptz NOT NULL         | informational                                      |
 
 **Indexes used**:
 
@@ -60,12 +60,12 @@ A meeting MAY have zero agenda items (FR-301, spec clarification).
 
 ### `meeting_attendees`
 
-| Column       | Type                            | Used in                                              |
-| ------------ | ------------------------------- | ---------------------------------------------------- |
-| `meeting_id` | uuid FK → meetings (CASCADE)    | FR-308/FR-309 (add/remove), FR-305 (count guard)     |
-| `member_id`  | uuid FK → memberships (CASCADE) | FR-308 (membership validation), FR-309 (remove)      |
-| `created_at` | timestamptz NOT NULL            | informational                                        |
-| `updated_at` | timestamptz NOT NULL            | informational                                        |
+| Column       | Type                            | Used in                                          |
+| ------------ | ------------------------------- | ------------------------------------------------ |
+| `meeting_id` | uuid FK → meetings (CASCADE)    | FR-308/FR-309 (add/remove), FR-305 (count guard) |
+| `member_id`  | uuid FK → memberships (CASCADE) | FR-308 (membership validation), FR-309 (remove)  |
+| `created_at` | timestamptz NOT NULL            | informational                                    |
+| `updated_at` | timestamptz NOT NULL            | informational                                    |
 
 **Indexes used**:
 
@@ -82,10 +82,10 @@ removing a member from an org auto-removes their attendee rows (research §11).
 
 The `IN_PROGRESS → COMPLETED` guard (FR-306) reads `votes` only:
 
-| Column       | Type                         | Used in                                            |
-| ------------ | ---------------------------- | -------------------------------------------------- |
-| `meeting_id` | uuid FK → meetings           | open-votes guard filter                            |
-| `status`     | enum (`OPEN` / `CLOSED`)     | open-votes guard filter                            |
+| Column       | Type                     | Used in                 |
+| ------------ | ------------------------ | ----------------------- |
+| `meeting_id` | uuid FK → meetings       | open-votes guard filter |
+| `status`     | enum (`OPEN` / `CLOSED`) | open-votes guard filter |
 
 **Index used**: `votes_meeting_status_idx` on `(meeting_id, status)`. No vote
 rows exist until Phase 4, so the guard count is currently always 0.
@@ -103,14 +103,14 @@ DRAFT ──▶ SCHEDULED ──▶ IN_PROGRESS ──▶ COMPLETED
             CANCELLED      CANCELLED
 ```
 
-| From          | To            | Permission        | Guard                                                     |
-| ------------- | ------------- | ----------------- | --------------------------------------------------------- |
-| `DRAFT`       | `SCHEDULED`   | `meeting:update`  | none                                                      |
-| `SCHEDULED`   | `IN_PROGRESS` | `meeting:update`  | ≥ 1 attendee AND `now ≥ scheduledAt − 15 min`             |
-| `SCHEDULED`   | `CANCELLED`   | `meeting:cancel`  | none                                                      |
-| `IN_PROGRESS` | `COMPLETED`   | `meeting:update`  | no `OPEN` vote attached to the meeting                    |
-| `IN_PROGRESS` | `CANCELLED`   | `meeting:cancel`  | none                                                      |
-| any other pair (incl. repeats, out of `COMPLETED`/`CANCELLED`) | — | — | rejected → `INVALID_STATE_TRANSITION` |
+| From                                                           | To            | Permission       | Guard                                         |
+| -------------------------------------------------------------- | ------------- | ---------------- | --------------------------------------------- |
+| `DRAFT`                                                        | `SCHEDULED`   | `meeting:update` | none                                          |
+| `SCHEDULED`                                                    | `IN_PROGRESS` | `meeting:update` | ≥ 1 attendee AND `now ≥ scheduledAt − 15 min` |
+| `SCHEDULED`                                                    | `CANCELLED`   | `meeting:cancel` | none                                          |
+| `IN_PROGRESS`                                                  | `COMPLETED`   | `meeting:update` | no `OPEN` vote attached to the meeting        |
+| `IN_PROGRESS`                                                  | `CANCELLED`   | `meeting:cancel` | none                                          |
+| any other pair (incl. repeats, out of `COMPLETED`/`CANCELLED`) | —             | —                | rejected → `INVALID_STATE_TRANSITION`         |
 
 Guard failures: time window → `MEETING_TOO_EARLY`; zero attendees →
 `INVALID_STATE_TRANSITION`; open votes → `MEETING_HAS_OPEN_VOTES`. `COMPLETED`
@@ -134,18 +134,18 @@ status ∈ { COMPLETED, CANCELLED }          → add/remove rejected → INVALID
 
 ## Validation Rules
 
-| Rule                                                     | Enforced by                          | FR      |
-| -------------------------------------------------------- | ------------------------------------- | ------- |
-| `title` present, `scheduledAt` present                   | Zod create schema                     | FR-302  |
-| `scheduledAt` strictly in the future (create and update) | Zod `.refine()` → `VALIDATION_ERROR`  | FR-317  |
-| Agenda `order_index` unique within a meeting             | `meeting_agenda_items` unique index   | FR-303  |
-| Agenda items optional at creation                        | Zod create schema (`agendaItems` optional) | FR-301 |
-| Every attendee id is a current org membership            | service query before insert           | FR-308  |
-| Transition allowed by the map                            | `assertValidTransition` (pure)         | FR-304  |
-| Open meeting only within window with ≥ 1 attendee        | service guard inside `withTx`          | FR-305  |
-| Complete meeting only with no open votes                 | service guard inside `withTx`          | FR-306  |
-| Edits only in `DRAFT` / `SCHEDULED`                      | service status check                   | FR-310  |
-| Attendee mutation only in `DRAFT`/`SCHEDULED`/`IN_PROGRESS` | service status check                | FR-308/309 |
+| Rule                                                        | Enforced by                                | FR         |
+| ----------------------------------------------------------- | ------------------------------------------ | ---------- |
+| `title` present, `scheduledAt` present                      | Zod create schema                          | FR-302     |
+| `scheduledAt` strictly in the future (create and update)    | Zod `.refine()` → `VALIDATION_ERROR`       | FR-317     |
+| Agenda `order_index` unique within a meeting                | `meeting_agenda_items` unique index        | FR-303     |
+| Agenda items optional at creation                           | Zod create schema (`agendaItems` optional) | FR-301     |
+| Every attendee id is a current org membership               | service query before insert                | FR-308     |
+| Transition allowed by the map                               | `assertValidTransition` (pure)             | FR-304     |
+| Open meeting only within window with ≥ 1 attendee           | service guard inside `withTx`              | FR-305     |
+| Complete meeting only with no open votes                    | service guard inside `withTx`              | FR-306     |
+| Edits only in `DRAFT` / `SCHEDULED`                         | service status check                       | FR-310     |
+| Attendee mutation only in `DRAFT`/`SCHEDULED`/`IN_PROGRESS` | service status check                       | FR-308/309 |
 
 ---
 

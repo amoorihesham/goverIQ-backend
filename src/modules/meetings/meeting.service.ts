@@ -20,7 +20,6 @@ import { AppError } from '@/shared/errors/http-error';
 import { applyKeysetWhere, decodeCursor, encodeCursor } from '@/shared/pagination/cursor';
 import { CursorPage } from '@/shared/pagination/types';
 
-
 export const meetingService = (db: DatabaseClient) => {
   async function findMeetingInOrgOrThrow(meetingId: string, orgId: string, tx?: Tx) {
     const client = tx ?? db;

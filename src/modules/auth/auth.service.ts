@@ -15,9 +15,12 @@ import type { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
 import type { NotificationDispatcher } from '@/shared/notifications/dispatcher';
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> main
+=======
+>>>>>>> 005-voting-minutes
 
 export function createAuthService(db: DatabaseClient, dispatcher: NotificationDispatcher) {
   async function issueSessionWithinTx(tx: Tx, user: { id: string; email: string }) {

@@ -1,0 +1,432 @@
+openapi: 3.1.0
+info:
+  title: GovernIQ — Votes Module
+  version: 0.1.0
+  description: |
+    5 vote endpoints. All require an authenticated Bearer token, a current
+    membership in the path org, and the org's onboarding step to be COMPLETE.
+    Permissions: create → vote:create; list/detail → vote:read; cast ballot →
+    vote:cast_ballot; close → vote:close. The org Owner bypasses permission
+    checks. State-changing operations run in one transaction with their audit
+    write. Per-member ballot choices are confidential — no response exposes
+    them; only the aggregate result summary is returned.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /api/v1/votes/meeting/{meetingId}/org/{orgId}:
+    post:
+      summary: Create a vote
+      operationId: createVote
+      description: |
+        Requires vote:create. The meeting MUST be IN_PROGRESS, else
+        INVALID_STATE_TRANSITION. Inserts the vote (status OPEN), freezes the
+        eligibility snapshot, and emits vote.created — all in one transaction.
+        When eligibleMemberIds is null/omitted the eligible set is the meeting's
+        current attendees; when supplied, every id MUST be a current attendee.
+        The eligible set MUST be non-empty. options MUST hold at least two
+        distinct values and affirmativeOption MUST be one of them.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateVoteRequest' }
+      responses:
+        '201':
+          description: Vote created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VoteResponse' }
+              example:
+                success: true
+                data:
+                  id: 'v1a2b3c4-...'
+                  meetingId: 'm1a2b3c4-...'
+                  question: 'Approve the Q3 budget?'
+                  options: ['Approve', 'Reject', 'Abstain']
+                  affirmativeOption: 'Approve'
+                  deadline: '2026-06-01T17:00:00Z'
+                  status: 'OPEN'
+                  outcome: null
+                  resultSummary: null
+                  closedAt: null
+                  createdAt: '2026-05-17T10:00:00Z'
+        '400':
+          description: Validation failed (fewer than two distinct options, affirmativeOption not in options, or an empty eligibleMemberIds list)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Meeting not found in this org, or an eligibleMemberId is not an attendee of the meeting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: The meeting is not IN_PROGRESS
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error:
+                  {
+                    code: 'INVALID_STATE_TRANSITION',
+                    message: 'Votes can only be created on an in-progress meeting',
+                    statusCode: 422,
+                  }
+
+    get:
+      summary: List votes for a meeting
+      operationId: listVotes
+      description: |
+        Requires vote:read. Cursor-paginated (default 20, max 100). Each vote is
+        returned with its aggregate result summary; no per-member ballot data is
+        ever included.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/VoteStatus' }
+        - name: cursor
+          in: query
+          required: false
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated vote list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/VoteObject' }
+                      nextCursor: { type: string, nullable: true }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Meeting not found in this org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/votes/{voteId}/meeting/{meetingId}/org/{orgId}:
+    get:
+      summary: Get vote detail
+      operationId: getVote
+      description: |
+        Requires vote:read. Returns the vote with its question, options,
+        designated affirmative option, status, outcome, and aggregate result
+        summary. Never returns individual ballot choices.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/voteId' }
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: Vote detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VoteResponse' }
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Vote not found in this meeting/org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/votes/{voteId}/meeting/{meetingId}/org/{orgId}/ballots:
+    post:
+      summary: Cast a ballot
+      operationId: castBallot
+      description: |
+        Requires vote:cast_ballot. The vote MUST be OPEN (else VOTE_CLOSED), the
+        caller's membership MUST be in the vote's eligibility snapshot (else
+        FORBIDDEN), and choice MUST be one of the vote's options (else
+        VALIDATION_ERROR). Each eligible member may cast at most one ballot — a
+        second attempt is rejected with DUPLICATE_BALLOT. The ballot and a
+        ballot.submitted audit entry are written in one transaction; the audit
+        payload never records the choice.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/voteId' }
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [choice]
+              properties:
+                choice: { type: string, minLength: 1 }
+      responses:
+        '201':
+          description: Ballot recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [voteId, recorded]
+                    properties:
+                      voteId: { type: string, format: uuid }
+                      recorded: { type: boolean, enum: [true] }
+        '400':
+          description: choice is not one of the vote's options
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'VALIDATION_ERROR', message: 'choice is not one of the vote options', statusCode: 400 }
+        '403':
+          description: Onboarding incomplete, missing vote:cast_ballot, or caller not in the eligibility snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'FORBIDDEN', message: 'Not eligible to vote', statusCode: 403 }
+        '404':
+          description: Vote not found in this meeting/org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: The caller has already cast a ballot for this vote
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'DUPLICATE_BALLOT', message: 'Ballot already exists', statusCode: 409 }
+        '422':
+          description: The vote is closed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'VOTE_CLOSED', message: 'Vote is closed', statusCode: 422 }
+
+  /api/v1/votes/{voteId}/meeting/{meetingId}/org/{orgId}/close:
+    patch:
+      summary: Close a vote
+      operationId: closeVote
+      description: |
+        Requires vote:close. The vote MUST be OPEN — an already-closed vote is
+        rejected with CONFLICT. Closing tallies the ballots, checks quorum
+        against the organization's threshold, computes the outcome (see
+        contracts/vote-outcome.md), and atomically sets status CLOSED, outcome,
+        result summary, and closedAt, emitting vote.closed carrying the outcome.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { $ref: '#/components/parameters/voteId' }
+        - { $ref: '#/components/parameters/meetingId' }
+        - { $ref: '#/components/parameters/orgId' }
+      responses:
+        '200':
+          description: Vote closed; outcome and result summary recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VoteResponse' }
+              example:
+                success: true
+                data:
+                  id: 'v1a2b3c4-...'
+                  meetingId: 'm1a2b3c4-...'
+                  question: 'Approve the Q3 budget?'
+                  options: ['Approve', 'Reject', 'Abstain']
+                  affirmativeOption: 'Approve'
+                  deadline: '2026-06-01T17:00:00Z'
+                  status: 'CLOSED'
+                  outcome: 'PASSED'
+                  resultSummary:
+                    tally: { Approve: 7, Reject: 2, Abstain: 1 }
+                    totalEligible: 12
+                    totalCast: 10
+                    winner: 'Approve'
+                  closedAt: '2026-05-17T11:30:00Z'
+                  createdAt: '2026-05-17T10:00:00Z'
+        '403':
+          description: Insufficient permission or onboarding incomplete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: Vote not found in this meeting/org
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: The vote is already closed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                error: { code: 'CONFLICT', message: 'Vote is already closed', statusCode: 409 }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    orgId:
+      name: orgId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    meetingId:
+      name: meetingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    voteId:
+      name: voteId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    VoteStatus:
+      type: string
+      enum: [OPEN, CLOSED]
+
+    VoteOutcome:
+      type: string
+      enum: [PASSED, FAILED, TIED, QUORUM_NOT_MET]
+
+    ResultSummary:
+      type: object
+      description: |
+        Aggregate-only summary; null until the vote is closed. Never contains
+        per-member data. Full shape defined in contracts/vote-outcome.md.
+      required: [tally, totalEligible, totalCast, winner]
+      properties:
+        tally:
+          type: object
+          additionalProperties: { type: integer, minimum: 0 }
+          description: Ballot count per option.
+        totalEligible: { type: integer, minimum: 1 }
+        totalCast: { type: integer, minimum: 0 }
+        winner:
+          type: string
+          nullable: true
+          description: The winning option; null for TIED and QUORUM_NOT_MET.
+
+    CreateVoteRequest:
+      type: object
+      required: [question, options, affirmativeOption, deadline]
+      properties:
+        question: { type: string, minLength: 1, maxLength: 500 }
+        options:
+          type: array
+          minItems: 2
+          description: At least two distinct option strings.
+          items: { type: string, minLength: 1, maxLength: 200 }
+        affirmativeOption:
+          type: string
+          description: The "passing" option; MUST equal one of options.
+        deadline:
+          type: string
+          format: date-time
+          description: Advisory deadline; does not auto-close the vote.
+        eligibleMemberIds:
+          type: array
+          nullable: true
+          minItems: 1
+          description: |
+            Membership ids entitled to vote. Omit or null to use the meeting's
+            current attendees. When supplied, every id must be a current
+            attendee and the list must be non-empty.
+          items: { type: string, format: uuid }
+
+    VoteObject:
+      type: object
+      required: [id, meetingId, question, options, affirmativeOption, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        meetingId: { type: string, format: uuid }
+        question: { type: string }
+        options:
+          type: array
+          items: { type: string }
+        affirmativeOption: { type: string }
+        deadline: { type: string, format: date-time, nullable: true }
+        status: { $ref: '#/components/schemas/VoteStatus' }
+        outcome:
+          allOf: [{ $ref: '#/components/schemas/VoteOutcome' }]
+          nullable: true
+          description: Null while the vote is OPEN.
+        resultSummary:
+          allOf: [{ $ref: '#/components/schemas/ResultSummary' }]
+          nullable: true
+        closedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    VoteResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/VoteObject' }
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, statusCode]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            statusCode: { type: integer }

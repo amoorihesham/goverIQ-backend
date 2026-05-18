@@ -114,4 +114,12 @@ export class AppError extends Error {
   static meetingTooEarly(message?: string): AppError {
     return AppError.create('MEETING_TOO_EARLY', message);
   }
+
+  static voteClosed(message?: string): AppError {
+    return AppError.create('VOTE_CLOSED', message);
+  }
+
+  static minutesFinalized(message?: string): AppError {
+    return AppError.create('MINUTES_FINALIZED', message);
+  }
 }
