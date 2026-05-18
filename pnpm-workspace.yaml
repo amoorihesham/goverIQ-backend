@@ -1,4 +1,0 @@
-allowBuilds:
-  esbuild: true
-  msgpackr-extract: true
-  protobufjs: set this to true or false
