@@ -2,7 +2,7 @@ export interface InvitationPayload {
   orgName: string;
   acceptUrl: string;
   declineUrl: string;
-  expiresAt: number;
+  expiresAt: Date;
 }
 
 export function buildInvitationEmail(payload: InvitationPayload): {
@@ -20,7 +20,7 @@ ${payload.acceptUrl}
 Decline invitation:
 ${payload.declineUrl}
 
-This invitation expires at ${payload.expiresAt}.
+This invitation expires at ${payload.expiresAt.toLocaleDateString()}.
 
 If you did not expect this invitation, please decline it or contact the organization administrator.
 `.trim(),

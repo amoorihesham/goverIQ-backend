@@ -46,6 +46,7 @@ export function requireOnboardingStep(tier: OnboardingTier): preHandlerHookHandl
       },
     };
 
-    if (!tierGate[tier][org.onboardingStep]) throw AppError.forbidden('Action not permitted at this onboarding stage');
+    if (!tierGate[tier][org.onboardingStep])
+      throw AppError.forbidden(`Action not permitted at this onboarding stage ${org.onboardingStep}`);
   };
 }

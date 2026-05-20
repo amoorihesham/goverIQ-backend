@@ -29,7 +29,7 @@ export const createInivitionsService = (db: DatabaseClient, dispatcher: Notifica
       expiresAt.setDate(expiresAt.getDate() + CONFIGURATIONS.INVITATION_TTL_DAYS);
 
       return withTx(async (tx) => {
-        const org = await db.query.organizations.findFirst({ where: eq(invitations.orgId, orgId) });
+        const org = await db.query.organizations.findFirst({ where: (f, { eq }) => eq(f.id, orgId) });
         if (!org) throw AppError.notFound('Organization not found');
 
         const [invitation] = await tx
@@ -57,7 +57,7 @@ export const createInivitionsService = (db: DatabaseClient, dispatcher: Notifica
 
         await dispatcher.enqueue('invitation', invitation.email, {
           orgName: org.name,
-          expiresAt: invitation.expiresAt.getDate(),
+          expiresAt: invitation.expiresAt,
           acceptUrl: '',
           declineUrl: '',
         });

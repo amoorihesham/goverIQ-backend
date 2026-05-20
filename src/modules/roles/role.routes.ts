@@ -32,7 +32,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
     '/:roleId/org/:orgId',
     {
       schema: getRoleDetailsRequestSchema,
-      preHandler: [identityRequired, requirePermission('role:read')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('role:read')],
     },
     controller.getRoleDetails,
   );
@@ -41,7 +41,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
     '/:roleId/org/:orgId/permissions',
     {
       schema: listPermissionsInRoleRequestSchema,
-      preHandler: [identityRequired, requirePermission('role:read')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('role:read')],
     },
     controller.listPermissions,
   );
@@ -50,7 +50,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
     '/org/:orgId',
     {
       schema: createRoleRequestSchema,
-      preHandler: [identityRequired, requirePermission('role:create')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('role:create')],
     },
     controller.createRole,
   );
@@ -59,7 +59,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
     '/:roleId/org/:orgId',
     {
       schema: updateRoleRequestSchema,
-      preHandler: [identityRequired, requirePermission('role:update')],
+      preHandler: [identityRequired, attachOrgId, requirePermission('role:update')],
     },
     controller.updateRole,
   );

@@ -15,6 +15,7 @@ import {
 import { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
+import { logger } from '@/shared/logger';
 
 export const createRoleController = (db: DatabaseClient) => {
   const service = createRoleService(db);
@@ -56,7 +57,8 @@ export const createRoleController = (db: DatabaseClient) => {
       reply: FastifyReply,
     ) {
       const { reqId, orgId, userId } = contextFromRequest(request);
-      const role = await service.updateRole(userId!, orgId!, reqId, request.params.roleId, request.body);
+
+      const role = await service.updateRole(userId!, orgId!, request.params.roleId, reqId, request.body);
       return reply.send({
         success: true,
         data: role,

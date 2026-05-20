@@ -59,7 +59,9 @@
       "Skill(speckit-git-feature:*)",
       "PowerShell(& \".specify\\\\extensions\\\\git\\\\scripts\\\\powershell\\\\create-new-feature.ps1\" -Json -ShortName \"audit-hardening-deployment\" \"The audit log is queryable and exportable via API. The system is secured, documented, and ready for production deployment.\")",
       "PowerShell(& \".specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1\" -Json -PathsOnly)",
-      "Bash(pwsh -NoProfile -Command \".specify/scripts/powershell/setup-plan.ps1 -Json\")"
+      "Bash(pwsh -NoProfile -Command \".specify/scripts/powershell/setup-plan.ps1 -Json\")",
+      "Bash(find d:\\\\\\\\groven-iq\\\\\\\\src\\\\\\\\modules\\\\\\\\invitions -type f)",
+      "PowerShell(head -15)"
     ],
     "additionalDirectories": [
       "d:\\groven-iq\\specs\\003-org-roles-members"
