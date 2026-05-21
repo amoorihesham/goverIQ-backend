@@ -122,4 +122,28 @@ export class AppError extends Error {
   static minutesFinalized(message?: string): AppError {
     return AppError.create('MINUTES_FINALIZED', message);
   }
+
+  static invitationNotFound(message?: string): AppError {
+    return AppError.create('INVITATION_NOT_FOUND', message);
+  }
+
+  static invitationNotPending(message?: string): AppError {
+    return AppError.create('INVITATION_NOT_PENDING', message);
+  }
+
+  static invitationExpired(message?: string): AppError {
+    return AppError.create('INVITATION_EXPIRED', message);
+  }
+
+  static loginRequired(message?: string): AppError {
+    return AppError.create('LOGIN_REQUIRED', message);
+  }
+
+  static emailMismatch(message?: string): AppError {
+    return AppError.create('EMAIL_MISMATCH', message);
+  }
+
+  static passwordRequired(message?: string): AppError {
+    return AppError.create('PASSWORD_REQUIRED', message);
+  }
 }

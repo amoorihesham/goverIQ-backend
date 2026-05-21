@@ -13,6 +13,7 @@ import {
 import { DatabaseClient } from '@/shared/database/types';
 import { success } from '@/shared/errors/envelope';
 import { contextFromRequest } from '@/shared/http/context';
+import { membersLogger } from './public';
 
 export const createMemberController = (db: DatabaseClient) => {
   const service = membersService(db);
@@ -29,7 +30,8 @@ export const createMemberController = (db: DatabaseClient) => {
     async getMemberDetails(request: FastifyRequest<{ Params: GetMemberDetailsRequestParams }>, reply: FastifyReply) {
       const { orgId, userId } = contextFromRequest(request);
       const result = await service.getMemberDetails(userId!, orgId!, request.params.memberId);
-      return reply.status(200).send(success({ message: 'Member fetched successfully.', data: result }));
+      membersLogger.warn(result);
+      return reply.status(200).send(success({ ...result }, 'User details fetched.'));
     },
 
     async assignMemberRole(

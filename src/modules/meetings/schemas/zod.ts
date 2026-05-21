@@ -1,4 +1,4 @@
-import { z, object, string, array, number } from 'zod';
+import { z, object, string, array, number, coerce } from 'zod';
 
 const agendaItemSchema = object({
   title: string().min(1),
@@ -57,7 +57,7 @@ export const listMeetingsSchema = {
     to: string().datetime().optional(),
     attendeeId: string().uuid().optional(),
     cursor: string().optional(),
-    limit: z.coerce.number().int().positive().optional(),
+    limit: coerce.number().int().positive().optional(),
   }),
 };
 

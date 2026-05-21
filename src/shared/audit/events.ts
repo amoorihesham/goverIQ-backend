@@ -10,6 +10,8 @@ export const AUDIT_EVENTS = Object.freeze([
   'role.created',
   'role.updated',
   'role.deleted',
+  'member.joined',
+  'member.declined',
   'member.role_assigned',
   'member.role_revoked',
   'member.removed',

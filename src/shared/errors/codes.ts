@@ -129,6 +129,36 @@ export const ERROR_CODES = {
     httpStatus: 422,
     message: 'Minutes are finalized and cannot be modified',
   },
+  INVITATION_NOT_FOUND: {
+    code: 'INVITATION_NOT_FOUND',
+    httpStatus: 404,
+    message: 'Invitation not found',
+  },
+  INVITATION_NOT_PENDING: {
+    code: 'INVITATION_NOT_PENDING',
+    httpStatus: 409,
+    message: 'Invitation is not pending',
+  },
+  INVITATION_EXPIRED: {
+    code: 'INVITATION_EXPIRED',
+    httpStatus: 422,
+    message: 'Invitation has expired',
+  },
+  LOGIN_REQUIRED: {
+    code: 'LOGIN_REQUIRED',
+    httpStatus: 401,
+    message: 'Login required to accept this invitation',
+  },
+  EMAIL_MISMATCH: {
+    code: 'EMAIL_MISMATCH',
+    httpStatus: 403,
+    message: 'Logged-in email does not match invitation email',
+  },
+  PASSWORD_REQUIRED: {
+    code: 'PASSWORD_REQUIRED',
+    httpStatus: 400,
+    message: 'Password is required to create your account',
+  },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

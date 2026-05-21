@@ -6,6 +6,7 @@ import { emitAudit } from '@/shared/audit/emitter';
 import { withTx } from '@/shared/database/transaction';
 import { DatabaseClient } from '@/shared/database/types';
 import { AppError } from '@/shared/errors/http-error';
+import { membersLogger } from './public';
 
 export const membersService = (db: DatabaseClient) => {
   return {
@@ -23,9 +24,10 @@ export const membersService = (db: DatabaseClient) => {
         where: (f, { and, eq }) => and(eq(f.userId, userId), eq(f.orgId, orgId)),
       });
       if (!membership) throw AppError.forbidden('Not a member of this organization.');
-      return db.query.memberships.findFirst({
-        where: (f, { and, eq }) => and(eq(f.orgId, orgId), eq(f.userId, memberId)),
-        with: { role: true },
+
+      return await db.query.memberships.findFirst({
+        where: (f, { eq }) => eq(f.id, memberId),
+        with: { role: true, user: { columns: { passwordHash: false } } },
       });
     },
 

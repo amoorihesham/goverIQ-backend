@@ -13,6 +13,7 @@ type LoggerHolder = {
 
 export interface SuccessEnvelope<T> {
   success: true;
+  message?: string;
   data: T;
 }
 
@@ -27,9 +28,10 @@ export interface FailureEnvelope {
 
 export type ResponseEnvelope<T> = SuccessEnvelope<T> | FailureEnvelope;
 
-export function success<T>(data: T): SuccessEnvelope<T> {
+export function success<T>(data: T, message?: string): SuccessEnvelope<T> {
   return {
     success: true,
+    message,
     data,
   };
 }

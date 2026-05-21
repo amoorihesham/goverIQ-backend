@@ -3,13 +3,16 @@ import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 import { invitionsController } from './invitions.controller';
 import {
+  acceptInvitationSchema,
   createInvitationSchema,
+  declineInvitationSchema,
   deleteInvitationSchema,
   getInvitationSchema,
   listInvitionsSchema,
 } from './schemas/zod';
 
 import { identityRequired } from '@/shared/auth/identity';
+import { tryIdentity } from '@/shared/auth/identity';
 import { db } from '@/shared/database/client';
 import { attachOrgId } from '@/shared/http/pre-handlers/attach-org-id';
 import { requirePermission } from '@/shared/permissions/guard';
@@ -51,5 +54,20 @@ export async function invitionsRoutes(fastify: FastifyInstance) {
       preHandler: [identityRequired, attachOrgId, requirePermission('invitation:delete')],
     },
     controller.deleteInvitation,
+  );
+
+  fastify.withTypeProvider<ZodTypeProvider>().post(
+    '/:token/accept',
+    {
+      schema: acceptInvitationSchema,
+      preHandler: [tryIdentity],
+    },
+    controller.acceptInvitation,
+  );
+
+  fastify.withTypeProvider<ZodTypeProvider>().post(
+    '/:token/decline',
+    { schema: declineInvitationSchema },
+    controller.declineInvitation,
   );
 }

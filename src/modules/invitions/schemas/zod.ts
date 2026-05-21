@@ -31,3 +31,20 @@ export const deleteInvitationSchema = {
     orgId: string(),
   }),
 };
+
+export const acceptInvitationSchema = {
+  summary: 'Accept an invitation by token.',
+  params: object({
+    token: string().length(64).regex(/^[a-f0-9]+$/),
+  }),
+  body: object({
+    password: string().min(12).optional(),
+  }),
+};
+
+export const declineInvitationSchema = {
+  summary: 'Decline an invitation by token.',
+  params: object({
+    token: string().length(64).regex(/^[a-f0-9]+$/),
+  }),
+};
