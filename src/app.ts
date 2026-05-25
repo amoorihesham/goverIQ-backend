@@ -1,4 +1,5 @@
 import fastifyCookie from '@fastify/cookie';
+import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { ulid } from 'ulid';
@@ -30,6 +31,12 @@ export async function buildApp() {
 
   await fastify.setValidatorCompiler(validatorCompiler);
   await fastify.setSerializerCompiler(serializerCompiler);
+
+  await fastify.register(cors, {
+    credentials: true,
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS', 'DELETE'],
+  });
 
   await fastify.register(import('@fastify/helmet'), {
     hsts:

@@ -24,6 +24,7 @@
   "license": "ISC",
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
     "@fastify/otel": "^0.18.1",
     "@fastify/swagger": "^9.7.0",

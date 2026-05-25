@@ -11,7 +11,7 @@ export const identityRequired: preHandlerHookHandler = async (request: FastifyRe
   const authHeader = request.headers.authorization;
   const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
   const accessToken = cookieToken ?? bearerToken;
-  if (!accessToken) throw AppError.create('UNAUTHORIZED');
+  if (!accessToken) throw AppError.create('CONFLICT');
 
   const payload = await verifyToken(accessToken, env.JWT_ACCESS_SECRET);
 
